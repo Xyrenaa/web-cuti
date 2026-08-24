@@ -4,16 +4,20 @@
      class="sticky top-0 z-50 border-b border-gray-100 transition-all duration-300">
     
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Tambahkan sedikit transisi di tinggi navbar agar agak mengecil saat discroll (opsional tapi keren) -->
+        <!-- class justify-between ini yang memastikan logo di kiri dan menu di kanan -->
         <div class="flex justify-between items-center transition-all duration-300" :class="{'h-16': scrolled, 'h-20': !scrolled}">
             
             <!-- Bagian Kiri: DUA LOGO BERDAMPINGAN -->
             <div class="shrink-0 flex items-center">
-                <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
+                @if(Auth::user()->hasRole('Admin'))
+                    <a href="{{ route('Admin.dashboard') }}" class="flex items-center gap-3">
+                @else
+                    <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
+                @endif
                     <!-- Logo Instansi (Otban) -->
                     <img src="{{ asset('img/Logo Otban.png') }}" 
                          class="block w-auto drop-shadow-sm transition-all duration-300" 
-                         :class="{'h-[45px]': scrolled, 'h-[60px]': !scrolled}" 
+                         :class="{'h-[60px]': scrolled, 'h-[60px]': !scrolled}" 
                          alt="Logo Instansi" />
                     <!-- Garis Pemisah -->
                     <div class="w-px bg-gray-300 transition-all duration-300" :class="{'h-6': scrolled, 'h-8': !scrolled}"></div>
@@ -29,11 +33,19 @@
             <div class="hidden sm:flex sm:items-center sm:space-x-2 lg:space-x-4">
                 
                 <!-- Menu Beranda -->
-                <a href="{{ route('dashboard') }}" 
-                   class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center 
-                   {{ request()->routeIs('dashboard') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
-                    Beranda
-                </a>
+                @if(Auth::user()->hasRole('Admin'))
+                    <a href="{{ route('Admin.dashboard') }}" 
+                       class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center 
+                       {{ request()->routeIs('Admin.dashboard') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
+                        Beranda
+                    </a>
+                @else
+                    <a href="{{ route('dashboard') }}" 
+                       class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center 
+                       {{ request()->routeIs('dashboard') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
+                        Beranda
+                    </a>
+                @endif
                 
                 <!-- Menu Pengajuan Cuti -->
                 <a href="#" 
@@ -49,7 +61,7 @@
                     Riwayat Pengajuan
                 </a>
 
-                <!-- Menu Notifikasi (Dengan Efek Lonceng Goyang) -->
+                <!-- Menu Notifikasi -->
                 <a href="#" 
                    class="group px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center gap-1.5 
                    {{ request()->routeIs('notifikasi.*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
@@ -59,7 +71,7 @@
                     </svg>
                 </a>
 
-                <!-- Dropdown Profil (Dengan Gaya Pill yang Sama) -->
+                <!-- Dropdown Profil -->
                 <div x-data="{ dropdownOpen: false }" class="relative">
                     <button @click="dropdownOpen = !dropdownOpen" 
                             class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center gap-2 focus:outline-none
@@ -115,10 +127,15 @@
     <!-- Dropdown Menu Mobile -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden bg-white/90 backdrop-blur-md border-t border-gray-100">
         <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                Beranda
-            </x-responsive-nav-link>
-            <!-- Menu mobile lainnya -->
+            @if(Auth::user()->hasRole('Admin'))
+                <x-responsive-nav-link :href="route('Admin.dashboard')" :active="request()->routeIs('Admin.dashboard')">
+                    Beranda
+                </x-responsive-nav-link>
+            @else
+                <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                    Beranda
+                </x-responsive-nav-link>
+            @endif
         </div>
     </div>
 </nav>
