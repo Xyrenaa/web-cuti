@@ -23,23 +23,45 @@
                     <h2 class="text-2xl font-bold text-gray-800">Selamat Datang Kembali</h2>
                     <p class="text-gray-500 mt-1 text-sm">Kelola pengajuan cuti pegawai Kantor Otoritas Bandar Udara Wilayah III Juanda secara real-time.</p>
                 </div>
-                <!-- Bagian Waktu Real-time dengan Alpine.js -->
+    
+             <!-- Bagian Waktu Real-time (Sejajar Rapi di Atas/Baseline) -->
                 <div class="mt-4 md:mt-0 text-right" 
                      x-data="{ 
-                        waktu: '{{ \Carbon\Carbon::now()->setTimezone('Asia/Jakarta')->format('H:i') }}',
-                        updateTime() {
-                            const now = new Date();
-                            const jam = String(now.getHours()).padStart(2, '0');
-                            const menit = String(now.getMinutes()).padStart(2, '0');
-                            this.waktu = jam + ':' + menit;
-                        }
-                     }" 
-                     x-init="setInterval(() => updateTime(), 1000)">
-                    
-                    <p class="text-xs font-bold text-[#2A65F3] uppercase tracking-wider">Waktu Saat Ini</p>
-                    <p class="text-xl font-bold text-gray-800"><span x-text="waktu"></span> WIB</p>
-                </div>
+                    jam: '{{ \Carbon\Carbon::now()->setTimezone('Asia/Jakarta')->format('H') }}',
+                    menit: '{{ \Carbon\Carbon::now()->setTimezone('Asia/Jakarta')->format('i') }}',
+                    detik: '{{ \Carbon\Carbon::now()->setTimezone('Asia/Jakarta')->format('s') }}',
+                    updateTime() {
+                 const now = new Date();
+                 this.jam = String(now.getHours()).padStart(2, '0');
+                 this.menit = String(now.getMinutes()).padStart(2, '0');
+                 this.detik = String(now.getSeconds()).padStart(2, '0');
+             }
+         }" 
+         x-init="setInterval(() => updateTime(), 1000)">
+        
+        <p class="text-xs font-bold text-[#2A65F3] uppercase tracking-wider mb-1">Waktu Saat Ini</p>
+        
+        <div class="flex items-baseline justify-end gap-1">
+            
+            <!-- Jam dan Menit Utama -->
+            <div class="text-xl font-bold text-gray-800">
+                <span x-text="jam"></span>
+                <span class="mx-0.5">:</span>
+                <span x-text="menit"></span>
             </div>
+            
+            <!-- Detik -->
+            <div class="text-xs font-semibold text-gray-400">
+                <span class="mr-0.5">:</span>
+                <span x-text="detik"></span>
+            </div>
+            
+            <!-- WIB -->
+            <span class="text-xs font-bold text-gray-600 ml-1">WIB</span>
+            
+        </div>
+    </div>
+</div>
 
             <!-- Grid 4 Kartu Statistik -->
            <!-- Statistik Terpadu (Sleek Enterprise Style) -->
