@@ -190,7 +190,14 @@
                     </table>
                 </div>
             </div>
-
         </div>
     </div>
+    <!-- Footer Section -->
+<footer class="w-full bg-gray-200 py-5 mt-10">
+    <div class="text-center">
+        <p class="text-sm font-medium text-gray-600">
+            Kantor Otoritas Bandar Udara Wilayah III Juanda
+        </p>
+    </div>
+</footer>
 </x-app-layout>
