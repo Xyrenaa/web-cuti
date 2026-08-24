@@ -48,8 +48,11 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        $user->assignRole('Pegawai'); 
-
+        if (stripos($request->jabatan, 'kepala') !== false){
+            $user->assignRole('Kepala');
+        }else {
+            $user->assignRole('Pegawai'); 
+        }
         event(new Registered($user));
 
         Auth::login($user);

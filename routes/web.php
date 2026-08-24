@@ -8,6 +8,9 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
+    if (auth()->user()->hasRole('Kepala')){
+        return view('dashboard-kepala');
+    }
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 

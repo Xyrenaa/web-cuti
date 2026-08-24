@@ -34,6 +34,15 @@
                    {{ request()->routeIs('dashboard') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
                     Beranda
                 </a>
+
+                <!-- Menu Approval Cuti (HANYA MUNCUL UNTUK KEPALA) -->
+                @if(auth()->user()->hasRole('Kepala'))
+                <a href="#" 
+                   class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center 
+                   {{ request()->routeIs('approval.*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
+                    Approval Cuti
+                </a>
+                @endif
                 
                 <!-- Menu Pengajuan Cuti -->
                 <a href="#" 
