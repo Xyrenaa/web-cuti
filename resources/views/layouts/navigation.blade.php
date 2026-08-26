@@ -45,9 +45,9 @@
                 @endif
                 
                 <!-- Menu Pengajuan Cuti -->
-                <a href="#" 
+                <a href="{{ route('pengajuan.index') }}" 
                    class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center 
-                   {{ request()->routeIs('pengajuan.*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
+                   {{ request()->routeIs('pengajuan.*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-gray-50' }}">
                     Pengajuan Cuti
                 </a>
 

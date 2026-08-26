@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PengajuanController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -18,8 +19,15 @@ Route::get('/dashboard', function () {
     if (auth()->user()->hasAnyRole($parakepala)){
         return view('dashboard-kepala');
     }
-    return view('dashboard');
+    return view('pegawai.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+//Pegawai
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/pengajuan', [PengajuanController::class, 'index'])->name('pengajuan.index');
+    Route::post('/pengajuan', [PengajuanController::class, 'store'])->name('pengajuan.store');
+});
+
 
 // Route Admin yang baru
 Route::get('/admin/dashboard', function () {

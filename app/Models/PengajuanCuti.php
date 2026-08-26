@@ -3,8 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PengajuanCuti extends Model
 {
-    //
+    use HasFactory;
+    protected $guarded = [];
+
+    protected $casts = [
+        'bukti_pendukung' => 'array',
+    ];
+
+    public function jenisCuti() {
+        return $this->belongsTo(JenisCuti::class);
+    }
 }
