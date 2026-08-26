@@ -13,8 +13,12 @@ class RoleSeeder extends Seeder
     {
         $roles = [
             'Pegawai',
-            'Admin',
-            'Kepala',
+            'Admin Kepegawaian',
+            'Kepala Seksi',
+            'Kepala Bidang',
+            'Kepala Sub Bagian',
+            'Kepala Tata Usaha',
+            'Kepala Kantor',
         ];
 
         foreach ($roles as $role) {
@@ -37,6 +41,6 @@ class RoleSeeder extends Seeder
             'jabatan' => 'Staff Kepegawaian',
             'sisa_cuti_tahunan' => 12
         ]);
-        $admin->assignRole('Admin');
+        $admin->assignRole('Admin Kepegawaian');
     }
 }
