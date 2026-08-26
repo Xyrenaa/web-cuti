@@ -8,7 +8,14 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    if (auth()->user()->hasRole('Kepala')){
+    $parakepala = [
+        'Kepala Seksi',
+        'Kepala Bidang',
+        'Kepala Sub Bagian',
+        'Kepala Tata Usaha',
+        'Kepala Kantor'
+    ];
+    if (auth()->user()->hasAnyRole($parakepala)){
         return view('dashboard-kepala');
     }
     return view('dashboard');
