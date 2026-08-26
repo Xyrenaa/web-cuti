@@ -30,9 +30,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
 // Route Admin yang baru
+// 1. Dashboard Admin
 Route::get('/admin/dashboard', function () {
     return view('admin.dashboard');
 })->middleware(['auth', 'verified'])->name('admin.dashboard');
+
+// 2. Halaman Daftar Approval Cuti
+Route::get('/admin/approval', function () {
+    return view('admin.approval.index'); 
+})->middleware(['auth', 'verified'])->name('admin.approval');
+
+// 3. Halaman Detail Approval Cuti
+Route::get('/admin/approval/{id}', function ($id) {
+    return view('admin.approval.show'); 
+})->middleware(['auth', 'verified'])->name('admin.approval.show');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

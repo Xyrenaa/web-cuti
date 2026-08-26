@@ -51,28 +51,8 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
-       // LOGIKA DETEKSI JABATAN PINTAR 
-        $jabatan = strtolower($request->jabatan);
-
-        if (str_contains($jabatan, 'admin') || str_contains($jabatan, 'kepegawaian')) {
-            $user->assignRole('Admin Kepegawaian');
-        } elseif (str_contains($jabatan, 'kepala') || str_contains($jabatan, 'kasi') || str_contains($jabatan, 'kabid') || str_contains($jabatan, 'kasubag')) {
-            if (str_contains($jabatan, 'seksi') || str_contains($jabatan, 'kasi')) {
-                $user->assignRole('Kepala Seksi');
-            } elseif (str_contains($jabatan, 'bidang') || str_contains($jabatan, 'kabid')) {
-                $user->assignRole('Kepala Bidang');
-            } elseif (str_contains($jabatan, 'sub') || str_contains($jabatan, 'kasubag')) {
-                $user->assignRole('Kepala Sub Bagian');
-            } elseif (str_contains($jabatan, 'tu') || str_contains($jabatan, 'tata usaha')) {
-                $user->assignRole('Kepala TU');
-            } elseif (str_contains($jabatan, 'kantor') || str_contains($jabatan, 'kakan')) {
-                $user->assignRole('Kepala Kantor');
-            } else {
-                $user->assignRole('Kepala Seksi'); 
-            }
-        } else {
-            $user->assignRole('Pegawai');
-        }
+        $user->assignRole('Pegawai');
+        
         event(new Registered($user));
 
         Auth::login($user);
