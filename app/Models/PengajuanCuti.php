@@ -17,4 +17,9 @@ class PengajuanCuti extends Model
     public function jenisCuti() {
         return $this->belongsTo(JenisCuti::class);
     }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

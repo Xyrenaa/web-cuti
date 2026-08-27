@@ -111,3 +111,42 @@ class PengajuanController extends Controller
         return back()->with('success', 'Semua notifikasi telah ditandai dibaca.');
     }
 } 
+
+    public function indexKepala(Request $request)
+    {
+        $user = Auth::user();
+        $step = 0;
+
+        // Tentukan hak akses step berdasarkan role Spatie
+        if ($user->hasRole('Kepala Seksi')) {
+            $step = 1;
+        } elseif ($user->hasRole('Kepala Bidang')) {
+            $step = 2;
+        } elseif ($user->hasRole('Kepala Sub Bagian')) {
+            $step = 3;
+        } elseif ($user->hasRole('Kepala TU')) {
+            $step = 4;
+        } elseif ($user->hasRole('Kepala Kantor')) {
+            $step = 5;
+        }
+
+        // Ambil data pengajuan cuti beserta data pegawainya (relasi user)
+        $pengajuans = PengajuanCuti::with('user')
+            ->where('approval_step', $step)
+            ->latest()
+            ->paginate(10);
+
+        // Arahkan ke file index di dalam folder admin/approval
+        return view('kepala.approval.index', compact('pengajuans'));
+    }
+
+    public function showKepala($id)
+    {
+        // Ambil data pengajuan beserta data pegawainya berdasarkan ID
+        $data = \App\Models\PengajuanCuti::with('user')->findOrFail($id);
+        if (!$data) {
+            return redirect()->route('kepala.approval.index')->with('error', 'Data pengajuan tidak ditemukan!');
+        }
+        return view('kepala.approval.show', compact('data'));
+    }
+}

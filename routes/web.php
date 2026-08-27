@@ -39,15 +39,17 @@ Route::get('/admin/dashboard', function () {
     return view('admin.dashboard');
 })->middleware(['auth', 'verified'])->name('admin.dashboard');
 
-// 2. Halaman Daftar Approval Cuti
-Route::get('/admin/approval', function () {
-    return view('admin.approval.index'); 
-})->middleware(['auth', 'verified'])->name('admin.approval');
+// Rute untuk melihat tabel daftar approval
+Route::get('/admin/approval', [\App\Http\Controllers\PengajuanController::class, 'indexApproval'])->name('admin.approval.index');
 
-// 3. Halaman Detail Approval Cuti
-Route::get('/admin/approval/{id}', function ($id) {
-    return view('admin.approval.show'); 
-})->middleware(['auth', 'verified'])->name('admin.approval.show');
+// Rute untuk melihat halaman detail approval (yang ada trackingnya)
+Route::get('/admin/approval/{id}', [\App\Http\Controllers\PengajuanController::class, 'showApproval'])->name('admin.approval.show');
+
+// Rute Khusus Approval Kepala
+Route::middleware(['auth', 'verified'])->prefix('kepala')->name('kepala.')->group(function () {
+    Route::get('/approval', [\App\Http\Controllers\PengajuanController::class, 'indexKepala'])->name('approval.index');
+    Route::get('/approval/{id}', [\App\Http\Controllers\PengajuanController::class, 'showKepala'])->name('approval.show');
+});
 
 
 
