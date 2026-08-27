@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\PengajuanCuti;
 use App\Models\JenisCuti;
 use Illuminate\Support\Facades\Auth;
+use App\Notifications\StatusCutiNotification;
 
 class PengajuanController extends Controller
 {
@@ -32,13 +33,15 @@ class PengajuanController extends Controller
             'bukti_pendukung.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
         ]);
 
-        $suratPath = $request->file('surat_pengajuan')->store('dokumen/surat_pengajuan', 'public');
-        
-        // LOGIKA BARU: Simpan banyak file pendukung
+        $suratFile = $request->file('surat_pengajuan');
+        $suratName = time() . '_wajib_' . preg_replace('/\s+/', '_', $suratFile->getClientOriginalName());
+        $suratPath = $suratFile->storeAs('dokumen/surat_pengajuan', $suratName, 'public');
+     
         $buktiPaths = [];
         if ($request->hasFile('bukti_pendukung')) {
-            foreach ($request->file('bukti_pendukung') as $file) {
-                $buktiPaths[] = $file->store('dokumen/bukti_pendukung', 'public');
+            foreach ($request->file('bukti_pendukung') as $key => $file) {
+                $buktiName = time() . '_opsi' . $key . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
+                $buktiPaths[] = $file->storeAs('dokumen/bukti_pendukung', $buktiName, 'public');
             }
         }
 
@@ -61,8 +64,53 @@ class PengajuanController extends Controller
             'status_pengajuan' => $statusPengajuan,
         ]);
 
+        // Mengirim notifikasi ke diri sendiri sebagai konfirmasi (Bisa juga diganti ke atasan)
+        $user->notify(new StatusCutiNotification(
+            'Pengajuan Berhasil Dikirim',
+            'Pengajuan cuti Anda untuk tanggal ' . $request->tanggal_mulai . ' telah masuk sistem dan sedang menunggu persetujuan.'
+        ));
+
+        return redirect()->route('pengajuan.index')->with('success', 'Pengajuan cuti dan dokumen lampiran berhasil dikirim.');
+
         return redirect()->route('pengajuan.index')->with('success', 'Pengajuan cuti dan dokumen lampiran berhasil dikirim.');
     }
+    public function riwayat()
+    {
+        $query = PengajuanCuti::where('user_id', Auth::id())->latest();
+
+        if (request()->has('cari') && request()->cari != '') {
+            $query->where('alasan', 'like', '%' . request()->cari . '%');
+        }
+        
+        // 1. PINDAHKAN KODE INI KE DALAM SINI
+        $riwayat = $query->paginate(5);
+        return view('pegawai.riwayat', compact('riwayat')); 
+        // Catatan: Pastikan nama file blade-mu adalah 'riwayat.blade.php'
+    }
+
+    public function show($id)
+    {
+        $pengajuan = PengajuanCuti::where('user_id', Auth::id())->findOrFail($id);
+        return view('pegawai.detail', compact('pengajuan'));
+    }
+    public function notifikasi()
+    {
+        // Mengambil semua notifikasi milik user yang sedang login
+        $notifikasis = Auth::user()->notifications;
+        
+        // Mengambil jumlah notifikasi yang belum dibaca (untuk badge angka biru)
+        $belumDibaca = Auth::user()->unreadNotifications->count();
+
+        return view('pegawai.notifikasi', compact('notifikasis', 'belumDibaca'));
+    }
+    
+    // (TAMBAHAN) Fungsi untuk tombol "Tandai Semua Dibaca"
+    public function tandaiSemuaDibaca()
+    {
+        Auth::user()->unreadNotifications->markAsRead();
+        return back()->with('success', 'Semua notifikasi telah ditandai dibaca.');
+    }
+} 
 
     public function indexKepala(Request $request)
     {
