@@ -29,6 +29,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 Route::get('/riwayat-pengajuan', [App\Http\Controllers\PengajuanController::class, 'riwayat'])->name('pengajuan.riwayat');
 Route::get('/pengajuan/{id}', [App\Http\Controllers\PengajuanController::class, 'show'])->name('pengajuan.show');
+Route::get('/notifikasi', [App\Http\Controllers\PengajuanController::class, 'notifikasi'])->name('notifikasi');
+Route::post('/notifikasi/tandai-dibaca', [App\Http\Controllers\PengajuanController::class, 'tandaiSemuaDibaca'])->name('notifikasi.read');
 
 
 // Route Admin yang baru
@@ -47,10 +49,14 @@ Route::get('/admin/approval/{id}', function ($id) {
     return view('admin.approval.show'); 
 })->middleware(['auth', 'verified'])->name('admin.approval.show');
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
+
+
+    Route::get('/profil', [App\Http\Controllers\ProfileController::class, 'show'])->name('profile.show');
+    
+    // Route bawaan breeze (sesuaikan path-nya jika mau diubah ke bahasa indonesia)
+    Route::get('/profil/edit', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profil', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profil', [App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');
+
 
 require __DIR__.'/auth.php';

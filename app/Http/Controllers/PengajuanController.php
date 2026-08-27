@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\PengajuanCuti;
 use App\Models\JenisCuti;
 use Illuminate\Support\Facades\Auth;
+use App\Notifications\StatusCutiNotification;
 
 class PengajuanController extends Controller
 {
@@ -63,6 +64,14 @@ class PengajuanController extends Controller
             'status_pengajuan' => $statusPengajuan,
         ]);
 
+        // Mengirim notifikasi ke diri sendiri sebagai konfirmasi (Bisa juga diganti ke atasan)
+        $user->notify(new StatusCutiNotification(
+            'Pengajuan Berhasil Dikirim',
+            'Pengajuan cuti Anda untuk tanggal ' . $request->tanggal_mulai . ' telah masuk sistem dan sedang menunggu persetujuan.'
+        ));
+
+        return redirect()->route('pengajuan.index')->with('success', 'Pengajuan cuti dan dokumen lampiran berhasil dikirim.');
+
         return redirect()->route('pengajuan.index')->with('success', 'Pengajuan cuti dan dokumen lampiran berhasil dikirim.');
     }
     public function riwayat()
@@ -83,5 +92,22 @@ class PengajuanController extends Controller
     {
         $pengajuan = PengajuanCuti::where('user_id', Auth::id())->findOrFail($id);
         return view('pegawai.detail', compact('pengajuan'));
+    }
+    public function notifikasi()
+    {
+        // Mengambil semua notifikasi milik user yang sedang login
+        $notifikasis = Auth::user()->notifications;
+        
+        // Mengambil jumlah notifikasi yang belum dibaca (untuk badge angka biru)
+        $belumDibaca = Auth::user()->unreadNotifications->count();
+
+        return view('pegawai.notifikasi', compact('notifikasis', 'belumDibaca'));
+    }
+    
+    // (TAMBAHAN) Fungsi untuk tombol "Tandai Semua Dibaca"
+    public function tandaiSemuaDibaca()
+    {
+        Auth::user()->unreadNotifications->markAsRead();
+        return back()->with('success', 'Semua notifikasi telah ditandai dibaca.');
     }
 } 
