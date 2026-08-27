@@ -46,15 +46,13 @@
                 
                 <!-- Menu Pengajuan Cuti -->
                 <a href="{{ route('pengajuan.index') }}" 
-                   class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center 
-                   {{ request()->routeIs('pengajuan.*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-gray-50' }}">
+                class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center {{ request()->is('pengajuan') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
                     Pengajuan Cuti
                 </a>
 
                 <!-- Menu Riwayat Pengajuan -->
-                <a href="#" 
-                   class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center 
-                   {{ request()->routeIs('riwayat.*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
+                <a href="{{ route('pengajuan.riwayat') }}" 
+                class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center {{ request()->is('riwayat-pengajuan') || request()->is('pengajuan/*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
                     Riwayat Pengajuan
                 </a>
 
@@ -127,7 +125,10 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 Beranda
             </x-responsive-nav-link>
-            <!-- Menu mobile lainnya -->
+            
+            <x-responsive-nav-link :href="route('pengajuan.riwayat')" :active="request()->routeIs('pengajuan.riwayat', 'pengajuan.show')">
+                Riwayat Pengajuan
+            </x-responsive-nav-link>
         </div>
     </div>
 </nav>

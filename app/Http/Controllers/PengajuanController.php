@@ -32,13 +32,15 @@ class PengajuanController extends Controller
             'bukti_pendukung.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
         ]);
 
-        $suratPath = $request->file('surat_pengajuan')->store('dokumen/surat_pengajuan', 'public');
-        
-        // LOGIKA BARU: Simpan banyak file pendukung
+        $suratFile = $request->file('surat_pengajuan');
+        $suratName = time() . '_wajib_' . preg_replace('/\s+/', '_', $suratFile->getClientOriginalName());
+        $suratPath = $suratFile->storeAs('dokumen/surat_pengajuan', $suratName, 'public');
+     
         $buktiPaths = [];
         if ($request->hasFile('bukti_pendukung')) {
-            foreach ($request->file('bukti_pendukung') as $file) {
-                $buktiPaths[] = $file->store('dokumen/bukti_pendukung', 'public');
+            foreach ($request->file('bukti_pendukung') as $key => $file) {
+                $buktiName = time() . '_opsi' . $key . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
+                $buktiPaths[] = $file->storeAs('dokumen/bukti_pendukung', $buktiName, 'public');
             }
         }
 
@@ -63,4 +65,23 @@ class PengajuanController extends Controller
 
         return redirect()->route('pengajuan.index')->with('success', 'Pengajuan cuti dan dokumen lampiran berhasil dikirim.');
     }
-}
+    public function riwayat()
+    {
+        $query = PengajuanCuti::where('user_id', Auth::id())->latest();
+
+        if (request()->has('cari') && request()->cari != '') {
+            $query->where('alasan', 'like', '%' . request()->cari . '%');
+        }
+        
+        // 1. PINDAHKAN KODE INI KE DALAM SINI
+        $riwayat = $query->paginate(5);
+        return view('pegawai.riwayat', compact('riwayat')); 
+        // Catatan: Pastikan nama file blade-mu adalah 'riwayat.blade.php'
+    }
+
+    public function show($id)
+    {
+        $pengajuan = PengajuanCuti::where('user_id', Auth::id())->findOrFail($id);
+        return view('pegawai.detail', compact('pengajuan'));
+    }
+} 
