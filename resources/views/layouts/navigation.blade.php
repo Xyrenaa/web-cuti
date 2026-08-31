@@ -87,7 +87,7 @@
                          class="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50"
                          style="display: none;">
                         
-                        <a href="{{ route('profile.edit') }}" 
+                        <a href="{{ route('profile.show') }}" 
                            class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#2A65F3] font-medium transition-colors">
                             Lihat Profil
                         </a>
@@ -131,5 +131,25 @@
                 Notifikasi
             </x-responsive-nav-link>
         </div>
+        <x-responsive-nav-link :href="route('notifikasi')" :active="request()->routeIs('notifikasi')">
+                Notifikasi
+            </x-responsive-nav-link>
+
+            <!-- TAMBAHKAN DUA MENU INI UNTUK VERSI MOBILE -->
+            <x-responsive-nav-link :href="route('profile.show')" :active="request()->routeIs('profile.*')">
+                Profil
+            </x-responsive-nav-link>
+            
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <x-responsive-nav-link :href="route('logout')"
+                        onclick="event.preventDefault(); this.closest('form').submit();"
+                        class="text-red-600 hover:text-red-700 hover:bg-red-50">
+                    Keluar
+                </x-responsive-nav-link>
+            </form>
+        </div>
+    </div>
+</nav>
     </div>
 </nav>
