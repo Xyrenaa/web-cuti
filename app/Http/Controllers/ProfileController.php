@@ -60,4 +60,28 @@ class ProfileController extends Controller
 
         return Redirect::to('/');
     }
+    
+    // =========================================================
+    // FUNGSI KHUSUS ADMIN
+    // =========================================================
+
+    /**
+     * Menampilkan halaman profil admin.
+     */
+    public function showAdmin(Request $request)
+    {
+        return view('admin.profile.show', [
+            'user' => $request->user(),
+        ]);
+    }
+
+    /**
+     * Menampilkan form edit profil admin.
+     */
+    public function editAdmin(Request $request)
+    {
+        return view('admin.profile.edit', [
+            'user' => $request->user(),
+        ]);
+    }
 }

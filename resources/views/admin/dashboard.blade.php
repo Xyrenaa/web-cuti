@@ -108,7 +108,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <a href="#" class="text-blue-600 hover:text-blue-800 font-medium text-sm inline-flex items-center group">
+                                    <a href="{{ route('admin.approval.show', 1) }}" class="text-blue-600 hover:text-blue-800 font-medium text-sm inline-flex items-center group">
                                         Detail 
                                         <svg class="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                                     </a>
@@ -130,7 +130,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <a href="#" class="text-blue-600 hover:text-blue-800 font-medium text-sm inline-flex items-center group">
+                                    <a href="{{ route('admin.approval.show', 1) }}" class="text-blue-600 hover:text-blue-800 font-medium text-sm inline-flex items-center group">
                                         Detail 
                                         <svg class="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                                     </a>
@@ -152,7 +152,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <a href="#" class="text-blue-600 hover:text-blue-800 font-medium text-sm inline-flex items-center group">
+                                    <a href="{{ route('admin.approval.show', 1) }}" class="text-blue-600 hover:text-blue-800 font-medium text-sm inline-flex items-center group">
                                         Detail 
                                         <svg class="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                                     </a>
