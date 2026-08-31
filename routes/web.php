@@ -62,6 +62,10 @@ Route::post('/admin/approval/{id}/verifikasi', [PengajuanController::class, 'ver
 Route::middleware(['auth', 'verified'])->prefix('kepala')->name('kepala.')->group(function () {
     Route::get('/approval', [\App\Http\Controllers\PengajuanController::class, 'indexKepala'])->name('approval.index');
     Route::get('/approval/{id}', [\App\Http\Controllers\PengajuanController::class, 'showKepala'])->name('approval.show');
+    // Rute Aksi Approval
+    Route::put('/approval/{id}/approve', [\App\Http\Controllers\PengajuanController::class, 'approveKepala'])->name('approval.approve');
+    Route::put('/approval/{id}/reject', [\App\Http\Controllers\PengajuanController::class, 'tolakKepala'])->name('approval.reject');
+    Route::put('/approval/{id}/revisi', [\App\Http\Controllers\PengajuanController::class, 'revisiKepala'])->name('approval.revisi'); // INI RUTE BARUNYA
 });
 
 

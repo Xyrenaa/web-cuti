@@ -329,5 +329,65 @@ class PengajuanController extends Controller
         return view('admin.profile.edit', [
             'user' => $request->user(),
         ]);
+    // 1. MESIN TOMBOL SETUJUI
+    public function approveKepala(Request $request, $id)
+    {
+        // Pakai find() biasa, BUKAN findOrFail()
+        $pengajuan = \App\Models\PengajuanCuti::find($id);
+        
+        // CEK DUMMY: Kalau data tidak ada di database, lewati proses save()
+        if (!$pengajuan) {
+            return redirect()->route('kepala.approval.index')->with('success', '[DUMMY MODE] Seolah-olah berhasil disetujui dan diteruskan!');
+        }
+
+        $user = Auth::user();
+        if ($user->hasRole('Kepala Seksi')) {
+            $pengajuan->approval_step = 2;
+            $pengajuan->status_pengajuan = 'Menunggu Kepala Sub-Bagian';
+        } elseif ($user->hasRole('Kepala Sub-Bagian')) {
+            $pengajuan->approval_step = 3;
+            $pengajuan->status_pengajuan = 'Menunggu Kepala Bagian';
+        } elseif ($user->hasRole('Kepala Bagian')) {
+            $pengajuan->approval_step = 4;
+            $pengajuan->status_pengajuan = 'Menunggu Kepala Kantor';
+        } elseif ($user->hasRole('Kepala Kantor')) {
+            $pengajuan->approval_step = 5;
+            $pengajuan->status_pengajuan = 'Disetujui';
+        }
+
+        $pengajuan->save();
+        return redirect()->route('kepala.approval.index')->with('success', 'Pengajuan berhasil disetujui dan diteruskan.');
+    }
+
+    // 2. MESIN TOMBOL TOLAK
+    public function tolakKepala(Request $request, $id)
+    {
+        $pengajuan = \App\Models\PengajuanCuti::find($id);
+        
+        if (!$pengajuan) {
+            return redirect()->route('kepala.approval.index')->with('error', '[DUMMY MODE] Seolah-olah pengajuan ditolak permanen!');
+        }
+        
+        $pengajuan->approval_step = 0; 
+        $pengajuan->status_pengajuan = 'Ditolak';
+        
+        $pengajuan->save();
+        return redirect()->route('kepala.approval.index')->with('error', 'Pengajuan telah ditolak.');
+    }
+
+    // 3. MESIN TOMBOL REVISI (BARU)
+    public function revisiKepala(Request $request, $id)
+    {
+        $pengajuan = \App\Models\PengajuanCuti::find($id);
+        
+        if (!$pengajuan) {
+            return redirect()->route('kepala.approval.index')->with('warning', '[DUMMY MODE] Seolah-olah dikembalikan ke pegawai untuk direvisi!');
+        }
+        
+        $pengajuan->approval_step = 0; // Dikembalikan ke step awal (Pegawai)
+        $pengajuan->status_pengajuan = 'Perlu Revisi';
+        
+        $pengajuan->save();
+        return redirect()->route('kepala.approval.index')->with('warning', 'Berkas dikembalikan ke pegawai untuk direvisi.');
     }
 } // INI ADALAH KURUNG PENUTUP KELAS YANG BENAR (Paling Bawah)
