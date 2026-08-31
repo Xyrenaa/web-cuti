@@ -167,4 +167,167 @@ class PengajuanController extends Controller
         // 3. Kirim data (asli atau dummy) ke halaman view
         return view('kepala.approval.show', compact('data'));
     }
+
+    // =================================================================
+    // FUNGSI UNTUK ADMIN KEPEGAWAIAN
+    // =================================================================
+    
+    public function indexApproval()
+    {
+        // Admin biasanya bisa melihat semua pengajuan cuti dari semua pegawai
+        $pengajuans = PengajuanCuti::with('user')
+            ->latest()
+            ->paginate(10);
+
+        // Mengarahkan ke file view resources/views/admin/approval/index.blade.php
+        return view('admin.approval.index', compact('pengajuans'));
+    }
+
+    public function showApproval($id)
+    {
+        // 1. Coba cari data asli di database terlebih dahulu
+        $data = \App\Models\PengajuanCuti::with(['user', 'jenisCuti'])->find($id);
+        
+        // 2. Jika data tidak ada, gunakan data dummy berdasarkan desain dashboard
+        if (!$data) {
+            $data = new \App\Models\PengajuanCuti();
+            $data->id = $id;
+            
+            $dummyUser = new \App\Models\User();
+            $dummyJenisCuti = new \App\Models\JenisCuti();
+            
+            // Pengkondisian berdasarkan ID pada URL (1, 2, atau 3)
+            if ($id == 1) {
+                $dummyUser->name = 'Amiruddin Syah';
+                $dummyUser->nip = '198804122015031002';
+                $dummyJenisCuti->nama_cuti = 'Cuti Tahunan';
+                
+                $data->created_at = \Carbon\Carbon::parse('2023-10-24');
+                $data->tanggal_mulai = \Carbon\Carbon::parse('2023-10-25')->format('Y-m-d');
+                $data->tanggal_selesai = \Carbon\Carbon::parse('2023-10-25')->addDays(4)->format('Y-m-d'); // Total 5 Hari
+                $data->status_pengajuan = 'Menunggu';
+
+                $data->approval_step = 3;
+
+            } elseif ($id == 2) {
+                $dummyUser->name = 'Novianti Rahayu';
+                $dummyUser->nip = '198804122015031002';
+                $dummyJenisCuti->nama_cuti = 'Cuti Melahirkan';
+                
+                $data->created_at = \Carbon\Carbon::parse('2023-10-23');
+                $data->tanggal_mulai = \Carbon\Carbon::parse('2023-10-24')->format('Y-m-d');
+                $data->tanggal_selesai = \Carbon\Carbon::parse('2023-10-24')->addDays(89)->format('Y-m-d'); // Total 90 Hari
+                $data->status_pengajuan = 'Disetujui';
+
+                $data->approval_step = 5;
+
+            } elseif ($id == 3) {
+                $dummyUser->name = 'Rian Hidayat';
+                $dummyUser->nip = '198804122015031002';
+                $dummyJenisCuti->nama_cuti = 'Cuti Besar';
+                
+                $data->created_at = \Carbon\Carbon::parse('2023-10-20');
+                $data->tanggal_mulai = \Carbon\Carbon::parse('2023-10-21')->format('Y-m-d');
+                $data->tanggal_selesai = \Carbon\Carbon::parse('2023-10-21')->addDays(11)->format('Y-m-d'); // Total 12 Hari
+                $data->status_pengajuan = 'Ditolak';
+
+                $data->approval_step = 7;
+
+            } else {
+                // Fallback jika mengetik ID selain 1, 2, 3 di URL
+                $dummyUser->name = 'Pegawai Tidak Dikenal';
+                $dummyUser->nip = '000000000000000000';
+                $dummyJenisCuti->nama_cuti = 'Cuti Tahunan';
+                $data->created_at = now();
+                $data->tanggal_mulai = now()->format('Y-m-d');
+                $data->tanggal_selesai = now()->addDays(2)->format('Y-m-d');
+                $data->status_pengajuan = 'Menunggu';
+            }
+
+            // Data pelengkap agar halaman view tidak error karena variabel kosong
+            $dummyUser->jabatan = 'Staf Operasional';
+            $data->alasan = 'Teks alasan ini merupakan data dummy yang digunakan untuk kebutuhan testing desain UI halaman persetujuan.';
+            $data->lokasi = 'Surabaya'; 
+            $data->surat_pengajuan = 'dokumen/dummy_surat.pdf';
+            $data->bukti_pendukung = ['dokumen/dummy_bukti1.jpg']; // Format array karena di fungsi store() kamu setting array
+            
+            // Menggabungkan relasi buatan ke data utama
+            $data->setRelation('user', $dummyUser);
+            $data->setRelation('jenisCuti', $dummyJenisCuti);
+        }
+        
+        return view('admin.approval.show', compact('data'));
+    }
+
+    public function verifikasiAdmin(Request $request, $id)
+    {
+        $action = $request->input('action');
+        $catatan = $request->input('catatan'); // Menangkap alasan dari textarea Modal
+
+        $pengajuan = \App\Models\PengajuanCuti::find($id);
+
+        // =========================================================
+        // JIKA MODE DUMMY (Untuk Testing UI)
+        // =========================================================
+        if (!$pengajuan) {
+            if (in_array($id, [1, 2, 3])) { 
+                if ($action == 'setujui') {
+                    return redirect()->route('admin.approval.index')->with('success', '(Mode Dummy) Berkas berhasil diteruskan.');
+                } elseif ($action == 'revisi') {
+                    return redirect()->route('admin.approval.index')->with('warning', '(Mode Dummy) Berkas direvisi dengan catatan: ' . $catatan);
+                } elseif ($action == 'tolak') {
+                    return redirect()->route('admin.approval.index')->with('error', '(Mode Dummy) Berkas ditolak dengan alasan: ' . $catatan);
+                }
+            }
+            abort(404);
+        }
+
+        // =========================================================
+        // JIKA DATA ASLI (DATABASE)
+        // =========================================================
+        if ($action == 'setujui') {
+            if ($pengajuan->approval_step == 3) {
+                $pengajuan->update(['approval_step' => 4, 'status_pengajuan' => 'Menunggu Persetujuan Kasubag']);
+            } elseif ($pengajuan->approval_step == 5) {
+                $pengajuan->update(['approval_step' => 6, 'status_pengajuan' => 'Menunggu Persetujuan Kepala TU']);
+            } elseif ($pengajuan->approval_step == 7) {
+                $pengajuan->update(['approval_step' => 8, 'status_pengajuan' => 'Menunggu Persetujuan Kepala Kantor']);
+            }
+            return redirect()->route('admin.approval.index')->with('success', 'Berkas berhasil diverifikasi dan diteruskan.');
+            
+        } elseif ($action == 'revisi') {
+            $pengajuan->update([
+                'approval_step' => 0, 
+                'status_pengajuan' => 'Perlu Revisi (Dari Admin)'
+                // TIPS: Jika kamu punya kolom 'catatan' di database, hilangkan tanda komen di bawah ini:
+                // , 'catatan' => $catatan 
+            ]);
+            return redirect()->route('admin.approval.index')->with('warning', 'Berkas dikembalikan ke pegawai. Alasan: ' . $catatan);
+            
+        } elseif ($action == 'tolak') {
+            $pengajuan->update([
+                'approval_step' => 0, 
+                'status_pengajuan' => 'Ditolak'
+                // TIPS: Jika kamu punya kolom 'catatan' di database, hilangkan tanda komen di bawah ini:
+                // , 'catatan' => $catatan 
+            ]);
+            return redirect()->route('admin.approval.index')->with('error', 'Berkas pengajuan cuti ditolak. Alasan: ' . $catatan);
+        }
+    }
+
+    public function notifikasiAdmin()
+    {
+        $notifikasis = Auth::user()->notifications;
+        $belumDibaca = Auth::user()->unreadNotifications->count();
+
+        // Memanggil file view khusus admin
+        return view('admin.notifikasi', compact('notifikasis', 'belumDibaca'));
+    }
+
+    public function editAdmin(Request $request)
+    {
+        return view('admin.profile.edit', [
+            'user' => $request->user(),
+        ]);
+    }
 } // INI ADALAH KURUNG PENUTUP KELAS YANG BENAR (Paling Bawah)
