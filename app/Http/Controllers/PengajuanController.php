@@ -70,10 +70,10 @@ class PengajuanController extends Controller
             'Pengajuan cuti Anda untuk tanggal ' . $request->tanggal_mulai . ' telah masuk sistem dan sedang menunggu persetujuan.'
         ));
 
-        return redirect()->route('pengajuan.index')->with('success', 'Pengajuan cuti dan dokumen lampiran berhasil dikirim.');
-
+        // Hapus return ganda, cukup satu saja
         return redirect()->route('pengajuan.index')->with('success', 'Pengajuan cuti dan dokumen lampiran berhasil dikirim.');
     }
+
     public function riwayat()
     {
         $query = PengajuanCuti::where('user_id', Auth::id())->latest();
@@ -82,10 +82,8 @@ class PengajuanController extends Controller
             $query->where('alasan', 'like', '%' . request()->cari . '%');
         }
         
-        // 1. PINDAHKAN KODE INI KE DALAM SINI
         $riwayat = $query->paginate(5);
         return view('pegawai.riwayat', compact('riwayat')); 
-        // Catatan: Pastikan nama file blade-mu adalah 'riwayat.blade.php'
     }
 
     public function show($id)
@@ -93,6 +91,7 @@ class PengajuanController extends Controller
         $pengajuan = PengajuanCuti::where('user_id', Auth::id())->findOrFail($id);
         return view('pegawai.detail', compact('pengajuan'));
     }
+
     public function notifikasi()
     {
         // Mengambil semua notifikasi milik user yang sedang login
@@ -109,8 +108,8 @@ class PengajuanController extends Controller
     {
         Auth::user()->unreadNotifications->markAsRead();
         return back()->with('success', 'Semua notifikasi telah ditandai dibaca.');
-    }
-} 
+    } 
+    // KURUNG TUTUP DI SINI SUDAH DIHAPUS
 
     public function indexKepala(Request $request)
     {
@@ -122,7 +121,7 @@ class PengajuanController extends Controller
             $step = 1;
         } elseif ($user->hasRole('Kepala Bidang')) {
             $step = 2;
-        } elseif ($user->hasRole('Kepala Sub Bagian')) {
+        } elseif ($user->hasRole('Kepala Sub-Bagian')) {
             $step = 3;
         } elseif ($user->hasRole('Kepala TU')) {
             $step = 4;
@@ -142,11 +141,30 @@ class PengajuanController extends Controller
 
     public function showKepala($id)
     {
-        // Ambil data pengajuan beserta data pegawainya berdasarkan ID
-        $data = \App\Models\PengajuanCuti::with('user')->findOrFail($id);
+        // 1. Coba cari data aslinya dulu di database menggunakan find() bukan findOrFail()
+        $data = \App\Models\PengajuanCuti::with('user')->find($id);
+        
+        // 2. JIKA DATA KOSONG, KITA BUAT DATA DUMMY SEMENTARA UNTUK TESTING UI
         if (!$data) {
-            return redirect()->route('kepala.approval.index')->with('error', 'Data pengajuan tidak ditemukan!');
+            $data = new \App\Models\PengajuanCuti();
+            $data->id = $id;
+            $data->nomor_pengajuan = 'CT.2026.DUMMY-' . $id;
+            $data->jenis_cuti = 'Cuti Tahunan (Mode Dummy)';
+            $data->durasi_hari = 3;
+            $data->tanggal_mulai = now()->addDays(7); // Mulai minggu depan
+            $data->created_at = now();
+            $data->alasan = 'Ini adalah teks dummy sementara. Sistem tidak menemukan ID ' . $id . ' di database, jadi halaman ini menampilkan data buatan untuk kebutuhan testing desain UI.';
+            $data->lampiran = null;
+            $data->approval_step = 2; // Ubah angka ini (1-5) untuk ngetes UI warna indikator persetujuan
+            $data->status = 'Menunggu';
+
+            // Membuat relasi "user" palsu agar $data->user->name tidak error
+            $dummyUser = new \App\Models\User();
+            $dummyUser->name = 'Budi Dummy (Tester)';
+            $data->setRelation('user', $dummyUser);
         }
+
+        // 3. Kirim data (asli atau dummy) ke halaman view
         return view('kepala.approval.show', compact('data'));
     }
-}
+} // INI ADALAH KURUNG PENUTUP KELAS YANG BENAR (Paling Bawah)

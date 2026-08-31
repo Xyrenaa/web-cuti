@@ -11,6 +11,7 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     $parakepala = [
         'Kepala Seksi',
+        'Kepala Bagian',
         'Kepala Bidang',
         'Kepala Sub Bagian',
         'Kepala Tata Usaha',

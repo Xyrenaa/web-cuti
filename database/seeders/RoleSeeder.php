@@ -19,6 +19,7 @@ class RoleSeeder extends Seeder
             'Kepala Sub-Bagian',
             'Kepala Bagian',
             'Kepala Kantor',
+            'Kepala Bidang'
         ];
 
         foreach ($roles as $role) {

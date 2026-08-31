@@ -1,15 +1,25 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="text-blue-100 text-sm mb-1 opacity-80">Beranda / Approval Cuti / Detail Pengajuan</div>
-        <h2 class="font-bold text-3xl text-white leading-tight">
-            Detail Pengajuan Cuti
-        </h2>
-    </x-slot>
+    
+    <!-- 1. BANNER BIRU FULL-WIDTH -->
+    <div class="w-full pt-6 pb-8 bg-[#2A65F3]">
+        <div class="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+            <!-- Breadcrumb -->
+            <div class="mb-1 text-sm font-medium text-blue-100/80">
+                <a href="{{ route('dashboard') }}" class="hover:text-white transition">Beranda</a> / 
+                <a href="{{ route('kepala.approval.index') }}" class="hover:text-white transition">Approval Cuti</a> / 
+                <span class="text-white">Detail Pengajuan</span>
+            </div>
+            <!-- Judul Halaman -->
+            <h2 class="text-3xl font-bold text-white">Detail Pengajuan Cuti</h2>
+        </div>
+    </div>
 
-    <div class="pt-8 pb-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- 2. AREA KONTEN UTAMA (Card Rincian, Alur, dll) -->
+    <div class="py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Kolom Kiri: Rincian Cuti (Kodingan aslimu biarkan di bawah sini) -->
+            <!-- ... -->
                 <!-- KIRI: Informasi Detail -->
                 <div class="lg:col-span-2 space-y-6">
                     

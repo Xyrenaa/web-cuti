@@ -33,10 +33,9 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        // 2. Jika yang login adalah Kepala
-        if ($request->user()->hasRole('kepala')) {
-            // Pastikan nama route-nya sesuai dengan yang ada di web.php milikmu
-            return redirect()->route('kepala.dashboard'); 
+       // 2. Cek Para Kepala (PASTIKAN NAMA ROLE-NYA MATCH DENGAN SEEDER)
+        if ($request->user()->hasAnyRole(['Kepala Seksi', 'Kepala Sub-Bagian', 'Kepala Bagian', 'Kepala Kantor'])) {
+            return redirect()->route('dashboard'); // Atau route dashboard khusus kepala jika ada
         }
 
         // 3. Jika yang login adalah Pegawai (atau role default lainnya)
