@@ -122,11 +122,11 @@ class PengajuanController extends Controller
         } elseif ($user->hasRole('Kepala Bidang')) {
             $step = 2;
         } elseif ($user->hasRole('Kepala Sub-Bagian')) {
-            $step = 3;
+            $step = 4; // Berubah, karena Step 3 milik Admin
         } elseif ($user->hasRole('Kepala TU')) {
-            $step = 4;
+            $step = 5; // Berubah, langsung dari Kasubag
         } elseif ($user->hasRole('Kepala Kantor')) {
-            $step = 5;
+            $step = 6; // Berubah, langsung dari TU
         }
 
         // Ambil data pengajuan cuti beserta data pegawainya (relasi user)
@@ -262,17 +262,17 @@ class PengajuanController extends Controller
     public function verifikasiAdmin(Request $request, $id)
     {
         $action = $request->input('action');
-        $catatan = $request->input('catatan'); // Menangkap alasan dari textarea Modal
+        $catatan = $request->input('catatan'); 
 
         $pengajuan = \App\Models\PengajuanCuti::find($id);
 
         // =========================================================
-        // JIKA MODE DUMMY (Untuk Testing UI)
+        // JIKA DATA TIDAK ADA (MODE DUMMY)
         // =========================================================
         if (!$pengajuan) {
             if (in_array($id, [1, 2, 3])) { 
                 if ($action == 'setujui') {
-                    return redirect()->route('admin.approval.index')->with('success', '(Mode Dummy) Berkas berhasil diteruskan.');
+                    return redirect()->route('admin.approval.index')->with('success', '(Mode Dummy) Berkas berhasil diteruskan/diselesaikan.');
                 } elseif ($action == 'revisi') {
                     return redirect()->route('admin.approval.index')->with('warning', '(Mode Dummy) Berkas direvisi dengan catatan: ' . $catatan);
                 } elseif ($action == 'tolak') {
@@ -287,34 +287,30 @@ class PengajuanController extends Controller
         // =========================================================
         if ($action == 'setujui') {
             if ($pengajuan->approval_step == 3) {
+                // Admin meneruskan ke Kasubag
                 $pengajuan->update(['approval_step' => 4, 'status_pengajuan' => 'Menunggu Persetujuan Kasubag']);
-            } elseif ($pengajuan->approval_step == 5) {
-                $pengajuan->update(['approval_step' => 6, 'status_pengajuan' => 'Menunggu Persetujuan Kepala TU']);
             } elseif ($pengajuan->approval_step == 7) {
-                $pengajuan->update(['approval_step' => 8, 'status_pengajuan' => 'Menunggu Persetujuan Kepala Kantor']);
+                // Admin finalisasi dan selesai
+                $pengajuan->update(['approval_step' => 8, 'status_pengajuan' => 'Disetujui']);
             }
-            return redirect()->route('admin.approval.index')->with('success', 'Berkas berhasil diverifikasi dan diteruskan.');
+            return redirect()->route('admin.approval.index')->with('success', 'Berkas berhasil diproses.');
             
-        } elseif ($action == 'revisi') {
+        } elseif ($action == 'revisi' && $pengajuan->approval_step == 7) {
             $pengajuan->update([
                 'approval_step' => 0, 
-                'status_pengajuan' => 'Perlu Revisi (Dari Admin)'
-                // TIPS: Jika kamu punya kolom 'catatan' di database, hilangkan tanda komen di bawah ini:
-                // , 'catatan' => $catatan 
+                'status_pengajuan' => 'Perlu Revisi (Dari Admin Akhir)'
             ]);
             return redirect()->route('admin.approval.index')->with('warning', 'Berkas dikembalikan ke pegawai. Alasan: ' . $catatan);
             
-        } elseif ($action == 'tolak') {
+        } elseif ($action == 'tolak' && $pengajuan->approval_step == 7) {
             $pengajuan->update([
                 'approval_step' => 0, 
                 'status_pengajuan' => 'Ditolak'
-                // TIPS: Jika kamu punya kolom 'catatan' di database, hilangkan tanda komen di bawah ini:
-                // , 'catatan' => $catatan 
             ]);
             return redirect()->route('admin.approval.index')->with('error', 'Berkas pengajuan cuti ditolak. Alasan: ' . $catatan);
         }
     }
-
+    
     public function notifikasiAdmin()
     {
         $notifikasis = Auth::user()->notifications;
@@ -329,6 +325,8 @@ class PengajuanController extends Controller
         return view('admin.profile.edit', [
             'user' => $request->user(),
         ]);
+    }
+    
     // 1. MESIN TOMBOL SETUJUI
     public function approveKepala(Request $request, $id)
     {

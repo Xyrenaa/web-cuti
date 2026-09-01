@@ -89,7 +89,7 @@
 
                 </div>
 
-                <!-- KANAN: Timeline & Action Buttons -->
+               <!-- KANAN: Timeline & Action Buttons -->
                 <div class="lg:col-span-1 flex flex-col gap-6">
                     
                     <!-- Card: Alur Persetujuan Dinamis -->
@@ -119,38 +119,45 @@
                                 <p class="text-[11px] {{ $step == 2 ? 'text-gray-500' : 'text-gray-400' }} mt-0.5">{{ $step > 2 ? 'Selesai' : ($step == 2 ? 'Menunggu Validasi' : 'Menunggu Tahap Sebelumnya') }}</p>
                             </div>
 
-                            <!-- 4. Kasubag (Dengan indikator pengecekan Admin di Step 3) -->
+                            <!-- 4. Kasubag (Tertahan Admin di Step 3) -->
                             <div class="relative pl-6">
                                 <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 4 ? 'bg-[#1e3a8a]' : (in_array($step, [3, 4]) ? 'bg-amber-400 animate-pulse' : 'bg-gray-300') }}"></div>
                                 <h4 class="font-bold text-sm {{ $step > 4 ? 'text-gray-900' : (in_array($step, [3, 4]) ? 'text-amber-600' : 'text-gray-400') }}">Persetujuan Kasubag</h4>
                                 <p class="text-[11px] {{ in_array($step, [3, 4]) ? 'text-gray-500' : 'text-gray-400' }} mt-0.5">{{ $step > 4 ? 'Selesai' : ($step == 3 ? 'Menunggu Verifikasi Admin' : ($step == 4 ? 'Menunggu Validasi Kasubag' : 'Menunggu Tahap Sebelumnya')) }}</p>
                             </div>
 
-                            <!-- 5. Kepala TU (Dengan indikator pengecekan Admin di Step 5) -->
+                            <!-- 5. Kepala TU (Langsung dari Kasubag) -->
                             <div class="relative pl-6">
-                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 6 ? 'bg-[#1e3a8a]' : (in_array($step, [5, 6]) ? 'bg-amber-400 animate-pulse' : 'bg-gray-300') }}"></div>
-                                <h4 class="font-bold text-sm {{ $step > 6 ? 'text-gray-900' : (in_array($step, [5, 6]) ? 'text-amber-600' : 'text-gray-400') }}">Persetujuan Kepala TU</h4>
-                                <p class="text-[11px] {{ in_array($step, [5, 6]) ? 'text-gray-500' : 'text-gray-400' }} mt-0.5">{{ $step > 6 ? 'Selesai' : ($step == 5 ? 'Menunggu Verifikasi Admin' : ($step == 6 ? 'Menunggu Validasi TU' : 'Menunggu Tahap Sebelumnya')) }}</p>
+                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 5 ? 'bg-[#1e3a8a]' : ($step == 5 ? 'bg-amber-400 animate-pulse' : 'bg-gray-300') }}"></div>
+                                <h4 class="font-bold text-sm {{ $step > 5 ? 'text-gray-900' : ($step == 5 ? 'text-amber-600' : 'text-gray-400') }}">Persetujuan Kepala TU</h4>
+                                <p class="text-[11px] {{ $step == 5 ? 'text-gray-500' : 'text-gray-400' }} mt-0.5">{{ $step > 5 ? 'Selesai' : ($step == 5 ? 'Menunggu Validasi TU' : 'Menunggu Tahap Sebelumnya') }}</p>
                             </div>
 
-                            <!-- 6. Kepala Kantor (Dengan indikator pengecekan Admin di Step 7) -->
+                            <!-- 6. Kepala Kantor (Langsung dari TU) -->
                             <div class="relative pl-6">
-                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 8 ? 'bg-[#1e3a8a]' : (in_array($step, [7, 8]) ? 'bg-amber-400 animate-pulse' : 'bg-gray-300') }}"></div>
-                                <h4 class="font-bold text-sm {{ $step > 8 ? 'text-gray-900' : (in_array($step, [7, 8]) ? 'text-amber-600' : 'text-gray-400') }}">Persetujuan Kepala Kantor</h4>
-                                <p class="text-[11px] {{ in_array($step, [7, 8]) ? 'text-gray-500' : 'text-gray-400' }} mt-0.5">{{ $step > 8 ? 'Selesai' : ($step == 7 ? 'Menunggu Verifikasi Admin Terakhir' : ($step == 8 ? 'Menunggu Persetujuan Final Kakan' : 'Menunggu Tahap Sebelumnya')) }}</p>
+                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 6 ? 'bg-[#1e3a8a]' : ($step == 6 ? 'bg-amber-400 animate-pulse' : 'bg-gray-300') }}"></div>
+                                <h4 class="font-bold text-sm {{ $step > 6 ? 'text-gray-900' : ($step == 6 ? 'text-amber-600' : 'text-gray-400') }}">Persetujuan Kepala Kantor</h4>
+                                <p class="text-[11px] {{ $step == 6 ? 'text-gray-500' : 'text-gray-400' }} mt-0.5">{{ $step > 6 ? 'Selesai' : ($step == 6 ? 'Menunggu Validasi Kakan' : 'Menunggu Tahap Sebelumnya') }}</p>
                             </div>
 
-                            <!-- 7. Final -->
+                            <!-- 7. Finalisasi Admin & Penomoran -->
                             <div class="relative pl-6">
-                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $status == 'Disetujui' ? 'bg-[#1e3a8a]' : 'bg-gray-300' }}"></div>
-                                <h4 class="font-bold text-sm {{ $status == 'Disetujui' ? 'text-gray-900' : 'text-gray-400' }}">Cuti Diterima</h4>
+                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 7 ? 'bg-[#1e3a8a]' : ($step == 7 ? 'bg-amber-400 animate-pulse' : 'bg-gray-300') }}"></div>
+                                <h4 class="font-bold text-sm {{ $step > 7 ? 'text-gray-900' : ($step == 7 ? 'text-amber-600' : 'text-gray-400') }}">Finalisasi Penomoran</h4>
+                                <p class="text-[11px] {{ $step == 7 ? 'text-gray-500' : 'text-gray-400' }} mt-0.5">{{ $step > 7 ? 'Selesai' : ($step == 7 ? 'Menunggu Proses Admin' : 'Menunggu Tahap Sebelumnya') }}</p>
+                            </div>
+
+                            <!-- 8. Final -->
+                            <div class="relative pl-6">
+                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step >= 8 ? 'bg-[#1e3a8a]' : 'bg-gray-300' }}"></div>
+                                <h4 class="font-bold text-sm {{ $step >= 8 ? 'text-gray-900' : 'text-gray-400' }}">Cuti Diterima</h4>
                             </div>
 
                         </div>
                     </div>
 
-                <!-- HANYA TAMPIL JIKA BERKAS ADA DI TANGAN ADMIN (Step 3, 5, atau 7) -->
-                    @if(in_array($step, [3, 5, 7]))
+                    <!-- HANYA TAMPIL JIKA BERKAS ADA DI TANGAN ADMIN (Step 3 atau 7) -->
+                    @if(in_array($step, [3, 7]))
                     
                     <!-- x-data untuk mengontrol state modal dan jenis aksi -->
                     <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100" x-data="{ openModal: false, modalAction: '' }">
@@ -160,8 +167,7 @@
                             @php
                                 $btnText = 'Setujui';
                                 if($step == 3) $btnText = 'Setujui & Teruskan ke Kasubag';
-                                if($step == 5) $btnText = 'Setujui & Teruskan ke Kepala TU';
-                                if($step == 7) $btnText = 'Setujui & Teruskan ke Kepala Kantor';
+                                if($step == 7) $btnText = 'Selesaikan & Terbitkan Nomor Cuti';
                             @endphp
                             
                             <!-- Tombol Setujui (Memicu Modal) -->
@@ -169,7 +175,8 @@
                                 {{ $btnText }}
                             </button>
                             
-                            <!-- Tombol Revisi & Tolak (Memicu Modal) -->
+                            <!-- Tombol Revisi & Tolak (HANYA MUNCUL DI STEP 7) -->
+                            @if($step == 7)
                             <div class="grid grid-cols-2 gap-3">
                                 <button type="button" @click="openModal = true; modalAction = 'revisi'" class="w-full border border-orange-400 text-orange-500 rounded-lg py-2.5 font-bold text-sm hover:bg-orange-50 transition">
                                     Revisi
@@ -178,53 +185,35 @@
                                     Tolak
                                 </button>
                             </div>
+                            @endif
                         </div>
 
                         <!-- ================= MODAL KONFIRMASI DINAMIS ================= -->
                         <div x-show="openModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center">
-                            <!-- Background Overlay Gelap -->
                             <div x-show="openModal" 
-                                 x-transition:enter="ease-out duration-300"
-                                 x-transition:enter-start="opacity-0"
-                                 x-transition:enter-end="opacity-100"
-                                 x-transition:leave="ease-in duration-200"
-                                 x-transition:leave-start="opacity-100"
-                                 x-transition:leave-end="opacity-0"
-                                 class="absolute inset-0 bg-black/40 backdrop-blur-sm" 
-                                 @click="openModal = false">
+                                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+                                 class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="openModal = false">
                             </div>
 
-                            <!-- Kotak Modal -->
                             <div x-show="openModal" 
-                                 x-transition:enter="ease-out duration-300"
-                                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                                 x-transition:leave="ease-in duration-200"
-                                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                                  class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 mx-4 z-10">
                                 
                                 <div class="flex justify-between items-center mb-2">
-                                    <!-- Judul Dinamis -->
-                                    <h3 class="text-xl font-bold text-gray-900" 
-                                        x-text="modalAction === 'setujui' ? 'Konfirmasi Persetujuan' : 'Alasan Penolakan/Revisi'">
-                                    </h3>
+                                    <h3 class="text-xl font-bold text-gray-900" x-text="modalAction === 'setujui' ? 'Konfirmasi Persetujuan' : 'Alasan Penolakan/Revisi'"></h3>
                                     <button @click="openModal = false" class="text-gray-400 hover:text-gray-600 transition">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                     </button>
                                 </div>
                                 
-                                <!-- Deskripsi Dinamis -->
-                                <p class="text-sm text-gray-500 mb-5" 
-                                   x-text="modalAction === 'setujui' ? 'Apakah Anda yakin dokumen pengajuan ini sudah lengkap dan siap diteruskan ke tahap persetujuan berikutnya?' : 'Silakan berikan deskripsi atau alasan detail mengapa pengajuan ini memerlukan revisi atau ditolak.'">
-                                </p>
+                                <p class="text-sm text-gray-500 mb-5" x-text="modalAction === 'setujui' ? 'Apakah Anda yakin dokumen pengajuan ini sudah siap diteruskan?' : 'Silakan berikan deskripsi atau alasan detail mengapa pengajuan ini memerlukan revisi atau ditolak.'"></p>
 
                                 <form action="{{ route('admin.approval.verifikasi', $data->id) }}" method="POST">
                                     @csrf
-                                    <!-- Input hidden untuk mengirimkan aksi yang dipilih -->
                                     <input type="hidden" name="action" x-bind:value="modalAction">
                                     
-                                    <!-- Kolom Teks Alasan (Hanya muncul jika aksi BUKAN 'setujui') -->
                                     <div x-show="modalAction !== 'setujui'">
                                         <textarea name="catatan" rows="4" x-bind:required="modalAction !== 'setujui'"
                                             class="w-full border-gray-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm mb-6 bg-gray-50" 
@@ -232,31 +221,20 @@
                                     </div>
                                     
                                     <div class="flex justify-end gap-3 mt-2">
-                                        <button type="button" @click="openModal = false" class="px-5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
-                                            Batal
-                                        </button>
-                                        
-                                        <!-- Tombol Submit dengan Warna Dinamis -->
+                                        <button type="button" @click="openModal = false" class="px-5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition">Batal</button>
                                         <button type="submit" class="px-5 py-2.5 text-white rounded-lg text-sm font-medium transition shadow-sm"
-                                                x-bind:class="{
-                                                    'bg-blue-600 hover:bg-blue-700': modalAction === 'setujui',
-                                                    'bg-orange-500 hover:bg-orange-600': modalAction === 'revisi',
-                                                    'bg-red-600 hover:bg-red-700': modalAction === 'tolak'
-                                                }">
+                                                x-bind:class="{ 'bg-blue-600 hover:bg-blue-700': modalAction === 'setujui', 'bg-orange-500 hover:bg-orange-600': modalAction === 'revisi', 'bg-red-600 hover:bg-red-700': modalAction === 'tolak' }">
                                             <span x-text="modalAction === 'setujui' ? 'Ya, Teruskan' : 'Kirim Tanggapan'"></span>
                                         </button>
                                     </div>
                                 </form>
                             </div>
                         </div>
-                        <!-- ================= END MODAL ================= -->
-
                     </div>
                     @endif
 
                 </div>
             </div>
-
         </div>
     </div>
 </x-admin-layout>
