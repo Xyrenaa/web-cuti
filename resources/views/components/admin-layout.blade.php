@@ -64,7 +64,8 @@
                             </a>
                             
                             <!-- Menu Rekap Cuti -->
-                            <a href="#" class="px-5 py-2 rounded-full font-bold text-sm transition text-gray-500 hover:text-gray-800">
+                            <a href="{{ route('admin.rekap.index') }}" 
+                               class="px-5 py-2 rounded-full font-bold text-sm transition {{ request()->routeIs('admin.rekap.*') ? 'bg-[#eef2ff] text-blue-600' : 'text-gray-500 hover:text-gray-800' }}">
                                 Rekap Cuti
                             </a>
                             
