@@ -45,6 +45,10 @@ class AuthenticatedSessionController extends Controller
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
+    // 3. Jika bukan keduanya (berarti Pegawai biasa)
+    return redirect()->intended(route('dashboard', absolute: false));
+}
+
     /**
      * Destroy an authenticated session.
      */
