@@ -11,9 +11,10 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     $parakepala = [
         'Kepala Seksi',
+        'Kepala Bagian',
         'Kepala Bidang',
-        'Kepala Sub Bagian',
-        'Kepala Tata Usaha',
+        'Kepala Sub-Bagian',
+        'Kepala TU',
         'Kepala Kantor'
     ];
     if (auth()->user()->hasAnyRole($parakepala)){
@@ -45,10 +46,26 @@ Route::get('/admin/approval', [\App\Http\Controllers\PengajuanController::class,
 // Rute untuk melihat halaman detail approval (yang ada trackingnya)
 Route::get('/admin/approval/{id}', [\App\Http\Controllers\PengajuanController::class, 'showApproval'])->name('admin.approval.show');
 
+// Rute Notifikasi Khusus Admin
+Route::get('/admin/notifikasi', [App\Http\Controllers\PengajuanController::class, 'notifikasiAdmin'])->name('admin.notifikasi');
+
+// Rute untuk MELIHAT Profil Admin
+Route::get('/admin/profile', [ProfileController::class, 'showAdmin'])->name('admin.profile.show');
+
+// Rute untuk MENGEDIT Profil Admin
+Route::get('/admin/profile/edit', [ProfileController::class, 'editAdmin'])->name('admin.profile.edit');
+
+// TAMBAHKAN RUTE INI UNTUK TOMBOL AKSI VERIFIKASI ADMIN
+Route::post('/admin/approval/{id}/verifikasi', [PengajuanController::class, 'verifikasiAdmin'])->name('admin.approval.verifikasi');
+
 // Rute Khusus Approval Kepala
 Route::middleware(['auth', 'verified'])->prefix('kepala')->name('kepala.')->group(function () {
     Route::get('/approval', [\App\Http\Controllers\PengajuanController::class, 'indexKepala'])->name('approval.index');
     Route::get('/approval/{id}', [\App\Http\Controllers\PengajuanController::class, 'showKepala'])->name('approval.show');
+    // Rute Aksi Approval
+    Route::put('/approval/{id}/approve', [\App\Http\Controllers\PengajuanController::class, 'approveKepala'])->name('approval.approve');
+    Route::put('/approval/{id}/reject', [\App\Http\Controllers\PengajuanController::class, 'tolakKepala'])->name('approval.reject');
+    Route::put('/approval/{id}/revisi', [\App\Http\Controllers\PengajuanController::class, 'revisiKepala'])->name('approval.revisi'); // INI RUTE BARUNYA
 });
 
 

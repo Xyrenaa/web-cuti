@@ -35,7 +35,7 @@
                     Beranda
                 </a>
 
-                @hasanyrole(['Kepala Seksi', 'Kepala Bidang', 'Kepala Sub Bagian', 'Kepala TU', 'Kepala Kantor'])
+                @hasanyrole(['Kepala Seksi','Kepala Bagian', 'Kepala Bidang', 'Kepala Sub-Bagian', 'Kepala TU', 'Kepala Kantor'])
                     <a href="{{ route('kepala.approval.index') }}" 
                        class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center {{ request()->routeIs('kepala.approval.*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
                        Approval Cuti
@@ -132,6 +132,10 @@
                 Notifikasi
             </x-responsive-nav-link>
 
+             <x-responsive-nav-link :href="route('notifikasi')" :active="request()->routeIs('notifikasi')">
+                Notifikasi
+            </x-responsive-nav-link>
+            <!-- TAMBAHKAN DUA MENU INI UNTUK VERSI MOBILE -->
             <x-responsive-nav-link :href="route('profile.show')" :active="request()->routeIs('profile.*')">
                 Profil
             </x-responsive-nav-link>
