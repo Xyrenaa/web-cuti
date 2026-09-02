@@ -26,7 +26,7 @@ class PengajuanController extends Controller
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
             'alasan'          => 'required|string',
             'lokasi'          => 'required|string|max:255',
-            'surat_pengajuan' => 'required|file|mimes:doc,docx|max:5120',
+            'surat_pengajuan' => 'required|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
             
             // VALIDASI BARU: Berupa array, maksimal 5 file, per file maks 5MB
             'bukti_pendukung'   => 'nullable|array|max:5',
@@ -46,10 +46,40 @@ class PengajuanController extends Controller
         }
 
         $user = Auth::user();
-        $statusPengajuan = 'Menunggu Persetujuan';
         
-        if ($user->atasan && $user->atasan->roles->isNotEmpty()) {
+        // ========================================================
+        // LOGIKA POTONG KOMPAS (HIERARKI 5 LEVEL)
+        // ========================================================
+        $inisialStep = 1; // Default Pegawai biasa masuk ke Kasi (Step 1)
+
+        if ($user->hasRole('Kepala Seksi') || $user->hasRole('Admin Kepegawaian')) {
+            $inisialStep = 2; // Lompat ke Kepala Bidang
+        } elseif ($user->hasRole('Kepala Bidang')) {
+            $inisialStep = 3; // Lompat ke Kepala Sub Bagian
+        } elseif ($user->hasRole('Kepala Sub Bagian')) {
+            $inisialStep = 4; // Lompat ke Kepala TU
+        } elseif ($user->hasRole('Kepala TU')) {
+            $inisialStep = 5; // Lompat ke Kepala Kantor
+        } elseif ($user->hasRole('Kepala Kantor')) {
+            $inisialStep = 6; // Langsung Finish (Disetujui)
+        }
+
+        // Menentukan Teks Status Berdasarkan Hierarki
+        $statusPengajuan = 'Menunggu Persetujuan';
+        if ($user->hasRole('Kepala Kantor')) {
+            $statusPengajuan = 'Disetujui Otomatis (Pimpinan)';
+        } elseif ($user->atasan && $user->atasan->roles->isNotEmpty()) {
             $statusPengajuan = 'Menunggu ' . $user->atasan->roles->first()->name;
+        } else {
+            // Fallback teks jika atasan belum diset di seeder
+            $jabatanMap = [
+                1 => 'Kepala Seksi',
+                2 => 'Kepala Bidang',
+                3 => 'Kepala Sub Bagian',
+                4 => 'Kepala TU',
+                5 => 'Kepala Kantor'
+            ];
+            $statusPengajuan = 'Menunggu ' . ($jabatanMap[$inisialStep] ?? 'Persetujuan Akhir');
         }
 
         PengajuanCuti::create([
@@ -60,17 +90,17 @@ class PengajuanController extends Controller
             'alasan'           => $request->alasan,
             'lokasi'           => $request->lokasi,
             'surat_pengajuan'  => $suratPath,
-            'bukti_pendukung'  => empty($buktiPaths) ? null : $buktiPaths, // Disimpan sebagai Array
+            'bukti_pendukung'  => empty($buktiPaths) ? null : $buktiPaths,
+            'approval_step'    => $inisialStep, // Simpan step awal hasil potong kompas
             'status_pengajuan' => $statusPengajuan,
         ]);
 
-        // Mengirim notifikasi ke diri sendiri sebagai konfirmasi (Bisa juga diganti ke atasan)
+        // Mengirim notifikasi ke diri sendiri sebagai konfirmasi
         $user->notify(new StatusCutiNotification(
             'Pengajuan Berhasil Dikirim',
             'Pengajuan cuti Anda untuk tanggal ' . $request->tanggal_mulai . ' telah masuk sistem dan sedang menunggu persetujuan.'
         ));
 
-        // Hapus return ganda, cukup satu saja
         return redirect()->route('pengajuan.index')->with('success', 'Pengajuan cuti dan dokumen lampiran berhasil dikirim.');
     }
 
@@ -94,29 +124,24 @@ class PengajuanController extends Controller
 
     public function notifikasi()
     {
-        // Mengambil semua notifikasi milik user yang sedang login
         $notifikasis = Auth::user()->notifications;
-        
-        // Mengambil jumlah notifikasi yang belum dibaca (untuk badge angka biru)
         $belumDibaca = Auth::user()->unreadNotifications->count();
 
         return view('pegawai.notifikasi', compact('notifikasis', 'belumDibaca'));
     }
     
-    // (TAMBAHAN) Fungsi untuk tombol "Tandai Semua Dibaca"
     public function tandaiSemuaDibaca()
     {
         Auth::user()->unreadNotifications->markAsRead();
         return back()->with('success', 'Semua notifikasi telah ditandai dibaca.');
     } 
-    // KURUNG TUTUP DI SINI SUDAH DIHAPUS
 
     public function indexKepala(Request $request)
     {
         $user = Auth::user();
         $step = 0;
 
-        // Tentukan hak akses step berdasarkan role Spatie
+        // Tentukan hak akses meja (step) berdasarkan hierarki 5 level
         if ($user->hasRole('Kepala Seksi')) {
             $step = 1;
         } elseif ($user->hasRole('Kepala Bidang')) {
@@ -129,42 +154,36 @@ class PengajuanController extends Controller
             $step = 6; // Berubah, langsung dari TU
         }
 
-        // Ambil data pengajuan cuti beserta data pegawainya (relasi user)
         $pengajuans = PengajuanCuti::with('user')
             ->where('approval_step', $step)
             ->latest()
             ->paginate(10);
 
-        // Arahkan ke file index di dalam folder admin/approval
         return view('kepala.approval.index', compact('pengajuans'));
     }
 
     public function showKepala($id)
     {
-        // 1. Coba cari data aslinya dulu di database menggunakan find() bukan findOrFail()
         $data = \App\Models\PengajuanCuti::with('user')->find($id);
         
-        // 2. JIKA DATA KOSONG, KITA BUAT DATA DUMMY SEMENTARA UNTUK TESTING UI
         if (!$data) {
             $data = new \App\Models\PengajuanCuti();
             $data->id = $id;
             $data->nomor_pengajuan = 'CT.2026.DUMMY-' . $id;
             $data->jenis_cuti = 'Cuti Tahunan (Mode Dummy)';
             $data->durasi_hari = 3;
-            $data->tanggal_mulai = now()->addDays(7); // Mulai minggu depan
+            $data->tanggal_mulai = now()->addDays(7);
             $data->created_at = now();
-            $data->alasan = 'Ini adalah teks dummy sementara. Sistem tidak menemukan ID ' . $id . ' di database, jadi halaman ini menampilkan data buatan untuk kebutuhan testing desain UI.';
+            $data->alasan = 'Ini adalah teks dummy sementara. Sistem tidak menemukan ID ' . $id . ' di database.';
             $data->lampiran = null;
-            $data->approval_step = 2; // Ubah angka ini (1-5) untuk ngetes UI warna indikator persetujuan
+            $data->approval_step = 2; 
             $data->status = 'Menunggu';
 
-            // Membuat relasi "user" palsu agar $data->user->name tidak error
             $dummyUser = new \App\Models\User();
             $dummyUser->name = 'Budi Dummy (Tester)';
             $data->setRelation('user', $dummyUser);
         }
 
-        // 3. Kirim data (asli atau dummy) ke halaman view
         return view('kepala.approval.show', compact('data'));
     }
 
@@ -319,37 +338,33 @@ class PengajuanController extends Controller
         // Memanggil file view khusus admin
         return view('admin.notifikasi', compact('notifikasis', 'belumDibaca'));
     }
-
-    public function editAdmin(Request $request)
-    {
-        return view('admin.profile.edit', [
-            'user' => $request->user(),
-        ]);
-    }
     
     // 1. MESIN TOMBOL SETUJUI
     public function approveKepala(Request $request, $id)
     {
-        // Pakai find() biasa, BUKAN findOrFail()
         $pengajuan = \App\Models\PengajuanCuti::find($id);
         
-        // CEK DUMMY: Kalau data tidak ada di database, lewati proses save()
         if (!$pengajuan) {
             return redirect()->route('kepala.approval.index')->with('success', '[DUMMY MODE] Seolah-olah berhasil disetujui dan diteruskan!');
         }
 
         $user = Auth::user();
+        
+        // Operan antar meja berdasarkan hierarki
         if ($user->hasRole('Kepala Seksi')) {
             $pengajuan->approval_step = 2;
-            $pengajuan->status_pengajuan = 'Menunggu Kepala Sub-Bagian';
-        } elseif ($user->hasRole('Kepala Sub-Bagian')) {
+            $pengajuan->status_pengajuan = 'Menunggu Kepala Bidang';
+        } elseif ($user->hasRole('Kepala Bidang')) {
             $pengajuan->approval_step = 3;
-            $pengajuan->status_pengajuan = 'Menunggu Kepala Bagian';
-        } elseif ($user->hasRole('Kepala Bagian')) {
+            $pengajuan->status_pengajuan = 'Menunggu Kepala Sub Bagian';
+        } elseif ($user->hasRole('Kepala Sub-Bagian')) {
             $pengajuan->approval_step = 4;
+            $pengajuan->status_pengajuan = 'Menunggu Kepala TU';
+        } elseif ($user->hasRole('Kepala TU')) {
+            $pengajuan->approval_step = 5;
             $pengajuan->status_pengajuan = 'Menunggu Kepala Kantor';
         } elseif ($user->hasRole('Kepala Kantor')) {
-            $pengajuan->approval_step = 5;
+            $pengajuan->approval_step = 6; 
             $pengajuan->status_pengajuan = 'Disetujui';
         }
 
@@ -373,7 +388,7 @@ class PengajuanController extends Controller
         return redirect()->route('kepala.approval.index')->with('error', 'Pengajuan telah ditolak.');
     }
 
-    // 3. MESIN TOMBOL REVISI (BARU)
+    // 3. MESIN TOMBOL REVISI
     public function revisiKepala(Request $request, $id)
     {
         $pengajuan = \App\Models\PengajuanCuti::find($id);
@@ -382,7 +397,7 @@ class PengajuanController extends Controller
             return redirect()->route('kepala.approval.index')->with('warning', '[DUMMY MODE] Seolah-olah dikembalikan ke pegawai untuk direvisi!');
         }
         
-        $pengajuan->approval_step = 0; // Dikembalikan ke step awal (Pegawai)
+        $pengajuan->approval_step = 0; 
         $pengajuan->status_pengajuan = 'Perlu Revisi';
         
         $pengajuan->save();

@@ -3,7 +3,7 @@
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 
     <!-- Wrapper Utama dengan Background Biru Solid -->
-    <div class="bg-[#2A65F3] relative overflow-hidden font-sans">
+     <div class="bg-[#2A65F3] relative overflow-x-hidden transform-gpu font-sans">
         
         <!-- MOCKUP WAVE (SVG) - Dibuat Lebih Tebal & Beranimasi -->
         <div class="absolute top-0 left-0 w-full h-full pointer-events-none z-0" data-aos="fade-down" data-aos-duration="1500" data-aos-easing="ease-out-cubic">

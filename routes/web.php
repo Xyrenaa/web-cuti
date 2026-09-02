@@ -13,8 +13,8 @@ Route::get('/dashboard', function () {
         'Kepala Seksi',
         'Kepala Bagian',
         'Kepala Bidang',
-        'Kepala Sub Bagian',
-        'Kepala Tata Usaha',
+        'Kepala Sub-Bagian',
+        'Kepala TU',
         'Kepala Kantor'
     ];
     if (auth()->user()->hasAnyRole($parakepala)){

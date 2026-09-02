@@ -37,7 +37,7 @@
                         </h3>
                         
                         <div class="flex items-baseline space-x-2 mb-6">
-                            <span class="text-5xl font-black text-[#2a64f5] leading-none">{{ $pegawai->sisa_cuti }}</span>
+                            <span class="text-2xl font-black text-[#2a64f5] leading-none">{{ $pegawai->sisa_cuti }}</span>
                             <span class="text-gray-500 font-medium">/ {{ $pegawai->total_kuota }} Hari</span>
                         </div>
 

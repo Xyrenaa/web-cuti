@@ -18,6 +18,7 @@ class RoleSeeder extends Seeder
             'Kepala Seksi',
             'Kepala Sub-Bagian',
             'Kepala Bagian',
+            'Kepala TU',
             'Kepala Kantor',
             'Kepala Bidang'
         ];
