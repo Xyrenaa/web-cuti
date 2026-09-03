@@ -62,6 +62,15 @@ Route::get('/admin/profile/edit', [ProfileController::class, 'editAdmin'])->name
 // TAMBAHKAN RUTE INI UNTUK TOMBOL AKSI VERIFIKASI ADMIN
 Route::post('/admin/approval/{id}/verifikasi', [PengajuanController::class, 'verifikasiAdmin'])->name('admin.approval.verifikasi');
 
+// Rute untuk halaman Rekap Cuti
+Route::get('/admin/rekap', [App\Http\Controllers\PengajuanController::class, 'rekapAdmin'])->name('admin.rekap.index');
+
+// Rute untuk aksi Ekspor Excel (Nanti disambungkan ke fungsi ekspor sungguhan)
+Route::get('/admin/rekap/export', [App\Http\Controllers\PengajuanController::class, 'exportRekap'])->name('admin.rekap.export');
+
+// Rute untuk melihat detail rekap 1 pegawai
+Route::get('/admin/rekap/{id}', [App\Http\Controllers\PengajuanController::class, 'showRekap'])->name('admin.rekap.show');
+
 // Rute Khusus Approval Kepala
 Route::middleware(['auth', 'verified'])->prefix('kepala')->name('kepala.')->group(function () {
     Route::get('/approval', [\App\Http\Controllers\PengajuanController::class, 'indexKepala'])->name('approval.index');

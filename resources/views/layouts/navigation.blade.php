@@ -118,7 +118,7 @@
     </div>
 
     <!-- Dropdown Menu Mobile -->
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden bg-white/90 backdrop-blur-md border-t border-gray-100">
+   <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden bg-white/90 backdrop-blur-md border-t border-gray-100">
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 Beranda
@@ -127,6 +127,11 @@
             <x-responsive-nav-link :href="route('pengajuan.riwayat')" :active="request()->routeIs('pengajuan.riwayat', 'pengajuan.show')">
                 Riwayat Pengajuan
             </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('notifikasi')" :active="request()->routeIs('notifikasi')">
+                Notifikasi
+            </x-responsive-nav-link>
+
              <x-responsive-nav-link :href="route('notifikasi')" :active="request()->routeIs('notifikasi')">
                 Notifikasi
             </x-responsive-nav-link>
@@ -138,7 +143,7 @@
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <x-responsive-nav-link :href="route('logout')"
-                        onclick="event.preventDefault(); this.closest('form').submit();"
+                        onclick="event.preventDefault(); this.closest('form')->submit();"
                         class="text-red-600 hover:text-red-700 hover:bg-red-50">
                     Keluar
                 </x-responsive-nav-link>

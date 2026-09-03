@@ -402,13 +402,6 @@ public function approve($id)
         // Memanggil file view khusus admin
         return view('admin.notifikasi', compact('notifikasis', 'belumDibaca'));
     }
-
-    public function editAdmin(Request $request)
-    {
-        return view('admin.profile.edit', [
-            'user' => $request->user(),
-        ]);
-    }
     
     // 1. MESIN TOMBOL SETUJUI
     public function approveKepala(Request $request, $id)
@@ -474,4 +467,60 @@ public function approve($id)
         $pengajuan->save();
         return redirect()->route('kepala.approval.index')->with('warning', 'Berkas dikembalikan ke pegawai untuk direvisi.');
     }
-}
+
+    public function rekapAdmin(Request $request)
+    {
+        // DATA DUMMY UNTUK TESTING DESAIN UI REKAPITULASI
+        $rekaps = [
+            (object)[
+                'id' => 1, 'nama' => 'Ahmad Subarjo', 'nip' => '198804122015031002', 
+                'divisi' => 'Subbagian Tata Usaha', 'kuota' => 12, 'terpakai' => 3, 'sisa' => 9
+            ],
+            (object)[
+                'id' => 2, 'nama' => 'Siti Rahmawati', 'nip' => '199211082018012005', 
+                'divisi' => 'Seksi Keamanan Penerbangan', 'kuota' => 12, 'terpakai' => 2, 'sisa' => 10
+            ],
+            (object)[
+                'id' => 3, 'nama' => 'Budi Kurniawan', 'nip' => '198501252010031001', 
+                'divisi' => 'Seksi Operasi Bandar Udara', 'kuota' => 12, 'terpakai' => 12, 'sisa' => 0
+            ],
+            (object)[
+                'id' => 4, 'nama' => 'Dewi Lestari', 'nip' => '199507192020122003', 
+                'divisi' => 'Subbagian Hukum & Humas', 'kuota' => 12, 'terpakai' => 5, 'sisa' => 7
+            ],
+            (object)[
+                'id' => 5, 'nama' => 'Hendra Wijaya', 'nip' => '199009022016041004', 
+                'divisi' => 'Seksi Kalibrasi Fasilitas', 'kuota' => 12, 'terpakai' => 4, 'sisa' => 8
+            ],
+        ];
+
+        return view('admin.rekap.index', compact('rekaps'));
+    }
+
+    public function exportRekap(Request $request)
+    {
+        // Nanti diisi dengan logika Maatwebsite Excel
+        return back()->with('success', '(Mode Dummy) Rekap berhasil diekspor ke Excel!');
+    }
+
+    public function showRekap($id)
+    {
+        // DATA DUMMY: Profil Pegawai
+        $pegawai = (object)[
+            'id' => $id,
+            'nama' => 'Ahmad Subarjo',
+            'nip' => '198804122015031002',
+            'divisi' => 'Subbagian Tata Usaha',
+            'sisa_cuti' => 9,
+            'total_kuota' => 12
+        ];
+        
+        // DATA DUMMY: Riwayat Pengambilan Cuti
+        $riwayats = [
+            (object)['jenis' => 'Cuti Tahunan', 'tanggal_mulai' => '15 Mar 2026', 'durasi' => '3 Hari', 'status' => 'Selesai'],
+            (object)['jenis' => 'Cuti Sakit', 'tanggal_mulai' => '02 Feb 2026', 'durasi' => '1 Hari', 'status' => 'Selesai'],
+        ];
+
+        return view('admin.rekap.show', compact('pegawai', 'riwayats'));
+    }
+} // INI ADALAH KURUNG PENUTUP KELAS YANG BENAR (Paling Bawah)
