@@ -523,4 +523,15 @@ public function approve($id)
 
         return view('admin.rekap.show', compact('pegawai', 'riwayats'));
     }
+
+    public function indexApproval()
+    {
+        // Admin melihat semua pengajuan cuti dari semua pegawai
+        $pengajuans = \App\Models\PengajuanCuti::with('user')
+            ->latest()
+            ->paginate(10);
+
+        // Mengarahkan ke file view resources/views/admin/approval/index.blade.php
+        return view('admin.approval.index', compact('pengajuans'));
+    }
 } // INI ADALAH KURUNG PENUTUP KELAS YANG BENAR (Paling Bawah)
