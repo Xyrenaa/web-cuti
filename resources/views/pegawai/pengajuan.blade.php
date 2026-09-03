@@ -59,7 +59,7 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <a href="#" class="text-[#2A65F3] font-semibold hover:underline">Detail</a>
+                                <a href="{{ route('pengajuan.show', $item->id) }}" class="text-[#2A65F3] font-semibold hover:underline">Detail</a>
                             </td>
                         </tr>
                         @empty
