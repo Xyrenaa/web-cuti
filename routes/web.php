@@ -42,9 +42,12 @@ Route::get('/api/sub-bagian/{bagian_id}', function ($bagian_id) {
 
 // Route Admin yang baru
 // 1. Dashboard Admin
-Route::get('/admin/dashboard', function () {
-    return view('admin.dashboard');
-})->middleware(['auth', 'verified'])->name('admin.dashboard');
+
+Route::get('/admin/dashboard', [App\Http\Controllers\PengajuanController::class, 'dashboardAdmin'])->middleware(['auth'])->name('admin.dashboard');
+
+// Route::get('/admin/dashboard', function () {
+    // return view('admin.dashboard');
+// })->middleware(['auth', 'verified'])->name('admin.dashboard');
 
 // Rute untuk melihat tabel daftar approval
 Route::get('/admin/approval', [\App\Http\Controllers\PengajuanController::class, 'indexApproval'])->name('admin.approval.index');
