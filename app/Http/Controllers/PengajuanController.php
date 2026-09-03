@@ -110,7 +110,7 @@ class PengajuanController extends Controller
         'jenis_cuti_id'     => $request->jenis_cuti_id,
         'tanggal_mulai'     => $request->tanggal_mulai,
         'tanggal_selesai'   => $request->tanggal_selesai,
-        'durasi'            => $durasi_hari, // <--- TAMBAHAN UNTUK MENYIMPAN DURASI 
+        'durasi_hari'       => $durasi_hari, // <--- TAMBAHAN UNTUK MENYIMPAN DURASI 
         'alasan'            => $request->alasan,
         'lokasi'            => $request->lokasi,
         'surat_pengajuan'   => $suratPath,
@@ -141,7 +141,7 @@ class PengajuanController extends Controller
         $riwayat = $query->paginate(5);
         return view('pegawai.riwayat', compact('riwayat')); 
     }
-    public function batalkan($id)
+    public function batal($id)
     {
         $pengajuan = \App\Models\PengajuanCuti::find($id);
 
