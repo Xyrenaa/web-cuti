@@ -18,7 +18,26 @@
                 <h2 class="text-xl font-bold text-gray-800">Pendaftaran Akun Baru</h2>
             </div>
 
-            <form method="POST" action="{{ route('register') }}">
+            <!-- Inisialisasi Alpine.js x-data pada form -->
+            <form method="POST" action="{{ route('register') }}" x-data="{ 
+                bagian_id: '{{ old('bagian_bidang_id') }}', 
+                subBagians: [], 
+                fetchSubBagians() {
+                    if(!this.bagian_id) {
+                        this.subBagians = [];
+                        return;
+                    }
+                    fetch(`/api/sub-bagian/${this.bagian_id}`)
+                        .then(res => res.json())
+                        .then(data => this.subBagians = data);
+                },
+                init() {
+                    // Berjalan otomatis saat halaman dimuat (berguna jika form gagal validasi dan reload)
+                    if(this.bagian_id) {
+                        this.fetchSubBagians();
+                    }
+                }
+            }">
                 @csrf
 
                 <!-- Baris 1: Nama & NIP -->
@@ -42,24 +61,28 @@
                     <x-input-error :messages="$errors->get('email')" class="mt-1" />
                 </div>
 
-                <!-- Baris 3: Divisi & Jabatan -->
+                <!-- Baris 3: Bagian/Bidang & Sub-Bagian/Seksi -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label for="divisi" class="block text-xs font-semibold text-gray-700 mb-1">Divisi</label>
-                        <select id="divisi" name="divisi" required class="w-full rounded-lg border-gray-300 focus:border-blue-600 focus:ring-blue-600 shadow-sm px-4 py-2 text-sm bg-white">
-                            <option value="" disabled selected>Pilih Divisi...</option>
-                            <option value="Teknologi Informasi">Teknologi Informasi</option>
-                            <option value="Kepegawaian / SDM">Kepegawaian / SDM</option>
-                            <option value="Keuangan">Keuangan</option>
-                            <option value="Operasional">Operasional</option>
-                            <option value="Humas">Humas</option>
+                        <label for="bagian_bidang_id" class="block text-xs font-semibold text-gray-700 mb-1">Bagian / Bidang</label>
+                        <select id="bagian_bidang_id" name="bagian_bidang_id" x-model="bagian_id" @change="fetchSubBagians()" required class="w-full rounded-lg border-gray-300 focus:border-blue-600 focus:ring-blue-600 shadow-sm px-4 py-2 text-sm bg-white">
+                            <option value="" disabled selected>Pilih Bagian/Bidang...</option>
+                            @foreach(\App\Models\BagianBidang::all() as $bagian)
+                                <option value="{{ $bagian->id }}">{{ $bagian->nama }}</option>
+                            @endforeach
                         </select>
-                        <x-input-error :messages="$errors->get('divisi')" class="mt-1" />
+                        <x-input-error :messages="$errors->get('bagian_bidang_id')" class="mt-1" />
                     </div>
                     <div>
-                        <label for="jabatan" class="block text-xs font-semibold text-gray-700 mb-1">Jabatan / Posisi</label>
-                        <input id="jabatan" type="text" name="jabatan" :value="old('jabatan')" required placeholder="Senior Developer" class="w-full rounded-lg border-gray-300 focus:border-blue-600 focus:ring-blue-600 shadow-sm px-4 py-2 text-sm">
-                        <x-input-error :messages="$errors->get('jabatan')" class="mt-1" />
+                        <label for="sub_bagian_seksi_id" class="block text-xs font-semibold text-gray-700 mb-1">Sub-Bagian / Seksi</label>
+                        <!-- Dropdown ini disable jika data kosong (menggunakan class disabled dari tailwind dan properti Alpine.js) -->
+                        <select id="sub_bagian_seksi_id" name="sub_bagian_seksi_id" x-bind:disabled="subBagians.length === 0" required class="w-full rounded-lg border-gray-300 focus:border-blue-600 focus:ring-blue-600 shadow-sm px-4 py-2 text-sm bg-white disabled:bg-gray-100 disabled:cursor-not-allowed">
+                            <option value="" disabled selected>Pilih Sub-Bagian/Seksi...</option>
+                            <template x-for="sub in subBagians" :key="sub.id">
+                                <option x-bind:value="sub.id" x-text="sub.nama" :selected="sub.id == '{{ old('sub_bagian_seksi_id') }}'"></option>
+                            </template>
+                        </select>
+                        <x-input-error :messages="$errors->get('sub_bagian_seksi_id')" class="mt-1" />
                     </div>
                 </div>
 

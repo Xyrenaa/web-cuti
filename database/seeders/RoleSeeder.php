@@ -3,106 +3,194 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
+use App\Models\BagianBidang;
+use App\Models\SubBagianSeksi;
 
 class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Susunan Role
+        // 1. BUAT ROLE SPATIE (Sesuai dengan hierarki)
         $roles = [
-            'Pegawai',
-            'Admin Kepegawaian',
-            'Kepala Seksi',
-            'Kepala Sub-Bagian',
-            'Kepala Bagian',
-            'Kepala TU',
             'Kepala Kantor',
-            'Kepala Bidang'
+            'Kepala TU',
+            'Kepala Bidang',
+            'Kepala Sub-Bagian',
+            'Kepala Seksi',
+            'Admin Kepegawaian',
+            'Pegawai'
         ];
 
         foreach ($roles as $role) {
             Role::firstOrCreate(['name' => $role]);
         }
 
-        // ==========================================
-        // PEMBUATAN AKUN DARI JABATAN TERTINGGI
-        // (Agar ID atasannya bisa ditarik oleh bawahan)
-        // ==========================================
+        // 2. BUAT MASTER DATA BAGIAN/BIDANG & SUB-BAGIAN/SEKSI
+        
+        // --- Ekosistem Tata Usaha (TU) ---
+        $tu = BagianBidang::create(['nama' => 'Bagian Tata Usaha', 'is_tu' => true]);
+        $subKeuangan = SubBagianSeksi::create(['bagian_bidang_id' => $tu->id, 'nama' => 'Sub Bagian Perencanaan Dan Keuangan']);
+        $subKepegawaian = SubBagianSeksi::create(['bagian_bidang_id' => $tu->id, 'nama' => 'Sub Bagian Umum Dan Kepegawaian']);
 
-        // 2. Akun Kepala Kantor (Tertinggi, tidak punya atasan)
-        $kepalaKantor = User::updateOrCreate(
-            ['email' => 'kakan@cuti.com'],
-            [
-                'name' => 'Bapak Kepala Kantor',
-                'password' => Hash::make('kepala123'),
-                'nip' => '197001012000011001',
-                'jabatan' => 'Kepala Kantor Otoritas',
-                'divisi' => 'Pimpinan',
-                'sisa_cuti_tahunan' => 12,
-                'atasan_id' => null, // Tidak ada atasan
-            ]
-        );
-        $kepalaKantor->assignRole('Kepala Kantor');
+        // --- Ekosistem Bidang Pelayanan ---
+        $bidangPelayanan = BagianBidang::create(['nama' => 'Bidang Pelayanan Dan Pengoperasian Bandar Udara', 'is_tu' => false]);
+        $seksiFasilitas = SubBagianSeksi::create(['bagian_bidang_id' => $bidangPelayanan->id, 'nama' => 'Seksi Fasilitas Dan Pelayanan Bandar Udara']);
+        $seksiPengoperasian = SubBagianSeksi::create(['bagian_bidang_id' => $bidangPelayanan->id, 'nama' => 'Seksi Pengoperasian Bandar Udara']);
 
-        // 3. Akun Kepala Bagian (Atasannya Kepala Kantor)
-        $kepalaBagian = User::updateOrCreate(
-            ['email' => 'kabag@cuti.com'],
-            [
-                'name' => 'R. Muhammad Wafi Cahyono',
-                'password' => Hash::make('kepala123'),
-                'nip' => '198002022005011002',
-                'jabatan' => 'Kepala Bagian Umum',
-                'divisi' => 'Umum',
-                'sisa_cuti_tahunan' => 12,
-                'atasan_id' => $kepalaKantor->id, // Lapor ke Kakan
-            ]
-        );
-        $kepalaBagian->assignRole('Kepala Bagian');
+        // --- Ekosistem Bidang Keamanan ---
+        $bidangKeamanan = BagianBidang::create(['nama' => 'Bidang Keamanan, Angkutan Udara Dan Kelaikudaraan', 'is_tu' => false]);
+        $seksiKeamanan = SubBagianSeksi::create(['bagian_bidang_id' => $bidangKeamanan->id, 'nama' => 'Seksi Keamanan Penerbangan & Pelayanan Darurat']);
+        $seksiAngkutan = SubBagianSeksi::create(['bagian_bidang_id' => $bidangKeamanan->id, 'nama' => 'Seksi Angkutan Udara, Kelaikudaraan & Pengoperasian Pesawat Udara']);
 
-        // 4. Akun Kepala Seksi (Atasannya Kepala Bagian)
-        $kepalaSeksi = User::updateOrCreate(
-            ['email' => 'kasi@cuti.com'],
-            [
-                'name' => 'Kemas Fatih Amanaser Razan',
-                'password' => Hash::make('kepala123'),
-                'nip' => '198503032010011003',
-                'jabatan' => 'Kepala Seksi Jaringan',
-                'divisi' => 'Teknologi Informasi',
-                'sisa_cuti_tahunan' => 12,
-                'atasan_id' => $kepalaBagian->id, // Lapor ke Kabag
-            ]
-        );
-        $kepalaSeksi->assignRole('Kepala Seksi');
 
-        // 5. Akun Admin Kepegawaian (Atasannya Kepala Bagian)
+        // 3. BUAT AKUN KEPALA BERDASARKAN STRUKTUR ORGANISASI
+        $defaultPassword = Hash::make('kepala123'); // Password default untuk testing
+
+        // --- KEPALA KANTOR ---
+        $kakan = User::create([
+            'name' => 'AGUSTONO, S.SOS. M.MTR',
+            'nip' => '196908311991031001', // Spasi dihilangkan agar mudah untuk login
+            'email' => 'kakan@otban3.com',
+            'password' => $defaultPassword,
+            'level_jabatan' => 'Kepala Kantor',
+            'bagian_bidang_id' => null,
+            'sub_bagian_seksi_id' => null,
+            'jatah_cuti' => 12,
+        ]);
+        $kakan->assignRole('Kepala Kantor');
+
+        // --- KEPALA BAGIAN TATA USAHA ---
+        $kabagTu = User::create([
+            'name' => 'DIAN WAHYUDI. M. SI',
+            'nip' => '198002202000121003',
+            'email' => 'kabag.tu@otban3.com',
+            'password' => $defaultPassword,
+            'level_jabatan' => 'Kepala Bagian/Bidang',
+            'bagian_bidang_id' => $tu->id,
+            'sub_bagian_seksi_id' => null,
+        ]);
+        $kabagTu->assignRole('Kepala TU');
+
+        // --- KEPALA SUB BAGIAN (TU) ---
+        $kasubKeuangan = User::create([
+            'name' => 'MASRUKHIN. A.MD',
+            'nip' => '197710151999031002',
+            'email' => 'kasub.keuangan@otban3.com',
+            'password' => $defaultPassword,
+            'level_jabatan' => 'Kepala Seksi/Sub-Bagian',
+            'bagian_bidang_id' => $tu->id,
+            'sub_bagian_seksi_id' => $subKeuangan->id,
+        ]);
+        $kasubKeuangan->assignRole('Kepala Sub-Bagian');
+
+        $kasubKepegawaian = User::create([
+            'name' => 'DIAH YUNIATI, S.KOM, M.SC',
+            'nip' => '198306132006042001',
+            'email' => 'kasub.kepegawaian@otban3.com',
+            'password' => $defaultPassword,
+            'level_jabatan' => 'Kepala Seksi/Sub-Bagian',
+            'bagian_bidang_id' => $tu->id,
+            'sub_bagian_seksi_id' => $subKepegawaian->id,
+        ]);
+        $kasubKepegawaian->assignRole('Kepala Sub-Bagian');
+
+        // --- KEPALA BIDANG ---
+        $kabidPelayanan = User::create([
+            'name' => 'ERWIN DWI PURNOMO, S.T., M.SC',
+            'nip' => '198007302006041001',
+            'email' => 'kabid.pelayanan@otban3.com',
+            'password' => $defaultPassword,
+            'level_jabatan' => 'Kepala Bagian/Bidang',
+            'bagian_bidang_id' => $bidangPelayanan->id,
+            'sub_bagian_seksi_id' => null,
+        ]);
+        $kabidPelayanan->assignRole('Kepala Bidang');
+
+        $kabidKeamanan = User::create([
+            'name' => 'FUADANI, S.T., M.M',
+            'nip' => '197011151993031001',
+            'email' => 'kabid.keamanan@otban3.com',
+            'password' => $defaultPassword,
+            'level_jabatan' => 'Kepala Bagian/Bidang',
+            'bagian_bidang_id' => $bidangKeamanan->id,
+            'sub_bagian_seksi_id' => null,
+        ]);
+        $kabidKeamanan->assignRole('Kepala Bidang');
+
+        // --- KEPALA SEKSI ---
+        $kasiFasilitas = User::create([
+            'name' => 'M. MEGA HERDIYANSYA S.SIT',
+            'nip' => '198405222007121003',
+            'email' => 'kasi.fasilitas@otban3.com',
+            'password' => $defaultPassword,
+            'level_jabatan' => 'Kepala Seksi/Sub-Bagian',
+            'bagian_bidang_id' => $bidangPelayanan->id,
+            'sub_bagian_seksi_id' => $seksiFasilitas->id,
+        ]);
+        $kasiFasilitas->assignRole('Kepala Seksi');
+
+        $kasiPengoperasian = User::create([
+            'name' => 'CANDRA JAYA, SSIT, MM',
+            'nip' => '197912052002121001',
+            'email' => 'kasi.pengoperasian@otban3.com',
+            'password' => $defaultPassword,
+            'level_jabatan' => 'Kepala Seksi/Sub-Bagian',
+            'bagian_bidang_id' => $bidangPelayanan->id,
+            'sub_bagian_seksi_id' => $seksiPengoperasian->id,
+        ]);
+        $kasiPengoperasian->assignRole('Kepala Seksi');
+
+        $kasiKeamanan = User::create([
+            'name' => 'ANDY HENDRA SURYAKA, ST., MM',
+            'nip' => '197910202002121002',
+            'email' => 'kasi.keamanan@otban3.com',
+            'password' => $defaultPassword,
+            'level_jabatan' => 'Kepala Seksi/Sub-Bagian',
+            'bagian_bidang_id' => $bidangKeamanan->id,
+            'sub_bagian_seksi_id' => $seksiKeamanan->id,
+        ]);
+        $kasiKeamanan->assignRole('Kepala Seksi');
+
+        $kasiAngkutan = User::create([
+            'name' => 'TRI RENGGO JOKO WAHONO, SE',
+            'nip' => '197111031990091001',
+            'email' => 'kasi.angkutan@otban3.com',
+            'password' => $defaultPassword,
+            'level_jabatan' => 'Kepala Seksi/Sub-Bagian',
+            'bagian_bidang_id' => $bidangKeamanan->id,
+            'sub_bagian_seksi_id' => $seksiAngkutan->id,
+        ]);
+        $kasiAngkutan->assignRole('Kepala Seksi');
+
+        // 8. ADMIN KEPEGAWAIAN (Dimasukkan ke ekosistem Tata Usaha)
         $admin = User::updateOrCreate(
             ['email' => 'admin@cuti.com'],
             [
                 'name' => 'Yuni Admin',
-                'password' => Hash::make('admin123'),
                 'nip' => '199004042015012004',
-                'jabatan' => 'Staff Kepegawaian',
-                'divisi' => 'Kepegawaian',
-                'sisa_cuti_tahunan' => 12,
-                'atasan_id' => $kepalaBagian->id, // Lapor ke Kabag
+                'password' => Hash::make('admin123'),
+                'level_jabatan' => 'Pegawai',
+                'bagian_bidang_id' => $tu->id,
+                'sub_bagian_seksi_id' => $subKepegawaian->id,
+                'jatah_cuti' => 12,
             ]
         );
         $admin->assignRole('Admin Kepegawaian');
 
-        // 6. Akun Pegawai (Atasannya Kepala Seksi)
+        // 9. PEGAWAI BIASA (Dimasukkan ke Bidang Pelayanan / Seksi Fasilitas)
         $pegawai = User::updateOrCreate(
             ['email' => 'pegawai@cuti.com'],
             [
                 'name' => 'Muhammad Farros Nidji',
-                'password' => Hash::make('pegawai123'),
                 'nip' => '199505052020011005',
-                'jabatan' => 'Staff IT',
-                'divisi' => 'Teknologi Informasi',
-                'sisa_cuti_tahunan' => 12,
-                'atasan_id' => $kepalaSeksi->id, // Lapor ke Kasi
+                'password' => Hash::make('pegawai123'),
+                'level_jabatan' => 'Pegawai',
+                'bagian_bidang_id' => $bidangPelayanan->id,
+                'sub_bagian_seksi_id' => $seksiFasilitas->id,
+                'jatah_cuti' => 12,
             ]
         );
         $pegawai->assignRole('Pegawai');

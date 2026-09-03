@@ -25,8 +25,9 @@ class User extends Authenticatable
         'email',
         'password',
         'nip',
-        'divisi',
-        'jabatan',
+        'bagian_bidang_id',
+        'sub_bagian_seksi_id',
+        'level_jabatan',
         'sisa_cuti_tahunan',
     ];
 
@@ -52,8 +53,20 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-    public function atasan()
+    
+    /**
+     * Relasi ke bagian/bidang (Parent Level)
+     */
+    public function bagianBidang()
     {
-        return $this->belongsTo(User::class, 'atasan_id');
+        return $this->belongsTo(bagianBidang::class,'bagian_bidang_id');
+    }
+
+    /**
+     * Relasi ke Sub-Bagian/Seksi (child level)
+     */
+    public function subBagianSeksi()
+    {
+        return $this->belongsTo(subBagianSeksi::class, 'sub_bagian_seksi_id');
     }
 }

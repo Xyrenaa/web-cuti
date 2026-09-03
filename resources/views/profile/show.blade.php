@@ -70,6 +70,22 @@
                         <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->created_at ? $user->created_at->translatedFormat('d F Y') : '-' }}</div>
                     </div>
                 </div>
+                <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6 mt-6">
+    <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg flex items-center justify-between border-l-4 border-indigo-500">
+        <div class="max-w-xl">
+            <h2 class="text-lg font-medium text-gray-900">
+                Informasi Jatah Cuti
+            </h2>
+            <p class="mt-1 text-sm text-gray-600">
+                Sisa jatah cuti tahunan Anda di PELITA.
+            </p>
+        </div>
+        <div class="text-center bg-gray-50 px-6 py-4 rounded-lg shadow-inner">
+            <span class="block text-4xl font-extrabold text-indigo-600">{{ Auth::user()->jatah_cuti }}</span>
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Hari</span>
+        </div>
+    </div>
+</div>
 
             </div>
         </div>

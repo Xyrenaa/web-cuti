@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PengajuanController;
 use Illuminate\Support\Facades\Route;
+use App\Models\SubBagianSeksi;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -33,6 +34,9 @@ Route::get('/pengajuan/{id}', [App\Http\Controllers\PengajuanController::class, 
 Route::get('/notifikasi', [App\Http\Controllers\PengajuanController::class, 'notifikasi'])->name('notifikasi');
 Route::post('/notifikasi/tandai-dibaca', [App\Http\Controllers\PengajuanController::class, 'tandaiSemuaDibaca'])->name('notifikasi.read');
 
+Route::get('/api/sub-bagian/{bagian_id}', function ($bagian_id) {
+    return App\Models\SubBagianSeksi::where('bagian_bidang_id', $bagian_id)->get();
+});
 
 // Route Admin yang baru
 // 1. Dashboard Admin

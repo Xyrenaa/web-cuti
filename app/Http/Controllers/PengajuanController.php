@@ -19,90 +19,100 @@ class PengajuanController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'jenis_cuti_id'   => 'required|exists:jenis_cutis,id',
-            'tanggal_mulai'   => 'required|date',
-            'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
-            'alasan'          => 'required|string',
-            'lokasi'          => 'required|string|max:255',
-            'surat_pengajuan' => 'required|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
-            
-            // VALIDASI BARU: Berupa array, maksimal 5 file, per file maks 5MB
-            'bukti_pendukung'   => 'nullable|array|max:5',
-            'bukti_pendukung.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
-        ]);
+{
+    $request->validate([
+        'jenis_cuti_id'     => 'required|exists:jenis_cutis,id',
+        'tanggal_mulai'     => 'required|date',
+        'tanggal_selesai'   => 'required|date|after_or_equal:tanggal_mulai',
+        'alasan'            => 'required|string',
+        'lokasi'            => 'required|string|max:255',
+        'surat_pengajuan'   => 'required|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
+        'bukti_pendukung'   => 'nullable|array|max:5',
+        'bukti_pendukung.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
+    ]);
 
-        $suratFile = $request->file('surat_pengajuan');
-        $suratName = time() . '_wajib_' . preg_replace('/\s+/', '_', $suratFile->getClientOriginalName());
-        $suratPath = $suratFile->storeAs('dokumen/surat_pengajuan', $suratName, 'public');
-     
-        $buktiPaths = [];
-        if ($request->hasFile('bukti_pendukung')) {
-            foreach ($request->file('bukti_pendukung') as $key => $file) {
-                $buktiName = time() . '_opsi' . $key . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
-                $buktiPaths[] = $file->storeAs('dokumen/bukti_pendukung', $buktiName, 'public');
-            }
+    // 1. Upload Berkas Surat Pengajuan
+    $suratFile = $request->file('surat_pengajuan');
+    $suratName = time() . '_wajib_' . preg_replace('/\s+/', '_', $suratFile->getClientOriginalName());
+    $suratPath = $suratFile->storeAs('dokumen/surat_pengajuan', $suratName, 'public');
+ 
+    // 2. Upload Berkas Bukti Pendukung (Opsional / Multiple)
+    $buktiPaths = [];
+    if ($request->hasFile('bukti_pendukung')) {
+        foreach ($request->file('bukti_pendukung') as $key => $file) {
+            $buktiName = time() . '_opsi' . $key . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
+            $buktiPaths[] = $file->storeAs('dokumen/bukti_pendukung', $buktiName, 'public');
         }
+    }
 
-        $user = Auth::user();
-        
-        // ========================================================
-        // LOGIKA POTONG KOMPAS (HIERARKI 5 LEVEL)
-        // ========================================================
-        $inisialStep = 1; // Default Pegawai biasa masuk ke Kasi (Step 1)
+    $user = Auth::user();
+    // Memeriksa apakah pegawai ini berada di ekosistem Tata Usaha (TU)
+    $is_tu = $user->bagianBidang ? $user->bagianBidang->is_tu : false;
+    
+    // ========================================================
+    // LOGIKA PENENTUAN STEP AWAL (MENGGABUNGKAN JALUR TU & BIDANG)
+    // ========================================================
+    $inisialStep = 1; // Default Pegawai Bidang biasa masuk ke Kasi (Step 1)
 
+    if ($is_tu) {
+        // JALUR TATA USAHA: Pegawai TU langsung masuk ke Dashboard Admin (Step 3)
+        $inisialStep = 3; 
+    } else {
+        // JALUR OPERASIONAL BIDANG & POTONG KOMPAS JABATAN TINGGI
         if ($user->hasRole('Kepala Seksi') || $user->hasRole('Admin Kepegawaian')) {
             $inisialStep = 2; // Lompat ke Kepala Bidang
         } elseif ($user->hasRole('Kepala Bidang')) {
-            $inisialStep = 3; // Lompat ke Kepala Sub Bagian
+            $inisialStep = 3; 
         } elseif ($user->hasRole('Kepala Sub Bagian')) {
-            $inisialStep = 4; // Lompat ke Kepala TU
+            $inisialStep = 4; 
         } elseif ($user->hasRole('Kepala TU')) {
-            $inisialStep = 5; // Lompat ke Kepala Kantor
+            $inisialStep = 5; 
         } elseif ($user->hasRole('Kepala Kantor')) {
-            $inisialStep = 6; // Langsung Finish (Disetujui)
+            $inisialStep = 6; 
         }
+    }
 
-        // Menentukan Teks Status Berdasarkan Hierarki
-        $statusPengajuan = 'Menunggu Persetujuan';
-        if ($user->hasRole('Kepala Kantor')) {
-            $statusPengajuan = 'Disetujui Otomatis (Pimpinan)';
-        } elseif ($user->atasan && $user->atasan->roles->isNotEmpty()) {
-            $statusPengajuan = 'Menunggu ' . $user->atasan->roles->first()->name;
-        } else {
-            // Fallback teks jika atasan belum diset di seeder
-            $jabatanMap = [
-                1 => 'Kepala Seksi',
-                2 => 'Kepala Bidang',
-                3 => 'Kepala Sub Bagian',
-                4 => 'Kepala TU',
-                5 => 'Kepala Kantor'
-            ];
-            $statusPengajuan = 'Menunggu ' . ($jabatanMap[$inisialStep] ?? 'Persetujuan Akhir');
-        }
+    // Menentukan Teks Status Berdasarkan Hierarki
+    $statusPengajuan = 'Menunggu Persetujuan';
+    if ($user->hasRole('Kepala Kantor')) {
+        $statusPengajuan = 'Disetujui Otomatis (Pimpinan)';
+    } else {
+        // Mapping teks status berdasarkan step awal agar informatif
+        $jabatanMap = [
+            1 => 'Menunggu Kepala Seksi',
+            2 => 'Menunggu Kepala Bidang',
+            3 => 'Menunggu Verifikasi Admin / TU',
+            4 => 'Menunggu Kepala Sub Bagian',
+            5 => 'Menunggu Kepala TU',
+            6 => 'Menunggu Kepala Kantor'
+        ];
+        $statusPengajuan = $jabatanMap[$inisialStep] ?? 'Menunggu Persetujuan';
+    }
 
-        PengajuanCuti::create([
-            'user_id'          => $user->id,
-            'jenis_cuti_id'    => $request->jenis_cuti_id,
-            'tanggal_mulai'    => $request->tanggal_mulai,
-            'tanggal_selesai'  => $request->tanggal_selesai,
-            'alasan'           => $request->alasan,
-            'lokasi'           => $request->lokasi,
-            'surat_pengajuan'  => $suratPath,
-            'bukti_pendukung'  => empty($buktiPaths) ? null : $buktiPaths,
-            'approval_step'    => $inisialStep, // Simpan step awal hasil potong kompas
-            'status_pengajuan' => $statusPengajuan,
-        ]);
+    // 3. Simpan ke Database
+    PengajuanCuti::create([
+        'user_id'           => $user->id,
+        'jenis_cuti_id'     => $request->jenis_cuti_id,
+        'tanggal_mulai'     => $request->tanggal_mulai,
+        'tanggal_selesai'   => $request->tanggal_selesai,
+        'alasan'            => $request->alasan,
+        'lokasi'            => $request->lokasi,
+        'surat_pengajuan'   => $suratPath,
+        'bukti_pendukung'   => empty($buktiPaths) ? null : $buktiPaths,
+        'approval_step'     => $inisialStep, 
+        'status_pengajuan'  => $statusPengajuan,
+    ]);
 
-        // Mengirim notifikasi ke diri sendiri sebagai konfirmasi
+    // 4. Kirim Notifikasi ke User
+    if (method_exists($user, 'notify')) {
         $user->notify(new StatusCutiNotification(
             'Pengajuan Berhasil Dikirim',
-            'Pengajuan cuti Anda untuk tanggal ' . $request->tanggal_mulai . ' telah masuk sistem dan sedang menunggu persetujuan.'
+            'Pengajuan cuti Anda untuk tanggal ' . $request->tanggal_mulai . ' telah masuk sistem dan sedang diproses.'
         ));
-
-        return redirect()->route('pengajuan.index')->with('success', 'Pengajuan cuti dan dokumen lampiran berhasil dikirim.');
     }
+
+    return redirect()->route('pengajuan.index')->with('success', 'Pengajuan cuti dan dokumen lampiran berhasil dikirim.');
+}
 
     public function riwayat()
     {
@@ -191,16 +201,70 @@ class PengajuanController extends Controller
     // FUNGSI UNTUK ADMIN KEPEGAWAIAN
     // =================================================================
     
-    public function indexApproval()
-    {
-        // Admin biasanya bisa melihat semua pengajuan cuti dari semua pegawai
-        $pengajuans = PengajuanCuti::with('user')
-            ->latest()
-            ->paginate(10);
+    public function indexApprovals()
+{
+    $user = Auth::user();
+    $query = PengajuanCuti::with(['user.bagianBidang', 'user.subBagianSeksi']);
 
-        // Mengarahkan ke file view resources/views/admin/approval/index.blade.php
-        return view('admin.approval.index', compact('pengajuans'));
+    if ($user->hasRole('admin')) {
+        // ADMIN melihat Step 3 (Verifikasi Awal) DAN Step 7 (Penomoran Surat)
+        $pengajuans = $query->whereIn('approval_step', [3, 7])->get();
+
+    } elseif ($user->level_jabatan == 'Kepala Seksi/Sub-Bagian') {
+        if ($user->bagianBidang->is_tu) {
+            // Kasubag TU: Melihat Step 4 (Pengajuan yang sudah dilewati Admin)
+            $pengajuans = $query->where('approval_step', 4)->get();
+        } else {
+            // Kepala Seksi: Melihat Step 1 (Hanya dari bawahannya sendiri)
+            $pengajuans = $query->where('approval_step', 1)
+                                ->whereHas('user', function($q) use ($user) {
+                                    $q->where('sub_bagian_seksi_id', $user->sub_bagian_seksi_id);
+                                })->get();
+        }
+
+    } elseif ($user->level_jabatan == 'Kepala Bagian/Bidang') {
+        if ($user->bagianBidang->is_tu) {
+            // Kepala Bagian TU: Melihat Step 5
+            $pengajuans = $query->where('approval_step', 5)->get();
+        } else {
+            // Kepala Bidang: Melihat Step 2 (Hanya dari bawahannya sendiri)
+            $pengajuans = $query->where('approval_step', 2)
+                                ->whereHas('user', function($q) use ($user) {
+                                    $q->where('bagian_bidang_id', $user->bagian_bidang_id);
+                                })->get();
+        }
+
+    } elseif ($user->level_jabatan == 'Kepala Kantor') {
+        // Kepala Kantor: Melihat Step 6 (Final Approval)
+        $pengajuans = $query->where('approval_step', 6)->get();
     }
+
+    return view('admin.approval.index', compact('pengajuans'));
+}
+
+public function approve($id)
+{
+    $pengajuan = PengajuanCuti::findOrFail($id);
+    $user = Auth::user();
+
+    // Jika Admin melakukan penomoran surat (Langkah 7 ke 8)
+    if ($pengajuan->approval_step == 7 && $user->hasRole('admin')) {
+        $pengajuan->approval_step = 8;
+        $pengajuan->status = 'Disetujui'; // Status akhir
+        // Di sini bisa ditambahkan logika mengurangi jatah_cuti pegawai
+        $pegawai = $pengajuan->user;
+        $pegawai->jatah_cuti -= $pengajuan->lama_cuti;
+        $pegawai->save();
+    } 
+    // Langkah 1 sampai 6 (Approve normal)
+    else {
+        $pengajuan->approval_step += 1;
+        // Status tetap 'Menunggu Persetujuan' karena belum final
+    }
+
+    $pengajuan->save();
+    return back()->with('success', 'Pengajuan berhasil diteruskan ke tahap selanjutnya.');
+}
 
     public function showApproval($id)
     {
