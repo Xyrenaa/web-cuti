@@ -31,8 +31,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 Route::get('/riwayat-pengajuan', [App\Http\Controllers\PengajuanController::class, 'riwayat'])->name('pengajuan.riwayat');
 Route::get('/pengajuan/{id}', [App\Http\Controllers\PengajuanController::class, 'show'])->name('pengajuan.show');
+Route::post('/pengajuan/{id}/batal', [App\Http\Controllers\PengajuanController::class, 'batal'])->name('pengajuan.batal');
 Route::get('/notifikasi', [App\Http\Controllers\PengajuanController::class, 'notifikasi'])->name('notifikasi');
-Route::post('/notifikasi/tandai-dibaca', [App\Http\Controllers\PengajuanController::class, 'tandaiSemuaDibaca'])->name('notifikasi.read');
+Route::post('/notifikasi/{id}/read', [\App\Http\Controllers\NotifikasiController::class, 'markAsRead'])->name('notifikasi.read');
+Route::post('/notifikasi/read-all', [\App\Http\Controllers\NotifikasiController::class, 'markAllAsRead'])->name('notifikasi.readAll');
 
 Route::get('/api/sub-bagian/{bagian_id}', function ($bagian_id) {
     return App\Models\SubBagianSeksi::where('bagian_bidang_id', $bagian_id)->get();

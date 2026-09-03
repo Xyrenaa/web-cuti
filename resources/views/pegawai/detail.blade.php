@@ -110,11 +110,33 @@
             </div>
 
         </div>
-        <div class="max-w-6xl mx-auto mt-8">
+        <div class="max-w-6xl mx-auto mt-8 flex items-center gap-4">
+            <!-- Tombol Kembali -->
             <a href="{{ route('pengajuan.riwayat') }}" class="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-md hover:bg-gray-100 transition shadow-sm inline-flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                 Kembali
             </a>
+
+            <!-- Logika Pengecekan Status Final -->
+            @php
+                $statusFinal = ['Disetujui', 'Ditolak', 'Dibatalkan', 'Selesai'];
+                $isFinal = false;
+                foreach ($statusFinal as $sf) {
+                    if (stripos($pengajuan->status_pengajuan, $sf) !== false) {
+                        $isFinal = true;
+                        break;
+                    }
+                }
+            @endphp
+            @if(!$isFinal)
+
+            <form action="{{ route('pengajuan.batal', $pengajuan->id) }}" method="POST" onsubmit="return confirm('Anda yakin ingin membatalkan pengajuan ini dari sistem?');">
+        @csrf
+        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow">
+            Batalkan Pengajuan
+        </button>
+    </form>
+            @endif
         </div>
     </div>
 </x-app-layout>

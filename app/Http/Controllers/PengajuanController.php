@@ -31,6 +31,21 @@ class PengajuanController extends Controller
         'bukti_pendukung.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
     ]);
 
+    // ========================================================
+    // LOGIKA PERHITUNGAN DURASI HARI KERJA (Tanpa Sabtu-Minggu)
+    // ========================================================
+    $tanggal_mulai = \Carbon\Carbon::parse($request->tanggal_mulai);
+    $tanggal_selesai = \Carbon\Carbon::parse($request->tanggal_selesai);
+    
+    // diffInWeekdays otomatis menghitung hari kerja (Senin-Jumat)
+    // Ditambah addDay() agar perhitungannya inklusif (tanggal selesai ikut dihitung)
+    $durasi_hari = $tanggal_mulai->diffInWeekdays($tanggal_selesai->copy()->addDay());
+
+    // Validasi pencegahan jika user murni mengajukan hanya di hari libur (misal: Sabtu ke Minggu)
+    if ($durasi_hari < 1) {
+        return redirect()->back()->withInput()->with('error', 'Tanggal tidak valid. Pengajuan cuti tidak bisa dilakukan di hari libur akhir pekan.');
+    }
+
     // 1. Upload Berkas Surat Pengajuan
     $suratFile = $request->file('surat_pengajuan');
     $suratName = time() . '_wajib_' . preg_replace('/\s+/', '_', $suratFile->getClientOriginalName());
@@ -95,6 +110,7 @@ class PengajuanController extends Controller
         'jenis_cuti_id'     => $request->jenis_cuti_id,
         'tanggal_mulai'     => $request->tanggal_mulai,
         'tanggal_selesai'   => $request->tanggal_selesai,
+        'durasi'            => $durasi_hari, // <--- TAMBAHAN UNTUK MENYIMPAN DURASI 
         'alasan'            => $request->alasan,
         'lokasi'            => $request->lokasi,
         'surat_pengajuan'   => $suratPath,
@@ -124,6 +140,39 @@ class PengajuanController extends Controller
         
         $riwayat = $query->paginate(5);
         return view('pegawai.riwayat', compact('riwayat')); 
+    }
+    public function batalkan($id)
+    {
+        $pengajuan = \App\Models\PengajuanCuti::find($id);
+
+       if (auth()->id() !== $pengajuan->user_id) {
+            abort(403, 'Anda hanya dapat membatalkan pengajuan cuti Anda sendiri.');
+        }
+
+        // KONDISI: Cek apakah status sudah final (Selesai, Ditolak, atau sudah Dibatalkan sebelumnya)
+        // Sesuaikan kata kunci array ini dengan kata kunci status final di sistemmu
+        $statusFinal = ['Selesai', 'Ditolak', 'Dibatalkan'];
+        $isFinal = false;
+
+        foreach ($statusFinal as $sf) {
+            if (stripos($pengajuan->status_pengajuan, $sf) !== false) {
+                $isFinal = true;
+                break;
+            }
+        }
+
+        if ($isFinal) {
+            return redirect()->back()->with('error', 'Pengajuan tidak dapat dibatalkan karena sudah diproses final atau sudah ditutup.');
+        }
+
+        // Batalkan pengajuan
+        $pengajuan->update([
+            'status_pengajuan' => 'Dibatalkan',
+            // Opsional: jika ada kolom 'status' (bukan status_pengajuan), update juga:
+            // 'status' => 'Dibatalkan'
+        ]);
+
+        return redirect()->back()->with('success', 'Pengajuan cuti berhasil dibatalkan.');
     }
 
     public function show($id)

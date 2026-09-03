@@ -17,14 +17,14 @@
             <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">Kotak Masuk Notifikasi</h2>
 
             <!-- Tombol Aksi -->
-            <div class="mb-4">
-                <button type="button" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-semibold text-gray-700 hover:bg-gray-50 transition shadow-sm">
-                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                    Tandai Semua Dibaca
-                </button>
-            </div>
+            <form action="{{ route('notifikasi.readAll') }}" method="POST" class="mb-4">
+             @csrf
+            <button type="submit" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none">
+                <svg class="w-4 h-4" ... ><!-- Ikon mata milikmu --></svg>
+                Tandai Semua Dibaca
+            </button>
+        </form>
 
-            <!-- Kontainer Utama List -->
             <!-- Kontainer Utama List -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 
@@ -38,7 +38,33 @@
 
                 <!-- Daftar Notifikasi (Looping Database) -->
                 <div class="space-y-3">
-                    
+                    @foreach(auth()->user()->notifications as $notification)
+    @if($notification->unread())
+        <!-- Notifikasi Belum Dibaca (Bisa Diklik) -->
+        <form action="{{ route('notifikasi.read', $notification->id) }}" method="POST" class="w-full">
+            @csrf
+            <button type="submit" class="w-full text-left p-4 mb-3 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-lg transition">
+                <div class="flex justify-between items-center">
+                    <h4 class="text-sm font-bold text-gray-900">{{ $notification->data['title'] ?? 'Pemberitahuan' }}</h4>
+                    <span class="text-xs text-gray-500 flex items-center gap-2">
+                        {{ $notification->created_at->diffForHumans() }}
+                        <span class="w-2 h-2 rounded-full bg-blue-600"></span> <!-- Titik biru penanda unread -->
+                    </span>
+                </div>
+                <p class="text-sm text-gray-600 mt-1">{{ $notification->data['message'] ?? 'Ada pembaruan status.' }}</p>
+            </button>
+        </form>
+    @else
+        <!-- Notifikasi Sudah Dibaca (Tidak perlu form) -->
+        <div class="p-4 mb-3 bg-white border border-gray-100 rounded-lg opacity-75">
+            <div class="flex justify-between items-center">
+                <h4 class="text-sm font-semibold text-gray-700">{{ $notification->data['title'] ?? 'Pemberitahuan' }}</h4>
+                <span class="text-xs text-gray-400">{{ $notification->created_at->diffForHumans() }}</span>
+            </div>
+            <p class="text-sm text-gray-500 mt-1">{{ $notification->data['message'] ?? 'Ada pembaruan status.' }}</p>
+        </div>
+    @endif
+@endforeach
                     @forelse ($notifikasis as $notif)
                         <!-- Render Otomatis Berdasarkan Status Baca -->
                         <div class="relative {{ $notif->unread() ? 'bg-blue-50/50 border-blue-100' : 'bg-white border-gray-100' }} border rounded-lg p-4 flex justify-between items-start gap-4 transition hover:shadow-sm cursor-pointer">
