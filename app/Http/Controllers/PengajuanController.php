@@ -31,14 +31,10 @@ class PengajuanController extends Controller
         'bukti_pendukung.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
     ]);
 
-    // ========================================================
-    // LOGIKA PERHITUNGAN DURASI HARI KERJA (Tanpa Sabtu-Minggu)
-    // ========================================================
     $tanggal_mulai = \Carbon\Carbon::parse($request->tanggal_mulai);
     $tanggal_selesai = \Carbon\Carbon::parse($request->tanggal_selesai);
     
-    // diffInWeekdays otomatis menghitung hari kerja (Senin-Jumat)
-    // Ditambah addDay() agar perhitungannya inklusif (tanggal selesai ikut dihitung)
+
     $durasi_hari = $tanggal_mulai->diffInWeekdays($tanggal_selesai->copy()->addDay());
 
     // Validasi pencegahan jika user murni mengajukan hanya di hari libur (misal: Sabtu ke Minggu)
@@ -64,9 +60,6 @@ class PengajuanController extends Controller
     // Memeriksa apakah pegawai ini berada di ekosistem Tata Usaha (TU)
     $is_tu = $user->bagianBidang ? $user->bagianBidang->is_tu : false;
     
-    // ========================================================
-    // LOGIKA PENENTUAN STEP AWAL (MENGGABUNGKAN JALUR TU & BIDANG)
-    // ========================================================
     $inisialStep = 1; // Default Pegawai Bidang biasa masuk ke Kasi (Step 1)
 
     if ($is_tu) {
@@ -105,7 +98,32 @@ class PengajuanController extends Controller
     }
 
     // 3. Simpan ke Database
+    $jenisCuti = \App\Models\JenisCuti::find($request->jenis_cuti_id);
+$namaCuti = $jenisCuti ? $jenisCuti->nama_cuti : '';
+    $prefix = 'CT';
+if (str_contains($namaCuti, 'Sakit')) {
+    $prefix = 'CS';
+} elseif (str_contains($namaCuti, 'Tahunan')) {
+    $prefix = 'CT';
+} elseif (str_contains($namaCuti, 'Alasan Penting')) {
+    $prefix = 'CAP';
+} elseif (str_contains($namaCuti, 'Besar')) {
+    $prefix = 'CB';
+}
+
+$lastPengajuan = \App\Models\PengajuanCuti::where('jenis_cuti_id', $request->jenis_cuti)
+    ->orderBy('id', 'desc')
+    ->first();
+
+$nomorUrut = 1;
+if ($lastPengajuan && $lastPengajuan->kode_pengajuan) {
+    $lastUrut = (int) substr($lastPengajuan->kode_pengajuan, 2);
+    $nomorUrut = $lastUrut + 1;
+}
+
+$kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
     PengajuanCuti::create([
+        'kode_pengajuan'    => $kodeBaru,
         'user_id'           => $user->id,
         'jenis_cuti_id'     => $request->jenis_cuti_id,
         'tanggal_mulai'     => $request->tanggal_mulai,
@@ -130,16 +148,39 @@ class PengajuanController extends Controller
     return redirect()->route('pengajuan.index')->with('success', 'Pengajuan cuti dan dokumen lampiran berhasil dikirim.');
 }
 
-    public function riwayat()
+    public function riwayat(Request $request)
     {
-        $query = PengajuanCuti::where('user_id', Auth::id())->latest();
+        // Fungsi dasar tetap: Ambil data milik user yang sedang login
+        // (Ditambah with('jenisCuti') agar loading database lebih ringan/cepat)
+        $query = PengajuanCuti::where('user_id', Auth::id())->with('jenisCuti')->latest();
 
-        if (request()->has('cari') && request()->cari != '') {
-            $query->where('alasan', 'like', '%' . request()->cari . '%');
+        // 1. Filter Pencarian Kata Kunci (Alasan) - Asli buatanmu
+        if ($request->has('cari') && $request->cari != '') {
+            $query->where('alasan', 'like', '%' . $request->cari . '%');
         }
-        
+
+        // 2. Filter Jenis Cuti
+        if ($request->has('jenis_cuti') && $request->jenis_cuti != '') {
+            $query->where('jenis_cuti_id', $request->jenis_cuti);
+        }
+
+        // 3. Filter Bulan (Dari tanggal mulai)
+        if ($request->has('bulan') && $request->bulan != '') {
+            $query->whereMonth('tanggal_mulai', $request->bulan);
+        }
+
+        // 4. Filter Tahun (Dari tanggal mulai)
+        if ($request->has('tahun') && $request->tahun != '') {
+            $query->whereYear('tanggal_mulai', $request->tahun);
+        }
+
+        // Gunakan variabel aslimu ($riwayat) dan limit 5
         $riwayat = $query->paginate(5);
-        return view('pegawai.riwayat', compact('riwayat')); 
+        
+        // Ambil data jenis cuti untuk mengisi pilihan di dropdown HTML nanti
+        $jenis_cutis = \App\Models\JenisCuti::all();
+
+        return view('pegawai.riwayat', compact('riwayat', 'jenis_cutis')); 
     }
     public function batal($id)
     {

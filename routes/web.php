@@ -31,6 +31,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 Route::get('/riwayat-pengajuan', [App\Http\Controllers\PengajuanController::class, 'riwayat'])->name('pengajuan.riwayat');
 Route::get('/pengajuan/{id}', [App\Http\Controllers\PengajuanController::class, 'show'])->name('pengajuan.show');
+Route::get('/pengajuan/detail/{id}', [\App\Http\Controllers\PengajuanController::class, 'show'])->name('pegawai.detail');
 Route::post('/pengajuan/{id}/batal', [App\Http\Controllers\PengajuanController::class, 'batal'])->name('pengajuan.batal');
 Route::get('/notifikasi', [App\Http\Controllers\PengajuanController::class, 'notifikasi'])->name('notifikasi');
 Route::post('/notifikasi/{id}/read', [\App\Http\Controllers\NotifikasiController::class, 'markAsRead'])->name('notifikasi.read');
