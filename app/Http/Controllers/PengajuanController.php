@@ -291,46 +291,71 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
     // FUNGSI UNTUK ADMIN KEPEGAWAIAN
     // =================================================================
     
-    public function indexApprovals()
-{
-    $user = Auth::user();
-    $query = PengajuanCuti::with(['user.bagianBidang', 'user.subBagianSeksi']);
+ // SANGAT PENTING: Pastikan ada (Request $request) di dalam tanda kurungnya
+    // Ini adalah 'antena' agar Laravel bisa membaca filter ?status=Ditolak dari URL
+    public function indexApprovals(Request $request)
+    {
+        $user = Auth::user();
+        
+        // 1. Inisiasi Query Dasar
+        $query = \App\Models\PengajuanCuti::with(['user.bagianBidang', 'user.subBagianSeksi', 'jenisCuti']);
 
-    if ($user->hasRole('admin')) {
-        // ADMIN melihat Step 3 (Verifikasi Awal) DAN Step 7 (Penomoran Surat)
-        $pengajuans = $query->whereIn('approval_step', [3, 7])->get();
-
-    } elseif ($user->level_jabatan == 'Kepala Seksi/Sub-Bagian') {
-        if ($user->bagianBidang->is_tu) {
-            // Kasubag TU: Melihat Step 4 (Pengajuan yang sudah dilewati Admin)
-            $pengajuans = $query->where('approval_step', 4)->get();
-        } else {
-            // Kepala Seksi: Melihat Step 1 (Hanya dari bawahannya sendiri)
-            $pengajuans = $query->where('approval_step', 1)
-                                ->whereHas('user', function($q) use ($user) {
-                                    $q->where('sub_bagian_seksi_id', $user->sub_bagian_seksi_id);
-                                })->get();
+        // =======================================================
+        // 2. LOGIKA HIERARKI JABATAN (Hak Akses)
+        // =======================================================
+        if ($user->hasRole('admin')) {
+            // Dibiarkan kosong agar Admin bisa melihat SEMUA data riwayat
+        } elseif ($user->level_jabatan == 'Kepala Seksi/Sub-Bagian') {
+            if ($user->bagianBidang && $user->bagianBidang->is_tu) {
+                $query->where('approval_step', 4);
+            } else {
+                $query->where('approval_step', 1)
+                      ->whereHas('user', function($q) use ($user) {
+                          $q->where('sub_bagian_seksi_id', $user->sub_bagian_seksi_id);
+                      });
+            }
+        } elseif ($user->level_jabatan == 'Kepala Bagian/Bidang') {
+            if ($user->bagianBidang && $user->bagianBidang->is_tu) {
+                $query->where('approval_step', 5);
+            } else {
+                $query->where('approval_step', 2)
+                      ->whereHas('user', function($q) use ($user) {
+                          $q->where('bagian_bidang_id', $user->bagian_bidang_id);
+                      });
+            }
+        } elseif ($user->level_jabatan == 'Kepala Kantor') {
+            $query->where('approval_step', 6);
         }
 
-    } elseif ($user->level_jabatan == 'Kepala Bagian/Bidang') {
-        if ($user->bagianBidang->is_tu) {
-            // Kepala Bagian TU: Melihat Step 5
-            $pengajuans = $query->where('approval_step', 5)->get();
-        } else {
-            // Kepala Bidang: Melihat Step 2 (Hanya dari bawahannya sendiri)
-            $pengajuans = $query->where('approval_step', 2)
-                                ->whereHas('user', function($q) use ($user) {
-                                    $q->where('bagian_bidang_id', $user->bagian_bidang_id);
-                                })->get();
+        // =======================================================
+        // 3. LOGIKA PENCARIAN & FILTER
+        // =======================================================
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('user', function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('nip', 'like', "%{$search}%");
+            });
         }
 
-    } elseif ($user->level_jabatan == 'Kepala Kantor') {
-        // Kepala Kantor: Melihat Step 6 (Final Approval)
-        $pengajuans = $query->where('approval_step', 6)->get();
+        // Menangkap filter dari dropdown Status
+        if ($request->filled('status') && $request->status !== 'Semua Status') {
+            $query->where('status_pengajuan', 'like', '%' . $request->status . '%');
+        }
+
+        // Menangkap filter dari kalender
+        if ($request->filled('date')) {
+            $query->whereDate('created_at', $request->date);
+        }
+
+        // =======================================================
+        // 4. EKSEKUSI QUERY FINAL
+        // =======================================================
+        // Harus menggunakan paginate(), bukan get()
+        $pengajuans = $query->latest()->paginate(10)->withQueryString();
+
+        return view('admin.approval.index', compact('pengajuans'));
     }
-
-    return view('admin.approval.index', compact('pengajuans'));
-}
 
 public function approve($id)
 {
@@ -358,76 +383,8 @@ public function approve($id)
 
     public function showApproval($id)
     {
-        // 1. Coba cari data asli di database terlebih dahulu
+        // cari data asli di database terlebih dahulu
         $data = \App\Models\PengajuanCuti::with(['user', 'jenisCuti'])->find($id);
-        
-        // 2. Jika data tidak ada, gunakan data dummy berdasarkan desain dashboard
-        if (!$data) {
-            $data = new \App\Models\PengajuanCuti();
-            $data->id = $id;
-            
-            $dummyUser = new \App\Models\User();
-            $dummyJenisCuti = new \App\Models\JenisCuti();
-            
-            // Pengkondisian berdasarkan ID pada URL (1, 2, atau 3)
-            if ($id == 1) {
-                $dummyUser->name = 'Amiruddin Syah';
-                $dummyUser->nip = '198804122015031002';
-                $dummyJenisCuti->nama_cuti = 'Cuti Tahunan';
-                
-                $data->created_at = \Carbon\Carbon::parse('2023-10-24');
-                $data->tanggal_mulai = \Carbon\Carbon::parse('2023-10-25')->format('Y-m-d');
-                $data->tanggal_selesai = \Carbon\Carbon::parse('2023-10-25')->addDays(4)->format('Y-m-d'); // Total 5 Hari
-                $data->status_pengajuan = 'Menunggu';
-
-                $data->approval_step = 3;
-
-            } elseif ($id == 2) {
-                $dummyUser->name = 'Novianti Rahayu';
-                $dummyUser->nip = '198804122015031002';
-                $dummyJenisCuti->nama_cuti = 'Cuti Melahirkan';
-                
-                $data->created_at = \Carbon\Carbon::parse('2023-10-23');
-                $data->tanggal_mulai = \Carbon\Carbon::parse('2023-10-24')->format('Y-m-d');
-                $data->tanggal_selesai = \Carbon\Carbon::parse('2023-10-24')->addDays(89)->format('Y-m-d'); // Total 90 Hari
-                $data->status_pengajuan = 'Disetujui';
-
-                $data->approval_step = 5;
-
-            } elseif ($id == 3) {
-                $dummyUser->name = 'Rian Hidayat';
-                $dummyUser->nip = '198804122015031002';
-                $dummyJenisCuti->nama_cuti = 'Cuti Besar';
-                
-                $data->created_at = \Carbon\Carbon::parse('2023-10-20');
-                $data->tanggal_mulai = \Carbon\Carbon::parse('2023-10-21')->format('Y-m-d');
-                $data->tanggal_selesai = \Carbon\Carbon::parse('2023-10-21')->addDays(11)->format('Y-m-d'); // Total 12 Hari
-                $data->status_pengajuan = 'Ditolak';
-
-                $data->approval_step = 7;
-
-            } else {
-                // Fallback jika mengetik ID selain 1, 2, 3 di URL
-                $dummyUser->name = 'Pegawai Tidak Dikenal';
-                $dummyUser->nip = '000000000000000000';
-                $dummyJenisCuti->nama_cuti = 'Cuti Tahunan';
-                $data->created_at = now();
-                $data->tanggal_mulai = now()->format('Y-m-d');
-                $data->tanggal_selesai = now()->addDays(2)->format('Y-m-d');
-                $data->status_pengajuan = 'Menunggu';
-            }
-
-            // Data pelengkap agar halaman view tidak error karena variabel kosong
-            $dummyUser->jabatan = 'Staf Operasional';
-            $data->alasan = 'Teks alasan ini merupakan data dummy yang digunakan untuk kebutuhan testing desain UI halaman persetujuan.';
-            $data->lokasi = 'Surabaya'; 
-            $data->surat_pengajuan = 'dokumen/dummy_surat.pdf';
-            $data->bukti_pendukung = ['dokumen/dummy_bukti1.jpg']; // Format array karena di fungsi store() kamu setting array
-            
-            // Menggabungkan relasi buatan ke data utama
-            $data->setRelation('user', $dummyUser);
-            $data->setRelation('jenisCuti', $dummyJenisCuti);
-        }
         
         return view('admin.approval.show', compact('data'));
     }
@@ -560,58 +517,175 @@ public function approve($id)
 
     public function rekapAdmin(Request $request)
     {
-        // DATA DUMMY UNTUK TESTING DESAIN UI REKAPITULASI
-        $rekaps = [
-            (object)[
-                'id' => 1, 'nama' => 'Ahmad Subarjo', 'nip' => '198804122015031002', 
-                'divisi' => 'Subbagian Tata Usaha', 'kuota' => 12, 'terpakai' => 3, 'sisa' => 9
-            ],
-            (object)[
-                'id' => 2, 'nama' => 'Siti Rahmawati', 'nip' => '199211082018012005', 
-                'divisi' => 'Seksi Keamanan Penerbangan', 'kuota' => 12, 'terpakai' => 2, 'sisa' => 10
-            ],
-            (object)[
-                'id' => 3, 'nama' => 'Budi Kurniawan', 'nip' => '198501252010031001', 
-                'divisi' => 'Seksi Operasi Bandar Udara', 'kuota' => 12, 'terpakai' => 12, 'sisa' => 0
-            ],
-            (object)[
-                'id' => 4, 'nama' => 'Dewi Lestari', 'nip' => '199507192020122003', 
-                'divisi' => 'Subbagian Hukum & Humas', 'kuota' => 12, 'terpakai' => 5, 'sisa' => 7
-            ],
-            (object)[
-                'id' => 5, 'nama' => 'Hendra Wijaya', 'nip' => '199009022016041004', 
-                'divisi' => 'Seksi Kalibrasi Fasilitas', 'kuota' => 12, 'terpakai' => 4, 'sisa' => 8
-            ],
-        ];
+        // 1. Ambil query dasar
+        $query = \App\Models\User::with(['bagianBidang', 'subBagianSeksi']);
 
-        return view('admin.rekap.index', compact('rekaps'));
-    }
+        // 2. SEARCH: Logika Pencarian Nama/NIP
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('nip', 'like', "%{$search}%");
+            });
+        }
 
-    public function exportRekap(Request $request)
-    {
-        // Nanti diisi dengan logika Maatwebsite Excel
-        return back()->with('success', '(Mode Dummy) Rekap berhasil diekspor ke Excel!');
+        // 3. FILTER: Berdasarkan Divisi (Bagian/Bidang)
+        if ($request->filled('divisi') && $request->divisi !== 'Semua Divisi') {
+            $query->where('bagian_bidang_id', $request->divisi);
+        }
+
+        // 4. SORTING & ANALITIK: Siapa yang paling sering cuti?
+        if ($request->filled('sort') && $request->sort !== 'Terbaru') {
+            if ($request->sort == 'Terbanyak') {
+                $query->withSum(['pengajuanCutis as total_durasi' => function($q) {
+                    $q->where('status_pengajuan', 'Disetujui')->whereYear('created_at', date('Y'));
+                }], 'durasi_hari')->orderByDesc('total_durasi');
+            } else {
+                $jenisId = $request->sort;
+                $query->withSum(['pengajuanCutis as total_spesifik' => function($q) use ($jenisId) {
+                    $q->where('status_pengajuan', 'Disetujui')
+                      ->where('jenis_cuti_id', $jenisId)
+                      ->whereYear('created_at', date('Y'));
+                }], 'durasi_hari')->orderByDesc('total_spesifik');
+            }
+        } else {
+            $query->latest();
+        }
+
+        // 5. Sulap data ke format View (KOLOM SUDAH DISESUAIKAN DENGAN DATABASE)
+        $rekaps = $query->paginate(10)->through(function ($user) {
+            $terpakai = \App\Models\PengajuanCuti::where('user_id', $user->id)
+                ->where('status_pengajuan', 'Disetujui')
+                ->whereYear('created_at', date('Y'))
+                ->sum('durasi_hari');
+
+            // Menggunakan kolom jatah_cuti dari database
+            $kuota = $user->jatah_cuti ?? 12; 
+            $divisi = $user->subBagianSeksi->nama_sub_bagian ?? $user->bagianBidang->nama_bagian ?? '-';
+
+            return (object)[
+                'id'       => $user->id,
+                'nama'     => $user->name,
+                'nip'      => $user->nip,
+                'divisi'   => $divisi,
+                'kuota'    => $kuota,
+                'terpakai' => $terpakai,
+                'sisa'     => $kuota - $terpakai 
+            ];
+        });
+
+        $rekaps->appends(request()->query());
+
+        // 6. Data untuk Dropdown Filter & Kartu Statistik
+        $daftarDivisi = \App\Models\BagianBidang::all();
+        $daftarJenisCuti = \App\Models\JenisCuti::all();
+        
+        $totalPegawai = \App\Models\User::count();
+        $pengajuanBulanIni = \App\Models\PengajuanCuti::where('status_pengajuan', 'Disetujui')
+                                ->whereMonth('created_at', date('m'))
+                                ->whereYear('created_at', date('Y'))
+                                ->count();
+        
+        // Logika Rata-rata Sisa Cuti
+        $totalSisaKeseluruhan = 0;
+        $semuaUser = \App\Models\User::all();
+        foreach ($semuaUser as $u) {
+            $terpakaiUser = \App\Models\PengajuanCuti::where('user_id', $u->id)
+                ->where('status_pengajuan', 'Disetujui')
+                ->whereYear('created_at', date('Y'))
+                ->sum('durasi_hari');
+                
+            $kuotaUser = $u->jatah_cuti ?? 12; 
+            $totalSisaKeseluruhan += ($kuotaUser - $terpakaiUser);
+        }
+
+        $rataSisa = $totalPegawai > 0 ? round($totalSisaKeseluruhan / $totalPegawai, 1) : 0;
+
+        return view('admin.rekap.index', compact('rekaps', 'totalPegawai', 'pengajuanBulanIni', 'rataSisa', 'daftarDivisi', 'daftarJenisCuti'));
     }
 
     public function showRekap($id)
     {
-        // DATA DUMMY: Profil Pegawai
+        $user = \App\Models\User::with(['bagianBidang', 'subBagianSeksi'])->findOrFail($id);
+
+        $terpakai = \App\Models\PengajuanCuti::where('user_id', $user->id)
+            ->where('status_pengajuan', 'Disetujui')
+            ->whereYear('created_at', date('Y'))
+            ->sum('durasi_hari');
+
+        // Menggunakan kolom jatah_cuti dari database
+        $kuota = $user->jatah_cuti ?? 12;
+        $divisi = $user->subBagianSeksi->nama_sub_bagian ?? $user->bagianBidang->nama_bagian ?? '-';
+
         $pegawai = (object)[
-            'id' => $id,
-            'nama' => 'Ahmad Subarjo',
-            'nip' => '198804122015031002',
-            'divisi' => 'Subbagian Tata Usaha',
-            'sisa_cuti' => 9,
-            'total_kuota' => 12
+            'id'          => $user->id,
+            'nama'        => $user->name,
+            'nip'         => $user->nip,
+            'divisi'      => $divisi,
+            'sisa_cuti'   => $kuota - $terpakai,
+            'total_kuota' => $kuota
         ];
         
-        // DATA DUMMY: Riwayat Pengambilan Cuti
-        $riwayats = [
-            (object)['jenis' => 'Cuti Tahunan', 'tanggal_mulai' => '15 Mar 2026', 'durasi' => '3 Hari', 'status' => 'Selesai'],
-            (object)['jenis' => 'Cuti Sakit', 'tanggal_mulai' => '02 Feb 2026', 'durasi' => '1 Hari', 'status' => 'Selesai'],
-        ];
+        $riwayats = \App\Models\PengajuanCuti::with('jenisCuti')
+            ->where('user_id', $id)
+            ->latest()
+            ->get()
+            ->map(function ($cuti) {
+                return (object)[
+                    'id'            => $cuti->id,
+                    'jenis'         => $cuti->jenisCuti->nama_cuti ?? 'Cuti Tahunan',
+                    'tanggal_mulai' => \Carbon\Carbon::parse($cuti->tanggal_mulai)->translatedFormat('d M Y'),
+                    'durasi'        => $cuti->durasi_hari . ' Hari',
+                    'status'        => $cuti->status_pengajuan
+                ];
+            });
 
         return view('admin.rekap.show', compact('pegawai', 'riwayats'));
+    }
+
+    public function exportRekap(Request $request)
+    {
+        // Panggil library Excel untuk mengunduh file
+        // Pastikan kamu sudah menjalankan `php artisan make:export RekapCutiExport`
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\RekapCutiExport, 'Rekap_Cuti_Pegawai_' . date('Y') . '.xlsx');
+    }
+
+    public function indexRekap(Request $request)
+    {
+        // 1. STATISTIK ATAS
+        $totalPegawai = \App\Models\User::count(); 
+        
+        $pengajuanBulanIni = \App\Models\PengajuanCuti::whereMonth('created_at', now()->month)
+                                ->whereYear('created_at', now()->year)
+                                ->count();
+
+        // 2. QUERY DAFTAR PEGAWAI BESERTA CUTINYA (Hanya yang disetujui tahun ini)
+        $query = \App\Models\User::with(['bagianBidang', 'subBagianSeksi', 'pengajuanCutis' => function($q) {
+            $q->where('status_pengajuan', 'Disetujui')
+              ->whereYear('tanggal_mulai', now()->year);
+        }]);
+
+        // 3. FITUR PENCARIAN (Nama atau NIP)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('nip', 'like', "%{$search}%");
+            });
+        }
+
+        // 4. EKSEKUSI DATA
+        $users = $query->paginate(10)->withQueryString();
+
+        // 5. HITUNG RATA-RATA SISA CUTI
+        $totalSisa = 0;
+        foreach ($users as $u) {
+            $terpakai = $u->pengajuanCutis->sum('durasi_hari');
+            $totalSisa += (12 - $terpakai); // Ganti angka 12 jika kamu punya kolom $u->kuota_cuti
+        }
+        $rataSisa = $users->count() > 0 ? round($totalSisa / $users->count(), 1) : 0;
+
+        return view('admin.rekap.index', compact('totalPegawai', 'pengajuanBulanIni', 'rataSisa', 'users'));
     }
 
     public function indexApproval()
@@ -624,4 +698,44 @@ public function approve($id)
         // Mengarahkan ke file view resources/views/admin/approval/index.blade.php
         return view('admin.approval.index', compact('pengajuans'));
     }
+
+    public function dashboardAdmin()
+    {
+        $bulanIni = now()->month;
+        $tahunIni = now()->year;
+
+        // 1. DATA STATISTIK KARTU
+        // Hitung pengajuan yang masuk ke meja Admin (Step 3: Verifikasi Kasubag, Step 7: Finalisasi)
+        $pengajuanBaru = \App\Models\PengajuanCuti::whereIn('approval_step', [3, 7])->count();
+
+        // Hitung semua pengajuan yang masih menggantung (belum final)
+        $menungguPersetujuan = \App\Models\PengajuanCuti::whereNotIn('status_pengajuan', ['Disetujui', 'Ditolak', 'Dibatalkan'])->count();
+
+        // Hitung yang disetujui pada bulan ini
+        $disetujuiBulanIni = \App\Models\PengajuanCuti::where('status_pengajuan', 'Disetujui')
+            ->whereMonth('created_at', $bulanIni)
+            ->whereYear('created_at', $tahunIni)
+            ->count();
+
+        // Hitung yang ditolak pada bulan ini
+        $ditolakBulanIni = \App\Models\PengajuanCuti::whereIn('status_pengajuan', ['Ditolak', 'Dibatalkan'])
+            ->whereMonth('created_at', $bulanIni)
+            ->whereYear('created_at', $tahunIni)
+            ->count();
+
+        // 2. DATA TABEL (Butuh Tindakan Admin)
+        $antreanCuti = \App\Models\PengajuanCuti::with(['user', 'jenisCuti'])
+            ->whereIn('approval_step', [3, 7]) // Hanya tampilkan yang butuh klik dari Admin
+            ->latest()
+            ->paginate(5); // Tampilkan 5 data per halaman
+
+        return view('admin.dashboard', compact(
+            'pengajuanBaru', 
+            'menungguPersetujuan', 
+            'disetujuiBulanIni', 
+            'ditolakBulanIni', 
+            'antreanCuti'
+        ));
+    }
+
 } // INI ADALAH KURUNG PENUTUP KELAS YANG BENAR (Paling Bawah)
