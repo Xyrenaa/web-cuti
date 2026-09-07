@@ -32,7 +32,7 @@
                         </div>
                         <div>
                             <h3 class="text-xl font-bold text-gray-900">{{ $user->name }}</h3>
-                            <p class="text-sm text-gray-500 mt-1">{{ $user->jabatan ?? 'Pegawai' }} — {{ $user->divisi ?? 'Instansi' }}</p>
+                            <p class="text-sm text-gray-500 mt-1">{{ $user->subBagian->nama ?? 'Pegawai' }} — {{ $user->bagian->nama ?? 'Instansi' }}</p>
                         </div>
                     </div>
                     <a href="{{ route('profile.edit') }}" class="px-5 py-2.5 bg-[#2A65F3] text-white text-sm font-semibold rounded-md hover:bg-blue-700 transition flex items-center gap-2 shadow-sm">
@@ -44,32 +44,38 @@
                 <!-- Bottom Section: Data Diri -->
                 <h4 class="text-xs font-bold text-[#2A65F3] tracking-widest uppercase mb-6">Detail Informasi Karyawan</h4>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 mb-2">Nama Lengkap</label>
-                        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->name }}</div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 mb-2">NIP (Nomor Induk Pegawai)</label>
-                        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->nip ?? '-' }}</div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 mb-2">Alamat Email</label>
-                        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->email }}</div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 mb-2">Divisi / Departemen</label>
-                        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->divisi ?? '-' }}</div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 mb-2">Jabatan Pekerjaan</label>
-                        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->jabatan ?? '-' }}</div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 mb-2">Tanggal Bergabung</label>
-                        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->created_at ? $user->created_at->translatedFormat('d F Y') : '-' }}</div>
-                    </div>
-                </div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Baris 1 -->
+    <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-2">Nama Lengkap</label>
+        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->name }}</div>
+    </div>
+    <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-2">NIP (Nomor Induk Pegawai)</label>
+        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->nip ?? '-' }}</div>
+    </div>
+
+    <!-- Baris 2 -->
+    <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-2">Alamat Email</label>
+        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->email }}</div>
+    </div>
+    <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-2">Bagian / Bidang</label>
+        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->bagian->nama ?? '-' }}</div>
+    </div>
+
+    <!-- Baris 3 -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-2">Tanggal Bergabung</label>
+        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->created_at ? $user->created_at->translatedFormat('d F Y') : '-' }}</div>
+    </div>
+    <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-2">Sub-Bagian / Seksi</label>
+        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->subBagian->nama ?? '-' }}</div>
+    </div>
+   
+</div>
                 <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6 mt-6">
     <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg flex items-center justify-between border-l-4 border-indigo-500">
         <div class="max-w-xl">

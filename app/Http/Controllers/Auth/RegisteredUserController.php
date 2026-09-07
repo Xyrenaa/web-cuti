@@ -34,8 +34,8 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'nip' => ['required', 'string', 'max:50', 'unique:'.User::class], // Validasi NIP
-            'divisi' => ['required', 'string', 'max:255'],                     // Validasi Divisi
-            'jabatan' => ['required', 'string', 'max:255'],
+            'bagian_bidang_id' => ['required', 'integer'], 
+            'sub_bagian_seksi_id' => ['required', 'integer'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -43,9 +43,9 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'nip' => $request->nip,         // Simpan NIP
-            'divisi' => $request->divisi,   // Simpan Divisi
-            'jabatan' => $request->jabatan,
-            'password' => Hash::make($request->password),
+            'bagian_bidang_id' => ['required', 'integer'], 
+            'sub_bagian_seksi_id' => ['required', 'integer'],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
         $user->assignRole('Pegawai');
 
