@@ -25,10 +25,24 @@ class User extends Authenticatable
         'email',
         'password',
         'nip',
-        'bagian_bidang_id',
-        'sub_bagian_seksi_id',
-        'level_jabatan',
-        'sisa_cuti_tahunan',
+        'bagian_bidang',
+        'sub_bagian_seksi',
+        'tingkat_jabatan',
+        'jatah_cuti',
+    ];
+    public const STRUKTUR_ORGANISASI = [
+        'Bagian Tata Usaha' => [
+            'Sub Bagian Umum dan Kepegawaian',
+            'Sub Bagian Perencanaan dan Keuangan'
+        ],
+        'Bidang Pelayanan dan Pengoperasian Bandar Udara' => [
+            'Seksi Fasilitas dan Pelayanan Bandar Udara',
+            'Seksi Pengoperasian Bandar Udara'
+        ],
+        'Bidang Keamanan, Angkutan Udara dan Kelaikudaraan' => [
+            'Seksi Keamanan Penerbangan & Pelayanan Darurat',
+            'Seksi Angkutan Udara, Kelaikudaraan & Pengoperasian Pesawat Udara'
+        ]
     ];
 
     /**
@@ -53,20 +67,13 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-    
-    /**
-     * Relasi ke bagian/bidang (Parent Level)
-     */
-    public function bagianBidang()
+    public function atasan()
     {
-        return $this->belongsTo(bagianBidang::class,'bagian_bidang_id');
+        return $this->belongsTo(User::class, 'atasan_id');
     }
 
-    /**
-     * Relasi ke Sub-Bagian/Seksi (child level)
-     */
-    public function subBagianSeksi()
+    public function pengajuanCutis()
     {
-        return $this->belongsTo(subBagianSeksi::class, 'sub_bagian_seksi_id');
+        return $this->hasMany(PengajuanCuti::class, 'user_id');
     }
 }

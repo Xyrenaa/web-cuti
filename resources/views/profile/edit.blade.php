@@ -23,55 +23,70 @@
                 @csrf
                 @method('patch')
 
-                <!-- Section: Foto Profil -->
+               <!-- Section: Foto Profil -->
                 <h4 class="text-xs font-bold text-[#2A65F3] tracking-widest uppercase mb-4">Foto Profil</h4>
-                <div class="flex flex-col md:flex-row items-center gap-6 mb-8 border-b border-gray-100 pb-8">
+                <div class="flex flex-col sm:flex-row items-center sm:items-start gap-5 mb-8 border-b border-gray-100 pb-8">
                     @php
                         $nameParts = explode(' ', $user->name);
                         $initials = collect($nameParts)->map(fn($n) => substr($n, 0, 1))->take(2)->join('');
                     @endphp
-                    <div class="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center text-[#2A65F3] text-2xl font-bold uppercase shrink-0">
+                    
+                    <!-- Avatar Preview -->
+                    <div class="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center text-[#2A65F3] text-2xl font-bold uppercase shrink-0 shadow-sm border border-blue-100">
                         {{ $initials }}
                     </div>
                     
-                    <!-- Area Upload Dropzone -->
-                    <div class="w-full relative">
-                        <input type="file" name="avatar" id="avatar" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept="image/png, image/jpeg">
-                        <div class="w-full border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition">
-                            <svg class="w-6 h-6 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                            <span class="text-sm font-bold text-gray-700">Unggah foto baru</span>
-                            <span class="text-xs text-gray-500 mt-1">PNG, JPG maks 2MB (Rekomendasi ukuran square 1:1)</span>
+                    <!-- Area Upload Modern & Compact -->
+                    <div class="flex flex-col justify-center sm:mt-2 text-center sm:text-left">
+                        <div class="relative inline-block mb-2">
+                            <!-- Input file disembunyikan tapi tetap bisa diklik (menimpa tombol) -->
+                            <input type="file" name="avatar" id="avatar" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept="image/png, image/jpeg">
+                            
+                            <!-- Tampilan Tombol -->
+                            <div class="px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-semibold rounded-md hover:bg-gray-50 hover:border-gray-400 transition shadow-sm flex items-center justify-center sm:justify-start gap-2 w-full sm:w-max cursor-pointer">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                                </svg>
+                                Pilih Foto Baru
+                            </div>
                         </div>
+                        <p class="text-xs text-gray-500 leading-relaxed">Format: PNG, JPG (Maks. 2MB)</p>
+                        <p class="text-xs text-gray-400">Rekomendasi rasio 1:1</p>
                     </div>
                 </div>
 
                 <!-- Section: Data Diri -->
+                <!-- Section: Data Diri -->
                 <h4 class="text-xs font-bold text-[#2A65F3] tracking-widest uppercase mb-6">Form Data Diri</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    
+                    <!-- Kolom yang BISA diedit -->
                     <div>
                         <label for="name" class="block text-xs font-semibold text-gray-700 mb-2">Nama Lengkap</label>
                         <input type="text" name="name" id="name" value="{{ old('name', $user->name) }}" class="w-full bg-white border border-gray-300 rounded-md px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label for="email" class="block text-xs font-semibold text-gray-700 mb-2">Alamat Email</label>
-                        <input type="email" name="email" id="email" value="{{ old('email', $user->email) }}" class="w-full bg-white border border-gray-300 rounded-md px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                    </div>
-                    <div>
                         <label for="telepon" class="block text-xs font-semibold text-gray-700 mb-2">Nomor Telepon</label>
-                        <input type="text" name="telepon" id="telepon" value="{{ old('telepon', $user->telepon ?? '') }}" class="w-full bg-white border border-gray-300 rounded-md px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <input type="text" name="telepon" id="telepon" value="{{ old('telepon', $user->telepon ?? '') }}" class="w-full bg-white border border-gray-300 rounded-md px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Masukkan nomor telepon">
+                    </div>
+
+                    <!-- Kolom yang TIDAK BISA diedit (Read-Only) -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-2">NIP (Nomor Induk Pegawai)</label>
+                        <input type="text" value="{{ $user->nip ?? '-' }}" readonly class="w-full bg-gray-100 border border-gray-200 text-gray-500 rounded-md px-4 py-2.5 text-sm cursor-not-allowed select-none">
                     </div>
                     <div>
-                        <label for="divisi" class="block text-xs font-semibold text-gray-700 mb-2">Divisi / Departemen</label>
-                        <select name="divisi" id="divisi" class="w-full bg-white border border-gray-300 rounded-md px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-700">
-                            <option value="Teknologi Informasi" {{ ($user->divisi ?? '') == 'Teknologi Informasi' ? 'selected' : '' }}>Teknologi Informasi</option>
-                            <option value="Operasional" {{ ($user->divisi ?? '') == 'Operasional' ? 'selected' : '' }}>Operasional</option>
-                            <option value="Keuangan" {{ ($user->divisi ?? '') == 'Keuangan' ? 'selected' : '' }}>Keuangan</option>
-                            <!-- Tambahkan opsi lain sesuai kebutuhan -->
-                        </select>
+                        <label class="block text-xs font-semibold text-gray-700 mb-2">Alamat Email</label>
+                        <input type="email" value="{{ $user->email }}" readonly class="w-full bg-gray-100 border border-gray-200 text-gray-500 rounded-md px-4 py-2.5 text-sm cursor-not-allowed select-none">
+                        <span class="text-[10px] text-gray-400 mt-1 block">*Hubungi admin untuk mengubah email</span>
                     </div>
                     <div>
-                        <label for="jabatan" class="block text-xs font-semibold text-gray-700 mb-2">Jabatan Pekerjaan</label>
-                        <input type="text" name="jabatan" id="jabatan" value="{{ old('jabatan', $user->jabatan ?? '') }}" class="w-full bg-white border border-gray-300 rounded-md px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <label class="block text-xs font-semibold text-gray-700 mb-2">Bagian / Bidang</label>
+                        <input type="text" value="{{ $user->bagian->nama ?? '-' }}" readonly class="w-full bg-gray-100 border border-gray-200 text-gray-500 rounded-md px-4 py-2.5 text-sm cursor-not-allowed select-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-2">Sub-Bagian / Seksi</label>
+                        <input type="text" value="{{ $user->subBagian->nama ?? '-' }}" readonly class="w-full bg-gray-100 border border-gray-200 text-gray-500 rounded-md px-4 py-2.5 text-sm cursor-not-allowed select-none">
                     </div>
                 </div>
 

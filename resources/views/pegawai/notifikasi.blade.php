@@ -39,32 +39,32 @@
                 <!-- Daftar Notifikasi (Looping Database) -->
                 <div class="space-y-3">
                     @foreach(auth()->user()->notifications as $notification)
-    @if($notification->unread())
-        <!-- Notifikasi Belum Dibaca (Bisa Diklik) -->
-        <form action="{{ route('notifikasi.read', $notification->id) }}" method="POST" class="w-full">
-            @csrf
-            <button type="submit" class="w-full text-left p-4 mb-3 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-lg transition">
-                <div class="flex justify-between items-center">
-                    <h4 class="text-sm font-bold text-gray-900">{{ $notification->data['title'] ?? 'Pemberitahuan' }}</h4>
-                    <span class="text-xs text-gray-500 flex items-center gap-2">
-                        {{ $notification->created_at->diffForHumans() }}
-                        <span class="w-2 h-2 rounded-full bg-blue-600"></span> <!-- Titik biru penanda unread -->
-                    </span>
-                </div>
-                <p class="text-sm text-gray-600 mt-1">{{ $notification->data['message'] ?? 'Ada pembaruan status.' }}</p>
-            </button>
-        </form>
-    @else
-        <!-- Notifikasi Sudah Dibaca (Tidak perlu form) -->
-        <div class="p-4 mb-3 bg-white border border-gray-100 rounded-lg opacity-75">
-            <div class="flex justify-between items-center">
-                <h4 class="text-sm font-semibold text-gray-700">{{ $notification->data['title'] ?? 'Pemberitahuan' }}</h4>
-                <span class="text-xs text-gray-400">{{ $notification->created_at->diffForHumans() }}</span>
-            </div>
-            <p class="text-sm text-gray-500 mt-1">{{ $notification->data['message'] ?? 'Ada pembaruan status.' }}</p>
-        </div>
-    @endif
-@endforeach
+                      @if($notification->unread())
+                    <!-- Notifikasi Belum Dibaca (Bisa Diklik) -->
+                    <form action="{{ route('notifikasi.read', $notification->id) }}" method="POST" class="w-full">
+                        @csrf
+                        <button type="submit" class="w-full text-left p-4 mb-3 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-lg transition">
+                            <div class="flex justify-between items-center">
+                                <h4 class="text-sm font-bold text-gray-900">{{ $notification->data['title'] ?? 'Pemberitahuan' }}</h4>
+                                <span class="text-xs text-gray-500 flex items-center gap-2">
+                                    {{ $notification->created_at->diffForHumans() }}
+                                    <span class="w-2 h-2 rounded-full bg-blue-600"></span> <!-- Titik biru penanda unread -->
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1">{{ $notification->data['message'] ?? 'Ada pembaruan status.' }}</p>
+                        </button>
+                    </form>
+                @else
+                    <!-- Notifikasi Sudah Dibaca (Tidak perlu form) -->
+                    <div class="p-4 mb-3 bg-white border border-gray-100 rounded-lg opacity-75">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-sm font-semibold text-gray-700">{{ $notification->data['title'] ?? 'Pemberitahuan' }}</h4>
+                            <span class="text-xs text-gray-400">{{ $notification->created_at->diffForHumans() }}</span>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-1">{{ $notification->data['message'] ?? 'Ada pembaruan status.' }}</p>
+                    </div>
+                @endif
+                    @endforeach
                     @forelse ($notifikasis as $notif)
                         <!-- Render Otomatis Berdasarkan Status Baca -->
                         <div class="relative {{ $notif->unread() ? 'bg-blue-50/50 border-blue-100' : 'bg-white border-gray-100' }} border rounded-lg p-4 flex justify-between items-start gap-4 transition hover:shadow-sm cursor-pointer">

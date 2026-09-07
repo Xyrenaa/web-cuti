@@ -17,7 +17,7 @@
                     
                     <!-- Card: Profil Pegawai -->
                     <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center">
-                        <div class="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center text-gray-500 font-bold text-2xl">
+                        <div class="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center text-gray-500 font-bold text-2xl uppercase">
                             {{ substr($pegawai->nama, 0, 1) }}
                         </div>
                         <h3 class="font-bold text-xl text-gray-900">{{ $pegawai->nama }}</h3>
@@ -37,6 +37,7 @@
                         </h3>
                         
                         <div class="flex items-baseline space-x-2 mb-6">
+                            <!-- Data Sisa Cuti Dinamis -->
                             <span class="text-2xl font-black text-[#2a64f5] leading-none">{{ $pegawai->sisa_cuti }}</span>
                             <span class="text-gray-500 font-medium">/ {{ $pegawai->total_kuota }} Hari</span>
                         </div>
@@ -80,10 +81,12 @@
                         
                         @if(count($riwayats) > 0)
                             <div class="space-y-4">
+                               <!-- Looping Data Riwayat Asli dari Database -->
                                 @foreach($riwayats as $riwayat)
-                                <div class="p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition flex justify-between items-center">
+                                <!-- Ubah div menjadi tag <a> dan tambahkan hover border biru -->
+                                <a href="{{ route('admin.approval.show', $riwayat->id) }}" class="block p-4 border border-gray-100 rounded-xl hover:bg-gray-50 hover:border-blue-300 hover:shadow-sm transition flex justify-between items-center group">
                                     <div>
-                                        <h4 class="font-bold text-gray-900">{{ $riwayat->jenis }}</h4>
+                                        <h4 class="font-bold text-gray-900 group-hover:text-[#2a64f5] transition">{{ $riwayat->jenis }}</h4>
                                         <div class="flex items-center text-sm text-gray-500 mt-1">
                                             <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                             Mulai: {{ $riwayat->tanggal_mulai }}
@@ -91,12 +94,20 @@
                                             <span class="font-semibold text-gray-700">{{ $riwayat->durasi }}</span>
                                         </div>
                                     </div>
-                                    <div>
-                                        <span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs font-bold border border-emerald-100">
-                                            {{ $riwayat->status }}
-                                        </span>
+                                    <div class="flex items-center gap-3">
+                                        <!-- Logika Warna Status Dinamis -->
+                                        @if($riwayat->status == 'Disetujui')
+                                            <span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs font-bold border border-emerald-100">Disetujui</span>
+                                        @elseif($riwayat->status == 'Ditolak' || $riwayat->status == 'Dibatalkan')
+                                            <span class="bg-red-50 text-red-600 px-3 py-1 rounded-full text-xs font-bold border border-red-100">{{ $riwayat->status }}</span>
+                                        @else
+                                            <span class="bg-amber-50 text-amber-600 px-3 py-1 rounded-full text-xs font-bold border border-amber-100">{{ $riwayat->status }}</span>
+                                        @endif
+                                        
+                                        <!-- Tambahan Icon Panah agar terlihat bisa diklik -->
+                                        <svg class="w-5 h-5 text-gray-400 group-hover:text-[#2a64f5] transition group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                                     </div>
-                                </div>
+                                </a>
                                 @endforeach
                             </div>
                         @else
