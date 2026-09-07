@@ -517,58 +517,175 @@ public function approve($id)
 
     public function rekapAdmin(Request $request)
     {
-        // DATA DUMMY UNTUK TESTING DESAIN UI REKAPITULASI
-        $rekaps = [
-            (object)[
-                'id' => 1, 'nama' => 'Ahmad Subarjo', 'nip' => '198804122015031002', 
-                'divisi' => 'Subbagian Tata Usaha', 'kuota' => 12, 'terpakai' => 3, 'sisa' => 9
-            ],
-            (object)[
-                'id' => 2, 'nama' => 'Siti Rahmawati', 'nip' => '199211082018012005', 
-                'divisi' => 'Seksi Keamanan Penerbangan', 'kuota' => 12, 'terpakai' => 2, 'sisa' => 10
-            ],
-            (object)[
-                'id' => 3, 'nama' => 'Budi Kurniawan', 'nip' => '198501252010031001', 
-                'divisi' => 'Seksi Operasi Bandar Udara', 'kuota' => 12, 'terpakai' => 12, 'sisa' => 0
-            ],
-            (object)[
-                'id' => 4, 'nama' => 'Dewi Lestari', 'nip' => '199507192020122003', 
-                'divisi' => 'Subbagian Hukum & Humas', 'kuota' => 12, 'terpakai' => 5, 'sisa' => 7
-            ],
-            (object)[
-                'id' => 5, 'nama' => 'Hendra Wijaya', 'nip' => '199009022016041004', 
-                'divisi' => 'Seksi Kalibrasi Fasilitas', 'kuota' => 12, 'terpakai' => 4, 'sisa' => 8
-            ],
-        ];
+        // 1. Ambil query dasar
+        $query = \App\Models\User::with(['bagianBidang', 'subBagianSeksi']);
 
-        return view('admin.rekap.index', compact('rekaps'));
-    }
+        // 2. SEARCH: Logika Pencarian Nama/NIP
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('nip', 'like', "%{$search}%");
+            });
+        }
 
-    public function exportRekap(Request $request)
-    {
-        // Nanti diisi dengan logika Maatwebsite Excel
-        return back()->with('success', '(Mode Dummy) Rekap berhasil diekspor ke Excel!');
+        // 3. FILTER: Berdasarkan Divisi (Bagian/Bidang)
+        if ($request->filled('divisi') && $request->divisi !== 'Semua Divisi') {
+            $query->where('bagian_bidang_id', $request->divisi);
+        }
+
+        // 4. SORTING & ANALITIK: Siapa yang paling sering cuti?
+        if ($request->filled('sort') && $request->sort !== 'Terbaru') {
+            if ($request->sort == 'Terbanyak') {
+                $query->withSum(['pengajuanCutis as total_durasi' => function($q) {
+                    $q->where('status_pengajuan', 'Disetujui')->whereYear('created_at', date('Y'));
+                }], 'durasi_hari')->orderByDesc('total_durasi');
+            } else {
+                $jenisId = $request->sort;
+                $query->withSum(['pengajuanCutis as total_spesifik' => function($q) use ($jenisId) {
+                    $q->where('status_pengajuan', 'Disetujui')
+                      ->where('jenis_cuti_id', $jenisId)
+                      ->whereYear('created_at', date('Y'));
+                }], 'durasi_hari')->orderByDesc('total_spesifik');
+            }
+        } else {
+            $query->latest();
+        }
+
+        // 5. Sulap data ke format View (KOLOM SUDAH DISESUAIKAN DENGAN DATABASE)
+        $rekaps = $query->paginate(10)->through(function ($user) {
+            $terpakai = \App\Models\PengajuanCuti::where('user_id', $user->id)
+                ->where('status_pengajuan', 'Disetujui')
+                ->whereYear('created_at', date('Y'))
+                ->sum('durasi_hari');
+
+            // Menggunakan kolom jatah_cuti dari database
+            $kuota = $user->jatah_cuti ?? 12; 
+            $divisi = $user->subBagianSeksi->nama_sub_bagian ?? $user->bagianBidang->nama_bagian ?? '-';
+
+            return (object)[
+                'id'       => $user->id,
+                'nama'     => $user->name,
+                'nip'      => $user->nip,
+                'divisi'   => $divisi,
+                'kuota'    => $kuota,
+                'terpakai' => $terpakai,
+                'sisa'     => $kuota - $terpakai 
+            ];
+        });
+
+        $rekaps->appends(request()->query());
+
+        // 6. Data untuk Dropdown Filter & Kartu Statistik
+        $daftarDivisi = \App\Models\BagianBidang::all();
+        $daftarJenisCuti = \App\Models\JenisCuti::all();
+        
+        $totalPegawai = \App\Models\User::count();
+        $pengajuanBulanIni = \App\Models\PengajuanCuti::where('status_pengajuan', 'Disetujui')
+                                ->whereMonth('created_at', date('m'))
+                                ->whereYear('created_at', date('Y'))
+                                ->count();
+        
+        // Logika Rata-rata Sisa Cuti
+        $totalSisaKeseluruhan = 0;
+        $semuaUser = \App\Models\User::all();
+        foreach ($semuaUser as $u) {
+            $terpakaiUser = \App\Models\PengajuanCuti::where('user_id', $u->id)
+                ->where('status_pengajuan', 'Disetujui')
+                ->whereYear('created_at', date('Y'))
+                ->sum('durasi_hari');
+                
+            $kuotaUser = $u->jatah_cuti ?? 12; 
+            $totalSisaKeseluruhan += ($kuotaUser - $terpakaiUser);
+        }
+
+        $rataSisa = $totalPegawai > 0 ? round($totalSisaKeseluruhan / $totalPegawai, 1) : 0;
+
+        return view('admin.rekap.index', compact('rekaps', 'totalPegawai', 'pengajuanBulanIni', 'rataSisa', 'daftarDivisi', 'daftarJenisCuti'));
     }
 
     public function showRekap($id)
     {
-        // DATA DUMMY: Profil Pegawai
+        $user = \App\Models\User::with(['bagianBidang', 'subBagianSeksi'])->findOrFail($id);
+
+        $terpakai = \App\Models\PengajuanCuti::where('user_id', $user->id)
+            ->where('status_pengajuan', 'Disetujui')
+            ->whereYear('created_at', date('Y'))
+            ->sum('durasi_hari');
+
+        // Menggunakan kolom jatah_cuti dari database
+        $kuota = $user->jatah_cuti ?? 12;
+        $divisi = $user->subBagianSeksi->nama_sub_bagian ?? $user->bagianBidang->nama_bagian ?? '-';
+
         $pegawai = (object)[
-            'id' => $id,
-            'nama' => 'Ahmad Subarjo',
-            'nip' => '198804122015031002',
-            'divisi' => 'Subbagian Tata Usaha',
-            'sisa_cuti' => 9,
-            'total_kuota' => 12
+            'id'          => $user->id,
+            'nama'        => $user->name,
+            'nip'         => $user->nip,
+            'divisi'      => $divisi,
+            'sisa_cuti'   => $kuota - $terpakai,
+            'total_kuota' => $kuota
         ];
         
-        // DATA DUMMY: Riwayat Pengambilan Cuti
-        $riwayats = [
-            (object)['jenis' => 'Cuti Tahunan', 'tanggal_mulai' => '15 Mar 2026', 'durasi' => '3 Hari', 'status' => 'Selesai'],
-            (object)['jenis' => 'Cuti Sakit', 'tanggal_mulai' => '02 Feb 2026', 'durasi' => '1 Hari', 'status' => 'Selesai'],
-        ];
+        $riwayats = \App\Models\PengajuanCuti::with('jenisCuti')
+            ->where('user_id', $id)
+            ->latest()
+            ->get()
+            ->map(function ($cuti) {
+                return (object)[
+                    'id'            => $cuti->id,
+                    'jenis'         => $cuti->jenisCuti->nama_cuti ?? 'Cuti Tahunan',
+                    'tanggal_mulai' => \Carbon\Carbon::parse($cuti->tanggal_mulai)->translatedFormat('d M Y'),
+                    'durasi'        => $cuti->durasi_hari . ' Hari',
+                    'status'        => $cuti->status_pengajuan
+                ];
+            });
 
         return view('admin.rekap.show', compact('pegawai', 'riwayats'));
+    }
+
+    public function exportRekap(Request $request)
+    {
+        // Panggil library Excel untuk mengunduh file
+        // Pastikan kamu sudah menjalankan `php artisan make:export RekapCutiExport`
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\RekapCutiExport, 'Rekap_Cuti_Pegawai_' . date('Y') . '.xlsx');
+    }
+
+    public function indexRekap(Request $request)
+    {
+        // 1. STATISTIK ATAS
+        $totalPegawai = \App\Models\User::count(); 
+        
+        $pengajuanBulanIni = \App\Models\PengajuanCuti::whereMonth('created_at', now()->month)
+                                ->whereYear('created_at', now()->year)
+                                ->count();
+
+        // 2. QUERY DAFTAR PEGAWAI BESERTA CUTINYA (Hanya yang disetujui tahun ini)
+        $query = \App\Models\User::with(['bagianBidang', 'subBagianSeksi', 'pengajuanCutis' => function($q) {
+            $q->where('status_pengajuan', 'Disetujui')
+              ->whereYear('tanggal_mulai', now()->year);
+        }]);
+
+        // 3. FITUR PENCARIAN (Nama atau NIP)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('nip', 'like', "%{$search}%");
+            });
+        }
+
+        // 4. EKSEKUSI DATA
+        $users = $query->paginate(10)->withQueryString();
+
+        // 5. HITUNG RATA-RATA SISA CUTI
+        $totalSisa = 0;
+        foreach ($users as $u) {
+            $terpakai = $u->pengajuanCutis->sum('durasi_hari');
+            $totalSisa += (12 - $terpakai); // Ganti angka 12 jika kamu punya kolom $u->kuota_cuti
+        }
+        $rataSisa = $users->count() > 0 ? round($totalSisa / $users->count(), 1) : 0;
+
+        return view('admin.rekap.index', compact('totalPegawai', 'pengajuanBulanIni', 'rataSisa', 'users'));
     }
 
     public function indexApproval()
