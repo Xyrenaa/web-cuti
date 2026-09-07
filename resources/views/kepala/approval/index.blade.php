@@ -53,6 +53,7 @@
                     <thead class="bg-white text-gray-500 text-[11px] font-bold border-b border-gray-100 uppercase tracking-wider">
                         <tr>
                             <th class="px-6 py-5">NO</th>
+                            <th class="px-6 py-5">KODE</th>
                             <th class="px-6 py-5">NAMA PEGAWAI</th>
                             <th class="px-6 py-5">NIP</th>
                             <th class="px-6 py-5">JENIS CUTI</th>
@@ -69,7 +70,7 @@
                         <tr class="hover:bg-gray-50/50 transition">
                             <!-- Menggunakan loop iteration bawaan Laravel -->
                             <td class="px-6 py-5 text-gray-500">{{ $loop->iteration }}</td>
-                            
+                            <td class="px-6 py-5 font-bold text-gray-900">{{ $pengajuan->kode_pengajuan ?? '-' }}</td>
                             <!-- Mengambil relasi dari user -->
                             <td class="px-6 py-5 font-bold text-gray-900">{{ $pengajuan->user->name ?? '-' }}</td>
                             <td class="px-6 py-5 text-gray-500 font-mono text-xs">{{ $pengajuan->user->nip ?? '-' }}</td>
@@ -99,7 +100,7 @@
                         @empty
                         <!-- Tampilan jika tidak ada data yang perlu di-approve -->
                         <tr>
-                            <td colspan="8" class="px-6 py-10 text-center text-gray-500">
+                            <td colspan="9" class="px-6 py-10 text-center text-gray-500">
                                 <div class="flex flex-col items-center justify-center">
                                     <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>

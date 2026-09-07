@@ -13,6 +13,20 @@ class PengajuanCuti extends Model
     protected $casts = [
         'bukti_pendukung' => 'array',
     ];
+    protected $fillable = [
+    'kode_pengajuan',
+    'user_id',        
+    'jenis_cuti_id', 
+    'tanggal_mulai',   
+    'tanggal_selesai',
+    'durasi_hari',  
+    'alasan',            
+    'lokasi',       
+    'surat_pengajuan',  
+    'bukti_pendukung',
+    'approval_step',     
+    'status_pengajuan'  
+];
 
     public function jenisCuti() {
         return $this->belongsTo(JenisCuti::class);

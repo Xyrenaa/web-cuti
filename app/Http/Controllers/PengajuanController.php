@@ -31,14 +31,10 @@ class PengajuanController extends Controller
         'bukti_pendukung.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
     ]);
 
-    // ========================================================
-    // LOGIKA PERHITUNGAN DURASI HARI KERJA (Tanpa Sabtu-Minggu)
-    // ========================================================
     $tanggal_mulai = \Carbon\Carbon::parse($request->tanggal_mulai);
     $tanggal_selesai = \Carbon\Carbon::parse($request->tanggal_selesai);
     
-    // diffInWeekdays otomatis menghitung hari kerja (Senin-Jumat)
-    // Ditambah addDay() agar perhitungannya inklusif (tanggal selesai ikut dihitung)
+
     $durasi_hari = $tanggal_mulai->diffInWeekdays($tanggal_selesai->copy()->addDay());
 
     // Validasi pencegahan jika user murni mengajukan hanya di hari libur (misal: Sabtu ke Minggu)
@@ -64,9 +60,6 @@ class PengajuanController extends Controller
     // Memeriksa apakah pegawai ini berada di ekosistem Tata Usaha (TU)
     $is_tu = $user->bagianBidang ? $user->bagianBidang->is_tu : false;
     
-    // ========================================================
-    // LOGIKA PENENTUAN STEP AWAL (MENGGABUNGKAN JALUR TU & BIDANG)
-    // ========================================================
     $inisialStep = 1; // Default Pegawai Bidang biasa masuk ke Kasi (Step 1)
 
     if ($is_tu) {
@@ -105,7 +98,32 @@ class PengajuanController extends Controller
     }
 
     // 3. Simpan ke Database
+    $jenisCuti = \App\Models\JenisCuti::find($request->jenis_cuti_id);
+$namaCuti = $jenisCuti ? $jenisCuti->nama_cuti : '';
+    $prefix = 'CT';
+if (str_contains($namaCuti, 'Sakit')) {
+    $prefix = 'CS';
+} elseif (str_contains($namaCuti, 'Tahunan')) {
+    $prefix = 'CT';
+} elseif (str_contains($namaCuti, 'Alasan Penting')) {
+    $prefix = 'CAP';
+} elseif (str_contains($namaCuti, 'Besar')) {
+    $prefix = 'CB';
+}
+
+$lastPengajuan = \App\Models\PengajuanCuti::where('jenis_cuti_id', $request->jenis_cuti)
+    ->orderBy('id', 'desc')
+    ->first();
+
+$nomorUrut = 1;
+if ($lastPengajuan && $lastPengajuan->kode_pengajuan) {
+    $lastUrut = (int) substr($lastPengajuan->kode_pengajuan, 2);
+    $nomorUrut = $lastUrut + 1;
+}
+
+$kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
     PengajuanCuti::create([
+        'kode_pengajuan'    => $kodeBaru,
         'user_id'           => $user->id,
         'jenis_cuti_id'     => $request->jenis_cuti_id,
         'tanggal_mulai'     => $request->tanggal_mulai,
