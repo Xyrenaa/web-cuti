@@ -291,67 +291,61 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
     // FUNGSI UNTUK ADMIN KEPEGAWAIAN
     // =================================================================
     
- // SANGAT PENTING: Pastikan ada (Request $request) di dalam tanda kurungnya
-    // Ini adalah 'antena' agar Laravel bisa membaca filter ?status=Ditolak dari URL
-    public function indexApprovals(Request $request)
+ // Gunakan nama ini (tanpa 's') agar cocok dengan routes/web.php milikmu
+    public function indexApproval(Request $request)
     {
         $user = Auth::user();
         
-        // 1. Inisiasi Query Dasar
+        // 1. Kerangka Dasar Query 
         $query = \App\Models\PengajuanCuti::with(['user.bagianBidang', 'user.subBagianSeksi', 'jenisCuti']);
 
-        // =======================================================
-        // 2. LOGIKA HIERARKI JABATAN (Hak Akses)
-        // =======================================================
+        // 2. FILTER HIERARKI JABATAN
         if ($user->hasRole('admin')) {
-            // Dibiarkan kosong agar Admin bisa melihat SEMUA data riwayat
+            // Biarkan kosong. Admin di halaman ini berhak melihat semua riwayat.
         } elseif ($user->level_jabatan == 'Kepala Seksi/Sub-Bagian') {
             if ($user->bagianBidang && $user->bagianBidang->is_tu) {
                 $query->where('approval_step', 4);
             } else {
-                $query->where('approval_step', 1)
-                      ->whereHas('user', function($q) use ($user) {
-                          $q->where('sub_bagian_seksi_id', $user->sub_bagian_seksi_id);
-                      });
+                $query->where('approval_step', 1)->whereHas('user', function($q) use ($user) {
+                    $q->where('sub_bagian_seksi_id', $user->sub_bagian_seksi_id);
+                });
             }
         } elseif ($user->level_jabatan == 'Kepala Bagian/Bidang') {
             if ($user->bagianBidang && $user->bagianBidang->is_tu) {
                 $query->where('approval_step', 5);
             } else {
-                $query->where('approval_step', 2)
-                      ->whereHas('user', function($q) use ($user) {
-                          $q->where('bagian_bidang_id', $user->bagian_bidang_id);
-                      });
+                $query->where('approval_step', 2)->whereHas('user', function($q) use ($user) {
+                    $q->where('bagian_bidang_id', $user->bagian_bidang_id);
+                });
             }
         } elseif ($user->level_jabatan == 'Kepala Kantor') {
             $query->where('approval_step', 6);
         }
 
-        // =======================================================
-        // 3. LOGIKA PENCARIAN & FILTER
-        // =======================================================
+        // 3. FILTER PENCARIAN KOTAK TEKS
         if ($request->filled('search')) {
             $search = $request->search;
             $query->whereHas('user', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('nip', 'like', "%{$search}%");
+                $q->where('name', 'like', "%{$search}%")->orWhere('nip', 'like', "%{$search}%");
             });
         }
 
-        // Menangkap filter dari dropdown Status
+        // 4. FILTER STATUS DROPDOWN (Anti-Meleset)
         if ($request->filled('status') && $request->status !== 'Semua Status') {
-            $query->where('status_pengajuan', 'like', '%' . $request->status . '%');
+            // Kita gunakan LIKE agar jika ada spasi tersembunyi di database, tetap terbaca
+            if ($request->status == 'Menunggu') {
+                $query->where('status_pengajuan', 'like', '%Menunggu%');
+            } else {
+                $query->where('status_pengajuan', 'like', '%' . trim($request->status) . '%');
+            }
         }
 
-        // Menangkap filter dari kalender
+        // 5. FILTER TANGGAL
         if ($request->filled('date')) {
             $query->whereDate('created_at', $request->date);
         }
 
-        // =======================================================
-        // 4. EKSEKUSI QUERY FINAL
-        // =======================================================
-        // Harus menggunakan paginate(), bukan get()
+        // 6. EKSEKUSI AKHIR (Sangat Penting: Harus paginate, BUKAN get)
         $pengajuans = $query->latest()->paginate(10)->withQueryString();
 
         return view('admin.approval.index', compact('pengajuans'));
@@ -686,17 +680,6 @@ public function approve($id)
         $rataSisa = $users->count() > 0 ? round($totalSisa / $users->count(), 1) : 0;
 
         return view('admin.rekap.index', compact('totalPegawai', 'pengajuanBulanIni', 'rataSisa', 'users'));
-    }
-
-    public function indexApproval()
-    {
-        // Admin melihat semua pengajuan cuti dari semua pegawai
-        $pengajuans = \App\Models\PengajuanCuti::with('user')
-            ->latest()
-            ->paginate(10);
-
-        // Mengarahkan ke file view resources/views/admin/approval/index.blade.php
-        return view('admin.approval.index', compact('pengajuans'));
     }
 
     public function dashboardAdmin()

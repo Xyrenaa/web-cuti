@@ -69,34 +69,51 @@
                                 <th class="px-6 py-5">TANGGAL PENGAJUAN</th>
                                 <th class="px-6 py-5">DURASI</th>
                                 <th class="px-6 py-5">STATUS</th>
-                                <th class="px-6 py-5 text-right">AKSI</th>
+                                <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">AKSI</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-50">
-                            
+                        <tbody class="divide-y divide-gray-50 bg-white">
                             @forelse($pengajuans as $index => $pengajuan)
                             <tr class="hover:bg-gray-50/50 transition">
-                                <td class="px-6 py-5 text-gray-500">{{ $pengajuans->firstItem() + $index }}</td>
-                                <td class="px-6 py-5 font-bold text-gray-900">{{ $pengajuan->user->name ?? 'User Dihapus' }}</td>
-                                <td class="px-6 py-5 text-gray-500 font-mono text-xs">{{ $pengajuan->user->nip ?? '-' }}</td>
-                                <td class="px-6 py-5 text-gray-600">{{ $pengajuan->jenisCuti->nama_cuti ?? 'Cuti Tahunan' }}</td>
-                                <td class="px-6 py-5 text-gray-500">{{ \Carbon\Carbon::parse($pengajuan->created_at)->translatedFormat('d F Y') }}</td>
-                                <td class="px-6 py-5 font-bold text-gray-800">{{ $pengajuan->durasi_hari }} Hari</td>
-                                <td class="px-6 py-5">
-                                    <span class="bg-[#fef3c7] text-[#b45309] text-[11px] px-3 py-1.5 rounded-full font-bold inline-block whitespace-nowrap text-center">
-                                        {{ $pengajuan->status_pengajuan }}
-                                    </span>
+                                <td class="px-6 py-5 text-sm text-gray-500">{{ $pengajuans->firstItem() + $index }}</td>
+                                <td class="px-6 py-5 text-sm font-bold text-gray-900">{{ $pengajuan->user->name ?? 'User Dihapus' }}</td>
+                                <td class="px-6 py-5 text-sm text-gray-500 font-mono">{{ $pengajuan->user->nip ?? '-' }}</td>
+                                <td class="px-6 py-5 text-sm text-gray-600">{{ $pengajuan->jenisCuti->nama_cuti ?? 'Cuti Tahunan' }}</td>
+                                <td class="px-6 py-5 text-sm text-gray-500">{{ \Carbon\Carbon::parse($pengajuan->created_at)->translatedFormat('d M Y') }}</td>
+                                <td class="px-6 py-5 text-sm font-bold text-gray-800">{{ $pengajuan->durasi_hari }} Hari</td>
+
+                                <!-- STATUS -->
+                                <td class="px-6 py-5 text-sm">
+                                    @php
+                                        // Deteksi kata Menunggu, jika ada, potong jadi "Menunggu" saja
+                                        $teksStatus = str_contains($pengajuan->status_pengajuan, 'Menunggu') ? 'Menunggu' : $pengajuan->status_pengajuan;
+                                    @endphp
+
+                                    @if($pengajuan->status_pengajuan == 'Disetujui' || $pengajuan->status_pengajuan == 'Selesai')
+                                        <span class="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-full text-[11px] font-bold inline-block whitespace-nowrap border border-emerald-200">
+                                            {{ $teksStatus }}
+                                        </span>
+                                    @elseif($pengajuan->status_pengajuan == 'Ditolak' || $pengajuan->status_pengajuan == 'Dibatalkan')
+                                        <span class="bg-red-50 text-red-600 px-3 py-1.5 rounded-full text-[11px] font-bold inline-block whitespace-nowrap border border-red-200">
+                                            {{ $teksStatus }}
+                                        </span>
+                                    @else
+                                        <span class="bg-amber-50 text-amber-600 px-3 py-1.5 rounded-full text-[11px] font-bold inline-block whitespace-nowrap border border-amber-200">
+                                            {{ $teksStatus }}
+                                        </span>
+                                    @endif
                                 </td>
-                                <td class="px-6 py-5 text-right">
-                                    <a href="{{ route('admin.approval.show', $pengajuan->id) }}" 
-                                       class="text-[#2a64f5] hover:text-blue-800 font-bold text-sm inline-flex items-center">
-                                        Lihat Detail <span class="ml-1 text-lg leading-none">&rarr;</span>
+
+                                <td class="px-6 py-5 text-sm text-center">
+                                    <a href="{{ route('admin.approval.show', $pengajuan->id) }}" class="text-[#2a64f5] hover:text-blue-800 font-bold inline-flex justify-center items-center group">
+                                        Lihat Detail 
+                                        <svg class="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                                     </a>
                                 </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="8" class="px-6 py-8 text-center text-gray-500 font-medium">Belum ada data pengajuan cuti yang masuk.</td>
+                                <td colspan="8" class="px-6 py-8 text-center text-sm text-gray-500 font-medium">Belum ada data pengajuan cuti yang masuk.</td>
                             </tr>
                             @endforelse
                         </tbody>
