@@ -74,8 +74,8 @@
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mt-6">
                 <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-white">
                     <h3 class="font-semibold text-gray-800 text-base">Pengajuan Cuti Terbaru (Butuh Tindakan)</h3>
-                    <a href="#" class="text-blue-600 hover:text-blue-700 text-xs font-medium px-3 py-1.5 rounded transition hover:bg-blue-50 border border-transparent hover:border-blue-100">
-                        Lihat Semua Antrean
+                    <a href="{{ route('admin.approval.index') }}" class="text-sm font-bold text-[#2a64f5] hover:text-blue-800 transition">
+                    Lihat Semua Antrean
                     </a>
                 </div>
                 
