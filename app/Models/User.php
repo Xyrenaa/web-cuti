@@ -71,4 +71,24 @@ class User extends Authenticatable
     {
         return $this->belongsTo(User::class, 'atasan_id');
     }
+
+    public function pengajuanCutis()
+    {
+        return $this->hasMany(PengajuanCuti::class, 'user_id');
+    }
+    /**
+     * Relasi ke tabel bagian_bidangs
+     */
+    public function bagianBidang()
+    {
+        return $this->belongsTo(BagianBidang::class, 'bagian_bidang_id');
+    }
+
+    /**
+     * Relasi ke tabel sub_bagian_seksis
+     */
+    public function subBagianSeksi()
+    {
+        return $this->belongsTo(SubBagianSeksi::class, 'sub_bagian_seksi_id');
+    }
 }
