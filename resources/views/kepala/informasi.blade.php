@@ -54,7 +54,7 @@
                     </div>
                 </div>
                 
-                <a href="{{ route('pegawai.pengajuan.create') }}" class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 rounded-xl transition shadow-md">
+                <a href="{{ route('pengajuan.index') }}" class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 rounded-xl transition shadow-md">
                     + Ajukan Cuti Sekarang
                 </a>
             </div>
