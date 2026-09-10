@@ -37,10 +37,14 @@
                         <label class="block text-xs font-bold text-gray-600 mb-2">Rentang Tanggal</label>
                         <input type="date" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2.5 text-gray-400">
                     </div>
-                    <div>
-                        <button type="reset" class="bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 font-bold py-2.5 px-6 rounded-xl transition text-sm w-full md:w-auto">
+                        <div class="flex items-center gap-2">
+                            <button type="submit" class="bg-[#2A65F3] hover:bg-blue-700 text-white text-sm font-medium py-2.5 px-5 rounded-xl transition-colors flex items-center gap-2 shadow-sm">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                Cari
+                            </button>
+                        <a href="{{ route('kepala.approval.index') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-5 rounded-xl transition-colors text-center border border-gray-200">
                             Reset
-                        </button>
+                        </a>
                     </div>
                 </form>
             </div>

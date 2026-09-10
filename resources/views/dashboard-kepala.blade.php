@@ -134,7 +134,7 @@
             <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                 <div class="flex justify-between items-center p-6 border-b border-gray-100">
                     <h3 class="text-lg font-bold text-gray-800">Persetujuan Terkini Menunggu Tindakan</h3>
-                    <a href="#" class="text-sm font-semibold text-[#2A65F3] hover:text-blue-800 flex items-center gap-1">
+                   <a href="{{ route('kepala.approval.index') }}" class="text-sm font-semibold text-[#2A65F3] hover:text-blue-800 flex items-center gap-1">
                         Lihat Semua <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                     </a>
                 </div>
@@ -166,7 +166,7 @@
                                     <span class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full">Menunggu</span>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <a href="#" class="font-bold text-[#2A65F3] hover:text-blue-800">Tinjau Berkas</a>
+                                    <a href="{{ route('kepala.approval.show', $pengajuan->id) }}" class="font-bold text-[#2A65F3] hover:text-blue-800">Tinjau Berkas</a>
                                 </td>
                             </tr>
                             @empty
