@@ -93,6 +93,11 @@
                         </a>
 
                         <div class="h-px bg-gray-100"></div>
+                        @unlessrole('Kepala Kantor|Admin')
+                            <x-dropdown-link :href="auth()->user()->hasRole('Pegawai') ? route('pegawai.informasi') : route('kepala.informasi')">
+                                {{ __('Informasi & Jatah Cuti') }}
+                            </x-dropdown-link>
+                        @endunlessrole
 
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
@@ -139,6 +144,11 @@
             <x-responsive-nav-link :href="route('profile.show')" :active="request()->routeIs('profile.*')">
                 Profil
             </x-responsive-nav-link>
+            @unlessrole('Kepala Kantor|Admin')
+                <x-responsive-nav-link :href="auth()->user()->hasRole('Pegawai') ? route('pegawai.informasi') : route('kepala.informasi')">
+                    {{ __('Informasi & Jatah Cuti') }}
+                </x-responsive-nav-link>
+            @endunlessrole
             
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
