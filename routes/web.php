@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PengajuanController;
+use App\Http\Controllers\NotifikasiController;
 use Illuminate\Support\Facades\Route;
 use App\Models\SubBagianSeksi;
 
@@ -24,74 +25,80 @@ Route::get('/dashboard', function () {
     return view('pegawai.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-//Pegawai
+
+// ==========================================
+// ROUTE PEGAWAI (Semua wajib login)
+// ==========================================
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/pengajuan', [PengajuanController::class, 'index'])->name('pengajuan.index');
     Route::post('/pengajuan', [PengajuanController::class, 'store'])->name('pengajuan.store');
-});
-Route::get('/riwayat-pengajuan', [App\Http\Controllers\PengajuanController::class, 'riwayat'])->name('pengajuan.riwayat');
-Route::get('/pengajuan/{id}', [App\Http\Controllers\PengajuanController::class, 'show'])->name('pengajuan.show');
-Route::get('/pengajuan/detail/{id}', [\App\Http\Controllers\PengajuanController::class, 'show'])->name('pegawai.detail');
-Route::post('/pengajuan/{id}/batal', [App\Http\Controllers\PengajuanController::class, 'batal'])->name('pengajuan.batal');
-Route::get('/notifikasi', [App\Http\Controllers\PengajuanController::class, 'notifikasi'])->name('notifikasi');
-Route::post('/notifikasi/{id}/read', [\App\Http\Controllers\NotifikasiController::class, 'markAsRead'])->name('notifikasi.read');
-Route::post('/notifikasi/read-all', [\App\Http\Controllers\NotifikasiController::class, 'markAllAsRead'])->name('notifikasi.readAll');
-
-Route::get('/api/sub-bagian/{bagian_id}', function ($bagian_id) {
-    return App\Models\SubBagianSeksi::where('bagian_bidang_id', $bagian_id)->get();
-});
-
-// Route Admin yang baru
-// 1. Dashboard Admin
-Route::get('/admin/dashboard', function () {
-    return view('admin.dashboard');
-})->middleware(['auth', 'verified'])->name('admin.dashboard');
-
-// Rute untuk melihat tabel daftar approval
-Route::get('/admin/approval', [\App\Http\Controllers\PengajuanController::class, 'indexApproval'])->name('admin.approval.index');
-
-// Rute untuk melihat halaman detail approval (yang ada trackingnya)
-Route::get('/admin/approval/{id}', [\App\Http\Controllers\PengajuanController::class, 'showApproval'])->name('admin.approval.show');
-
-// Rute Notifikasi Khusus Admin
-Route::get('/admin/notifikasi', [App\Http\Controllers\PengajuanController::class, 'notifikasiAdmin'])->name('admin.notifikasi');
-
-// Rute untuk MELIHAT Profil Admin
-Route::get('/admin/profile', [ProfileController::class, 'showAdmin'])->name('admin.profile.show');
-
-// Rute untuk MENGEDIT Profil Admin
-Route::get('/admin/profile/edit', [ProfileController::class, 'editAdmin'])->name('admin.profile.edit');
-
-// TAMBAHKAN RUTE INI UNTUK TOMBOL AKSI VERIFIKASI ADMIN
-Route::post('/admin/approval/{id}/verifikasi', [PengajuanController::class, 'verifikasiAdmin'])->name('admin.approval.verifikasi');
-
-// Rute untuk halaman Rekap Cuti
-Route::get('/admin/rekap', [App\Http\Controllers\PengajuanController::class, 'rekapAdmin'])->name('admin.rekap.index');
-
-// Rute untuk aksi Ekspor Excel (Nanti disambungkan ke fungsi ekspor sungguhan)
-Route::get('/admin/rekap/export', [App\Http\Controllers\PengajuanController::class, 'exportRekap'])->name('admin.rekap.export');
-
-// Rute untuk melihat detail rekap 1 pegawai
-Route::get('/admin/rekap/{id}', [App\Http\Controllers\PengajuanController::class, 'showRekap'])->name('admin.rekap.show');
-
-// Rute Khusus Approval Kepala
-Route::middleware(['auth', 'verified'])->prefix('kepala')->name('kepala.')->group(function () {
-    Route::get('/approval', [\App\Http\Controllers\PengajuanController::class, 'indexKepala'])->name('approval.index');
-    Route::get('/approval/{id}', [\App\Http\Controllers\PengajuanController::class, 'showKepala'])->name('approval.show');
-    // Rute Aksi Approval
-    Route::put('/approval/{id}/approve', [\App\Http\Controllers\PengajuanController::class, 'approveKepala'])->name('approval.approve');
-    Route::put('/approval/{id}/reject', [\App\Http\Controllers\PengajuanController::class, 'tolakKepala'])->name('approval.reject');
-    Route::put('/approval/{id}/revisi', [\App\Http\Controllers\PengajuanController::class, 'revisiKepala'])->name('approval.revisi'); // INI RUTE BARUNYA
-});
-
-
-
-    Route::get('/profil', [App\Http\Controllers\ProfileController::class, 'show'])->name('profile.show');
     
-    // Route bawaan breeze (sesuaikan path-nya jika mau diubah ke bahasa indonesia)
-    Route::get('/profil/edit', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profil', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profil', [App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/riwayat-pengajuan', [PengajuanController::class, 'riwayat'])->name('pengajuan.riwayat');
+    Route::get('/pengajuan/{id}', [PengajuanController::class, 'show'])->name('pengajuan.show');
+    Route::get('/pengajuan/detail/{id}', [PengajuanController::class, 'show'])->name('pegawai.detail');
+    Route::post('/pengajuan/{id}/batal', [PengajuanController::class, 'batal'])->name('pengajuan.batal');
+    
+    Route::get('/notifikasi', [PengajuanController::class, 'notifikasi'])->name('notifikasi');
+    Route::post('/notifikasi/{id}/read', [NotifikasiController::class, 'markAsRead'])->name('notifikasi.read');
+    Route::post('/notifikasi/read-all', [NotifikasiController::class, 'markAllAsRead'])->name('notifikasi.readAll');
+    
+    // Route Informasi Cuti untuk Pegawai (URL: /informasi-cuti)
+    Route::get('/informasi-cuti', [PengajuanController::class, 'informasi'])->name('pegawai.informasi');
+});
 
+// Route API bebas akses
+Route::get('/api/sub-bagian/{bagian_id}', function ($bagian_id) {
+    return SubBagianSeksi::where('bagian_bidang_id', $bagian_id)->get();
+});
+
+
+// ==========================================
+// ROUTE ADMIN (Wajib login)
+// ==========================================
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/admin/dashboard', function () {
+        return view('admin.dashboard');
+    })->name('admin.dashboard');
+
+    Route::get('/admin/approval', [PengajuanController::class, 'indexApproval'])->name('admin.approval.index');
+    Route::get('/admin/approval/{id}', [PengajuanController::class, 'showApproval'])->name('admin.approval.show');
+    Route::post('/admin/approval/{id}/verifikasi', [PengajuanController::class, 'verifikasiAdmin'])->name('admin.approval.verifikasi');
+
+    Route::get('/admin/notifikasi', [PengajuanController::class, 'notifikasiAdmin'])->name('admin.notifikasi');
+
+    Route::get('/admin/profile', [ProfileController::class, 'showAdmin'])->name('admin.profile.show');
+    Route::get('/admin/profile/edit', [ProfileController::class, 'editAdmin'])->name('admin.profile.edit');
+
+    Route::get('/admin/rekap', [PengajuanController::class, 'rekapAdmin'])->name('admin.rekap.index');
+    Route::get('/admin/rekap/export', [PengajuanController::class, 'exportRekap'])->name('admin.rekap.export');
+    Route::get('/admin/rekap/{id}', [PengajuanController::class, 'showRekap'])->name('admin.rekap.show');
+});
+
+
+// ==========================================
+// ROUTE KEPALA (Prefix: /kepala, Name: kepala.)
+// ==========================================
+Route::middleware(['auth', 'verified'])->prefix('kepala')->name('kepala.')->group(function () {
+    Route::get('/approval', [PengajuanController::class, 'indexKepala'])->name('approval.index');
+    Route::get('/approval/{id}', [PengajuanController::class, 'showKepala'])->name('approval.show');
+    Route::put('/approval/{id}/approve', [PengajuanController::class, 'approveKepala'])->name('approval.approve');
+    Route::put('/approval/{id}/reject', [PengajuanController::class, 'tolakKepala'])->name('approval.reject');
+    Route::put('/approval/{id}/revisi', [PengajuanController::class, 'revisiKepala'])->name('approval.revisi');
+    
+    // Route Informasi Cuti untuk Kepala (URL: /kepala/informasi-cuti)
+    // Otomatis bernama 'kepala.informasi' karena berada di dalam group name('kepala.')
+    Route::get('/informasi-cuti', [PengajuanController::class, 'informasi'])->name('informasi');
+});
+
+
+// ==========================================
+// ROUTE PROFIL BAWAAN BREEZE
+// ==========================================
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/profil', [ProfileController::class, 'show'])->name('profile.show');
+    Route::get('/profil/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profil', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profil', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
 
 require __DIR__.'/auth.php';
