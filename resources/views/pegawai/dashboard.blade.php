@@ -23,7 +23,7 @@
                         {{ Auth::user()->name ?? 'Pegawai' }}
                     </h1>
                     <p class="text-lg md:text-xl font-light text-blue-100 mb-6">
-                        Portal Elektronik Layanan Informasi dan Tata Administrasi Cuti (PELITA)
+                        Pusat Ajuan Pelayanan Informasi dan Tata Administrasi Cuti (PELITA)
                     </p>
                    
                 </div>
@@ -42,7 +42,7 @@
                 <div data-aos="fade-up" data-aos-duration="1000" class="w-full md:w-2/3 bg-white/10 backdrop-blur-xl border border-white/20 p-10 md:p-14 shadow-[0_8px_32px_0_rgba(0,0,0,0.15)] relative z-10 md:-mr-20 lg:-mr-32">
                     <h3 class="text-white/70 text-sm font-bold tracking-widest uppercase mb-3">Tentang Kami</h3>
                     <p class="text-white text-2xl md:text-3xl font-semibold leading-relaxed">
-                        Portal Elektronik Layanan Informasi dan Tata Administrasi cuti (PELITA)
+                        Pusat Ajuan Pelayanan Informasi dan Tata Administrasi Cuti (PELITA)
                     </p>
                 </div>
                 <div data-aos="fade-left" data-aos-duration="1000" data-aos-delay="300" class="w-full md:w-1/2 relative z-0 mt-8 md:mt-0">
