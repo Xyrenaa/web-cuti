@@ -13,14 +13,14 @@
                     <!-- Logo Instansi (Otban) -->
                     <img src="{{ asset('img/Logo Otban.png') }}" 
                          class="block w-auto drop-shadow-sm transition-all duration-300" 
-                         :class="{'h-[45px]': scrolled, 'h-[60px]': !scrolled}" 
+                         :class="{'h-[45px]': scrolled, 'h-[50px]': !scrolled}" 
                          alt="Logo Instansi" />
                     <!-- Garis Pemisah -->
                     <div class="w-px bg-gray-300 transition-all duration-300" :class="{'h-6': scrolled, 'h-8': !scrolled}"></div>
                     <!-- Logo Web (PELITA) -->
                     <img src="{{ asset('img/logo-pelita.png') }}" 
                          class="block w-auto drop-shadow-sm transition-all duration-300" 
-                         :class="{'h-[60px]': scrolled, 'h-[80px]': !scrolled}" 
+                         :class="{'h-10': scrolled, 'h-14': !scrolled}" 
                          alt="Logo PELITA" />
                 </a>
             </div>
