@@ -720,5 +720,32 @@ public function approve($id)
             'antreanCuti'
         ));
     }
+    public function informasi()
+{
+    $user = auth()->user();
+
+    // Catatan: Jika di tabel users belum ada kolom ini, kamu bisa menggunakan angka statis dulu
+    // atau nanti kita buatkan file migrasinya.
+    $jatahTahunIni = $user->jatah_cuti_tahun_ini ?? 12; 
+    $jatahTahunLalu = $user->sisa_cuti_tahun_lalu ?? 2; 
+    $totalJatah = $jatahTahunIni + $jatahTahunLalu;
+
+    // Menghitung statistik pengajuan pegawai dari database
+    $statistik = [
+        'total_diajukan' => \App\Models\PengajuanCuti::where('user_id', $user->id)->count(),
+        'disetujui' => \App\Models\PengajuanCuti::where('user_id', $user->id)
+                            ->where('status_pengajuan', 'Disetujui')->count(),
+        'menunggu' => \App\Models\PengajuanCuti::where('user_id', $user->id)
+                            ->where('status_pengajuan', 'LIKE', '%Menunggu%')->count(),
+    ];
+
+   if ($user->hasRole('Pegawai')) {
+        return view('pegawai.informasi', compact('jatahTahunIni', 'jatahTahunLalu', 'totalJatah', 'statistik'));
+    }
+
+    // Jika bukan Pegawai (berarti Kepala Seksi/Bidang), kembalikan ke view kepala
+    return view('kepala.informasi', compact('jatahTahunIni', 'jatahTahunLalu', 'totalJatah', 'statistik'));
+}
+} 
 
 } // INI ADALAH KURUNG PENUTUP KELAS YANG BENAR (Paling Bawah)
