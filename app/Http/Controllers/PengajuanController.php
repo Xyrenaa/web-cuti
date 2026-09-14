@@ -7,6 +7,8 @@ use App\Models\PengajuanCuti;
 use App\Models\JenisCuti;
 use Illuminate\Support\Facades\Auth;
 use App\Notifications\StatusCutiNotification;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 
 class PengajuanController extends Controller
 {
@@ -20,7 +22,7 @@ class PengajuanController extends Controller
 
     public function store(Request $request)
 {
-    $request->validate([
+  $request->validate([
         'jenis_cuti_id'     => 'required|exists:jenis_cutis,id',
         'tanggal_mulai'     => 'required|date',
         'tanggal_selesai'   => 'required|date|after_or_equal:tanggal_mulai',
@@ -31,23 +33,44 @@ class PengajuanController extends Controller
         'bukti_pendukung.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
     ]);
 
-    $tanggal_mulai = \Carbon\Carbon::parse($request->tanggal_mulai);
-    $tanggal_selesai = \Carbon\Carbon::parse($request->tanggal_selesai);
-    
+    $tanggal_mulai = Carbon::parse($request->tanggal_mulai);
+    $tanggal_selesai = Carbon::parse($request->tanggal_selesai);
 
-    $durasi_hari = $tanggal_mulai->diffInWeekdays($tanggal_selesai->copy()->addDay());
+    // 1. Ambil daftar tanggal libur nasional dari database (format Y-m-d)
+    // Jika belum ada tabelnya, bisa di-hardcode array dulu sementara: ['2026-08-17', '2026-12-25']
+    $liburNasional = class_exists(\App\Models\HariLibur::class) 
+    ? \App\Models\HariLibur::pluck('tanggal')->map(fn($t) => Carbon::parse($t)->format('Y-m-d'))->toArray()
+    : [];
 
-    // Validasi pencegahan jika user murni mengajukan hanya di hari libur (misal: Sabtu ke Minggu)
-    if ($durasi_hari < 1) {
-        return redirect()->back()->withInput()->with('error', 'Tanggal tidak valid. Pengajuan cuti tidak bisa dilakukan di hari libur akhir pekan.');
+    // 2. Hitung durasi hari (Filter Weekend & Hari Libur Nasional)
+    $period = CarbonPeriod::create($tanggal_mulai, $tanggal_selesai);
+    $durasi_hari = 0;
+
+    foreach ($period as $date) {
+        // Skip jika Sabtu atau Minggu
+        if ($date->isWeekend()) {
+            continue;
+        }
+
+        // Skip jika tanggal merah nasional
+        if (in_array($date->format('Y-m-d'), $liburNasional)) {
+            continue;
+        }
+
+        $durasi_hari++;
     }
 
-    // 1. Upload Berkas Surat Pengajuan
+    // Validasi jika user hanya memilih tanggal libur/weekend
+    if ($durasi_hari < 1) {
+        return redirect()->back()->withInput()->with('error', 'Tanggal tidak valid. Pengajuan cuti tidak bisa dilakukan di hari libur akhir pekan atau libur nasional.');
+    }
+
+    // 3. Upload Berkas Surat Pengajuan
     $suratFile = $request->file('surat_pengajuan');
     $suratName = time() . '_wajib_' . preg_replace('/\s+/', '_', $suratFile->getClientOriginalName());
     $suratPath = $suratFile->storeAs('dokumen/surat_pengajuan', $suratName, 'public');
- 
-    // 2. Upload Berkas Bukti Pendukung (Opsional / Multiple)
+
+    // 4. Upload Berkas Bukti Pendukung (Opsional / Multiple)
     $buktiPaths = [];
     if ($request->hasFile('bukti_pendukung')) {
         foreach ($request->file('bukti_pendukung') as $key => $file) {
@@ -57,18 +80,15 @@ class PengajuanController extends Controller
     }
 
     $user = Auth::user();
-    // Memeriksa apakah pegawai ini berada di ekosistem Tata Usaha (TU)
     $is_tu = $user->bagianBidang ? $user->bagianBidang->is_tu : false;
     
-    $inisialStep = 1; // Default Pegawai Bidang biasa masuk ke Kasi (Step 1)
+    $inisialStep = 1;
 
     if ($is_tu) {
-        // JALUR TATA USAHA: Pegawai TU langsung masuk ke Dashboard Admin (Step 3)
         $inisialStep = 3; 
     } else {
-        // JALUR OPERASIONAL BIDANG & POTONG KOMPAS JABATAN TINGGI
         if ($user->hasRole('Kepala Seksi') || $user->hasRole('Admin Kepegawaian')) {
-            $inisialStep = 2; // Lompat ke Kepala Bidang
+            $inisialStep = 2;
         } elseif ($user->hasRole('Kepala Bidang')) {
             $inisialStep = 3; 
         } elseif ($user->hasRole('Kepala Sub Bagian')) {
@@ -85,7 +105,6 @@ class PengajuanController extends Controller
     if ($user->hasRole('Kepala Kantor')) {
         $statusPengajuan = 'Disetujui Otomatis (Pimpinan)';
     } else {
-        // Mapping teks status berdasarkan step awal agar informatif
         $jabatanMap = [
             1 => 'Menunggu Kepala Seksi',
             2 => 'Menunggu Kepala Bidang',
@@ -97,46 +116,49 @@ class PengajuanController extends Controller
         $statusPengajuan = $jabatanMap[$inisialStep] ?? 'Menunggu Persetujuan';
     }
 
-    // 3. Simpan ke Database
+    // 5. Generate Kode & Simpan ke Database
     $jenisCuti = \App\Models\JenisCuti::find($request->jenis_cuti_id);
-$namaCuti = $jenisCuti ? $jenisCuti->nama_cuti : '';
+    $namaCuti = $jenisCuti ? $jenisCuti->nama_cuti : '';
     $prefix = 'CT';
-if (str_contains($namaCuti, 'Sakit')) {
-    $prefix = 'CS';
-} elseif (str_contains($namaCuti, 'Tahunan')) {
-    $prefix = 'CT';
-} elseif (str_contains($namaCuti, 'Alasan Penting')) {
-    $prefix = 'CAP';
-} elseif (str_contains($namaCuti, 'Besar')) {
-    $prefix = 'CB';
-}
 
-$lastPengajuan = \App\Models\PengajuanCuti::where('jenis_cuti_id', $request->jenis_cuti_id)
-    ->orderBy('id', 'desc')
-    ->first();
+    if (str_contains($namaCuti, 'Sakit')) {
+        $prefix = 'CS';
+    } elseif (str_contains($namaCuti, 'Tahunan')) {
+        $prefix = 'CT';
+    } elseif (str_contains($namaCuti, 'Alasan Penting')) {
+        $prefix = 'CAP';
+    } elseif (str_contains($namaCuti, 'Besar')) {
+        $prefix = 'CB';
+    }
 
-$nomorUrut = 1;
-if ($lastPengajuan && $lastPengajuan->kode_pengajuan) {
-    $lastUrut = (int) substr($lastPengajuan->kode_pengajuan, 2);
-    $nomorUrut = $lastUrut + 1;
-}
+    $lastPengajuan = \App\Models\PengajuanCuti::where('jenis_cuti_id', $request->jenis_cuti_id)
+        ->orderBy('id', 'desc')
+        ->first();
 
-$kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
+    $nomorUrut = 1;
+    if ($lastPengajuan && $lastPengajuan->kode_pengajuan) {
+        $lastUrut = (int) substr($lastPengajuan->kode_pengajuan, 2);
+        $nomorUrut = $lastUrut + 1;
+    }
+
+    $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
+
     PengajuanCuti::create([
         'kode_pengajuan'    => $kodeBaru,
         'user_id'           => $user->id,
         'jenis_cuti_id'     => $request->jenis_cuti_id,
         'tanggal_mulai'     => $request->tanggal_mulai,
         'tanggal_selesai'   => $request->tanggal_selesai,
-        'durasi_hari'       => $durasi_hari, // <--- TAMBAHAN UNTUK MENYIMPAN DURASI 
+        'durasi_hari'       => $durasi_hari, // Hasil perhitungan baru
         'alasan'            => $request->alasan,
         'lokasi'            => $request->lokasi,
         'surat_pengajuan'   => $suratPath,
         'bukti_pendukung'   => empty($buktiPaths) ? null : $buktiPaths,
         'approval_step'     => $inisialStep, 
+        'status_pengajuan'  => $statusPengajuan,
     ]);
 
-    // 4. Kirim Notifikasi ke User
+    // 6. Kirim Notifikasi ke User
     if (method_exists($user, 'notify')) {
         $user->notify(new StatusCutiNotification(
             'Pengajuan Berhasil Dikirim',
@@ -146,7 +168,6 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
 
     return redirect()->route('pengajuan.index')->with('success', 'Pengajuan cuti dan dokumen lampiran berhasil dikirim.');
 }
-
     public function riwayat(Request $request)
     {
         // Fungsi dasar tetap: Ambil data milik user yang sedang login
@@ -345,54 +366,56 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
     }
 
     public function verifikasiAdmin(Request $request, $id)
-    {
-        $action = $request->input('action');
-        $catatan = $request->input('catatan'); 
+{
+    $action = $request->input('action');
+    $catatan = $request->input('catatan'); 
 
-        $pengajuan = \App\Models\PengajuanCuti::find($id);
+    $pengajuan = \App\Models\PengajuanCuti::find($id);
 
-        // =========================================================
-        // JIKA DATA TIDAK ADA (MODE DUMMY)
-        // =========================================================
-        if (!$pengajuan) {
-            if (in_array($id, [1, 2, 3])) { 
-                if ($action == 'setujui') {
-                    return redirect()->route('admin.approval.index')->with('success', '(Mode Dummy) Berkas berhasil diteruskan/diselesaikan.');
-                } elseif ($action == 'revisi') {
-                    return redirect()->route('admin.approval.index')->with('warning', '(Mode Dummy) Berkas direvisi dengan catatan: ' . $catatan);
-                } elseif ($action == 'tolak') {
-                    return redirect()->route('admin.approval.index')->with('error', '(Mode Dummy) Berkas ditolak dengan alasan: ' . $catatan);
-                }
+    if (!$pengajuan) {
+        if (in_array($id, [1, 2, 3])) { 
+            if ($action == 'setujui') {
+                return redirect()->route('admin.approval.index')->with('success', '(Mode Dummy) Berkas berhasil diteruskan/diselesaikan.');
+            } elseif ($action == 'revisi') {
+                return redirect()->route('admin.approval.index')->with('warning', '(Mode Dummy) Berkas direvisi dengan catatan: ' . $catatan);
+            } elseif ($action == 'tolak') {
+                return redirect()->route('admin.approval.index')->with('error', '(Mode Dummy) Berkas ditolak dengan alasan: ' . $catatan);
             }
-            abort(404);
         }
-
-        // =========================================================
-        // JIKA DATA ASLI (DATABASE)
-        // =========================================================
-        if ($action == 'setujui') {
-            if ($pengajuan->approval_step == 3) {
-                // Admin meneruskan ke Kasubag
-                $pengajuan->update(['approval_step' => 4,]);
-            } elseif ($pengajuan->approval_step == 7) {
-                // Admin finalisasi dan selesai
-                $pengajuan->update(['approval_step' => 8,]);
-            }
-            return redirect()->route('admin.approval.index')->with('success', 'Berkas berhasil diproses.');
-            
-        } elseif ($action == 'revisi' && $pengajuan->approval_step == 9) {
-            $pengajuan->update([
-                'approval_step' => 7, 
-            ]);
-            return redirect()->route('admin.approval.index')->with('warning', 'Berkas dikembalikan ke pegawai. Alasan: ' . $catatan);
-            
-        } elseif ($action == 'tolak' && $pengajuan->approval_step == 9) {
-            $pengajuan->update([
-                'approval_step' => 0, 
-            ]);
-            return redirect()->route('admin.approval.index')->with('error', 'Berkas pengajuan cuti ditolak. Alasan: ' . $catatan);
-        }
+        abort(404);
     }
+
+    if ($action == 'setujui') {
+        if ($pengajuan->approval_step == 3) {
+            // Admin meneruskan ke Kasubag
+            $pengajuan->update([
+                'approval_step' => 4,
+                'status_pengajuan' => 'Menunggu Kepala Sub Bagian',
+            ]);
+        } elseif ($pengajuan->approval_step == 7) {
+            // Admin finalisasi dan selesai
+            $pengajuan->update([
+                'approval_step' => 8,
+                'status_pengajuan' => 'Disetujui', // FIX: Kolom status_pengajuan ter-update
+            ]);
+        }
+        return redirect()->route('admin.approval.index')->with('success', 'Berkas berhasil diproses.');
+        
+    } elseif ($action == 'revisi') {
+        $pengajuan->update([
+            'approval_step' => 9, 
+            'status_pengajuan' => 'Perlu Revisi',
+        ]);
+        return redirect()->route('admin.approval.index')->with('warning', 'Berkas dikembalikan ke pegawai. Alasan: ' . $catatan);
+        
+    } elseif ($action == 'tolak') {
+        $pengajuan->update([
+            'approval_step' => 0, 
+            'status_pengajuan' => 'Ditolak',
+        ]);
+        return redirect()->route('admin.approval.index')->with('error', 'Berkas pengajuan cuti ditolak. Alasan: ' . $catatan);
+    }
+}
     
     public function notifikasiAdmin()
     {
@@ -436,40 +459,55 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
             ->with('error', 'Pengajuan ini bukan lagi di meja Anda, atau sudah diproses pihak lain.');
     }
 
+    // Map teks status berdasarkan step tujuan baru
+    $mapStatus = [
+        1 => 'Menunggu Kepala Seksi',
+        2 => 'Menunggu Kepala Bidang',
+        3 => 'Menunggu Verifikasi Admin / TU',
+        4 => 'Menunggu Kepala Sub Bagian',
+        5 => 'Menunggu Kepala TU',
+        6 => 'Menunggu Kepala Kantor',
+        7 => 'Menunggu Finalisasi Admin',
+        8 => 'Disetujui',
+    ];
+
     $pengajuan->approval_step = $stepBerikutnya;
+    // Tambahkan baris ini agar kolom status_pengajuan ikut berubah:
+    $pengajuan->status_pengajuan = $mapStatus[$stepBerikutnya] ?? 'Menunggu Persetujuan';
     $pengajuan->save();
 
     return redirect()->route('kepala.approval.index')->with('success', 'Pengajuan berhasil disetujui dan diteruskan.');
 }
     // 2. MESIN TOMBOL TOLAK
-    public function tolakKepala(Request $request, $id)
-    {
-        $pengajuan = \App\Models\PengajuanCuti::find($id);
-        
-        if (!$pengajuan) {
-            return redirect()->route('kepala.approval.index')->with('error', '[DUMMY MODE] Seolah-olah pengajuan ditolak permanen!');
-        }
-        
-        $pengajuan->approval_step = 0; 
-        
-        $pengajuan->save();
-        return redirect()->route('kepala.approval.index')->with('error', 'Pengajuan telah ditolak.');
+   public function tolakKepala(Request $request, $id)
+{
+    $pengajuan = \App\Models\PengajuanCuti::find($id);
+    
+    if (!$pengajuan) {
+        return redirect()->route('kepala.approval.index')->with('error', '[DUMMY MODE] Seolah-olah pengajuan ditolak permanen!');
     }
+    
+    $pengajuan->approval_step = 0; 
+    $pengajuan->status_pengajuan = 'Ditolak'; // Tambahkan ini
+    $pengajuan->save();
 
-    // 3. MESIN TOMBOL REVISI
-    public function revisiKepala(Request $request, $id)
-    {
-        $pengajuan = \App\Models\PengajuanCuti::find($id);
-        
-        if (!$pengajuan) {
-            return redirect()->route('kepala.approval.index')->with('warning', '[DUMMY MODE] Seolah-olah dikembalikan ke pegawai untuk direvisi!');
-        }
-        
-        $pengajuan->approval_step = 9; 
-        
-        $pengajuan->save();
-        return redirect()->route('kepala.approval.index')->with('warning', 'Berkas dikembalikan ke pegawai untuk direvisi.');
+    return redirect()->route('kepala.approval.index')->with('error', 'Pengajuan telah ditolak.');
+}
+
+public function revisiKepala(Request $request, $id)
+{
+    $pengajuan = \App\Models\PengajuanCuti::find($id);
+    
+    if (!$pengajuan) {
+        return redirect()->route('kepala.approval.index')->with('warning', '[DUMMY MODE] Seolah-olah dikembalikan ke pegawai untuk direvisi!');
     }
+    
+    $pengajuan->approval_step = 9; 
+    $pengajuan->status_pengajuan = 'Perlu Revisi'; // Tambahkan ini
+    $pengajuan->save();
+
+    return redirect()->route('kepala.approval.index')->with('warning', 'Berkas dikembalikan ke pegawai untuk direvisi.');
+}
 
     public function rekapAdmin(Request $request)
     {
@@ -707,7 +745,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         'disetujui' => \App\Models\PengajuanCuti::where('user_id', $user->id)
                             ->where('approval_step',8)->count(),
         'menunggu' => \App\Models\PengajuanCuti::where('user_id', $user->id)
-                            ->where('approval_step', 'LIKE', '%Menunggu%')->count(),
+                ->whereNotIn('approval_step', [0, 8, 10])->count(),
     ];
 
    if ($user->hasRole('Pegawai')) {

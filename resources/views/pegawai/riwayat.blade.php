@@ -16,7 +16,6 @@
                     <!-- Input Pencarian -->
                     <div class="md:col-span-4 lg:col-span-1">
                         <x-input-label for="cari" value="Cari Pengajuan" />
-                        <!-- Diubah name-nya menjadi 'cari' menyesuaikan controllermu -->
                         <x-text-input id="cari" name="cari" type="text" class="mt-1 block w-full border-gray-300 rounded-md" placeholder="Kata kunci alasan..." value="{{ request('cari') }}" />
                     </div>
 
@@ -76,19 +75,19 @@
             </form>
         </div>
 
-        <!-- LIST CARD PENGAJUAN (LEBIH COMPACT/KECIL) -->
+        <!-- LIST CARD PENGAJUAN -->
         <div class="space-y-4">
-            <!-- Menggunakan variabel $riwayat as $item -->
             @forelse ($riwayat as $item)
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition">
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         
                         <div>
                             <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
-                                <!-- Tambahkan Kode Pengajuan di sini dengan warna biru agar menonjol -->
                                 <span class="text-blue-600">#{{ $item->kode_pengajuan }}</span> - 
                                 {{ $item->jenisCuti->nama_cuti ?? 'Cuti Tahunan' }}
-                                <span class="text-gray-400 font-normal text-sm">— {{ $item->durasi ?? 0 }} Hari</span>
+                                
+                                <!-- PERBAIKAN: Menggunakan $item->durasi_hari -->
+                                <span class="text-gray-500 font-normal text-sm">— {{ $item->durasi_hari ?? $item->durasi ?? 0 }} Hari</span>
                             </h3>
                             <p class="text-sm text-gray-500 mt-1">
                                 <svg class="w-4 h-4 inline mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
@@ -106,7 +105,6 @@
                                 {{ $item->status_label }}
                             </span>
                             
-                            <!-- Sesuaikan nama routenya dengan route detail milikmu, misalnya 'pengajuan.show' atau 'pegawai.detail' -->
                             <a href="{{ route('pegawai.detail', $item->id) }}" class="text-blue-600 hover:text-blue-800 text-sm font-semibold flex items-center gap-1 group">
                                 Lihat detail lengkap
                                 <svg class="w-4 h-4 transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
@@ -121,13 +119,9 @@
             @endforelse
         </div>
 
-        <!-- Pagination -->
+        <!-- PERBAIKAN: Pagination Tunggal dengan withQueryString -->
         <div class="mt-6">
             {{ $riwayat->withQueryString()->links() }}
-        </div>
-            <div class="mt-6">
-                {{ $riwayat->links() }}
-            </div>
         </div>
     </div>
 </x-app-layout>
