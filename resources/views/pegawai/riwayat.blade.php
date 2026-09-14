@@ -99,11 +99,11 @@
                         <div class="flex flex-col md:items-end gap-3">
                             @php
                                 $statusColor = 'bg-yellow-100 text-yellow-800 border-yellow-200';
-                                if(str_contains($item->status_pengajuan, 'Disetujui')) $statusColor = 'bg-green-100 text-green-800 border-green-200';
-                                if(str_contains($item->status_pengajuan, 'Ditolak') || str_contains($item->status_pengajuan, 'Dibatalkan')) $statusColor = 'bg-red-100 text-red-800 border-red-200';
+                                if ($item->status_group === 'Disetujui') $statusColor = 'bg-green-100 text-green-800 border-green-200';
+                                if (in_array($item->status_group, ['Ditolak', 'Dibatalkan'])) $statusColor = 'bg-red-100 text-red-800 border-red-200';
                             @endphp
                             <span class="px-3 py-1 text-xs font-semibold rounded-full border {{ $statusColor }}">
-                                {{ $item->status_pengajuan }}
+                                {{ $item->status_label }}
                             </span>
                             
                             <!-- Sesuaikan nama routenya dengan route detail milikmu, misalnya 'pengajuan.show' atau 'pegawai.detail' -->

@@ -50,12 +50,12 @@
                                 {{ \Carbon\Carbon::parse($item->tanggal_mulai)->diffInDays(\Carbon\Carbon::parse($item->tanggal_selesai)) + 1 }} Hari
                             </td>
                             <td class="px-6 py-4">
-                                @if($item->status_pengajuan == 'Menunggu Kepala Seksi')
-                                    <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">Menunggu</span>
-                                @elseif($item->status_pengajuan == 'Disetujui')
+                                @if($item->status_group === 'Menunggu')
+                                    <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">{{ $item->status_label }}</span>
+                                @elseif($item->status_group === 'Disetujui')
                                     <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">Disetujui</span>
                                 @else
-                                    <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">{{ $item->status_pengajuan }}</span>
+                                    <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">{{ $item->status_label }}</span>
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-right">

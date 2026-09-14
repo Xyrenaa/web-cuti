@@ -8,6 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::table('users', function (Blueprint $table) {
+            // 1. Hancurkan jembatan (Foreign Key) terlebih dahulu
+            $table->dropForeign('users_atasan_id_foreign');
+            
+            // 2. Baru hapus kolomnya
+            $table->dropColumn(['sisa_cuti_tahunan', 'atasan_id']);
+        });
+        
         // 1. Drop kolom redundan di tabel users
         Schema::table('users', function (Blueprint $table) {
             $table->dropColumn(['sisa_cuti_tahunan', 'atasan_id']);

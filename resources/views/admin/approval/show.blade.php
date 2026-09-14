@@ -24,7 +24,7 @@
                         <div class="space-y-4">
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-1 md:gap-4">
                                 <dt class="text-sm text-gray-500 font-medium">Nomor pengajuan</dt>
-                                <dd class="text-sm font-bold text-gray-900 md:col-span-2">CT-{{ date('Y') }}-{{ str_pad($data->id, 5, '0', STR_PAD_LEFT) }}</dd>
+                                <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ $data->kode_pengajuan }}</dd>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-1 md:gap-4">
                                 <dt class="text-sm text-gray-500 font-medium">Tanggal pengajuan</dt>
