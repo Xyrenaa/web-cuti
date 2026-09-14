@@ -18,10 +18,13 @@
 
             <!-- Tombol Aksi -->
             <div class="mb-4">
-                <button type="button" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-semibold text-gray-700 hover:bg-gray-50 transition shadow-sm">
-                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                    Tandai Semua Dibaca
-                </button>
+                <form action="{{ route('notifikasi.readAll') }}" method="POST">
+                    @csrf
+                    <button type="submit" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-semibold text-gray-700 hover:bg-gray-50 transition shadow-sm">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                        Tandai Semua Dibaca
+                    </button>
+                </form>
             </div>
 
             <!-- Kontainer Utama List -->
@@ -41,28 +44,31 @@
                     
                     @forelse ($notifikasis as $notif)
                         <!-- Render Otomatis Berdasarkan Status Baca -->
-                        <div class="relative {{ $notif->unread() ? 'bg-blue-50/50 border-blue-100' : 'bg-white border-gray-100' }} border rounded-lg p-4 flex justify-between items-start gap-4 transition hover:shadow-sm cursor-pointer">
-                            <div>
-                                <!-- Judul Notifikasi -->
-                                <h4 class="font-bold {{ $notif->unread() ? 'text-gray-900' : 'text-gray-700' }} text-sm">
-                                    {{ $notif->data['judul'] ?? 'Pemberitahuan Baru' }}
-                                </h4>
-                                <!-- Pesan Notifikasi -->
-                                <p class="text-sm text-gray-600 mt-1">
-                                    {{ $notif->data['pesan'] ?? '-' }}
-                                </p>
-                            </div>
-                            
-                            <div class="flex items-center gap-3 shrink-0 mt-1">
-                                <!-- Waktu (Contoh: "5 menit yang lalu") -->
-                                <span class="text-xs text-gray-400">{{ $notif->created_at->diffForHumans() }}</span>
-                                
-                                <!-- Titik Biru Menyala Jika Belum Dibaca -->
-                                @if($notif->unread())
-                                    <span class="w-2.5 h-2.5 bg-[#2A65F3] rounded-full"></span>
-                                @endif
-                            </div>
-                        </div>
+                        <form action="{{ route('notifikasi.read', $notif->id) }}" method="POST" class="contents">
+                            @csrf
+                            <button type="submit" class="w-full text-left relative {{ $notif->unread() ? 'bg-blue-50/50 border-blue-100' : 'bg-white border-gray-100' }} border rounded-lg p-4 flex justify-between items-start gap-4 transition hover:shadow-sm cursor-pointer">
+                                <div>
+                                    <!-- Judul Notifikasi -->
+                                    <h4 class="font-bold {{ $notif->unread() ? 'text-gray-900' : 'text-gray-700' }} text-sm">
+                                        {{ $notif->data['judul'] ?? 'Pemberitahuan Baru' }}
+                                    </h4>
+                                    <!-- Pesan Notifikasi -->
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        {{ $notif->data['pesan'] ?? '-' }}
+                                    </p>
+                                </div>
+
+                                <div class="flex items-center gap-3 shrink-0 mt-1">
+                                    <!-- Waktu (Contoh: "5 menit yang lalu") -->
+                                    <span class="text-xs text-gray-400">{{ $notif->created_at->diffForHumans() }}</span>
+
+                                    <!-- Titik Biru Menyala Jika Belum Dibaca -->
+                                    @if($notif->unread())
+                                        <span class="w-2.5 h-2.5 bg-[#2A65F3] rounded-full"></span>
+                                    @endif
+                                </div>
+                            </button>
+                        </form>
                     @empty
                         <!-- Tampilan Jika Kosong -->
                         <div class="text-center py-12 text-gray-500">

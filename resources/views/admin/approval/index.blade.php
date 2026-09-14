@@ -85,15 +85,16 @@
                                 <!-- STATUS -->
                                 <td class="px-6 py-5 text-sm">
                                     @php
-                                        // Deteksi kata Menunggu, jika ada, potong jadi "Menunggu" saja
-                                        $teksStatus = str_contains($pengajuan->status_pengajuan, 'Menunggu') ? 'Menunggu' : $pengajuan->status_pengajuan;
+                                        // Diturunkan dari approval_step (status_group), BUKAN dari
+                                        // status_pengajuan yang legacy dan tidak lagi diupdate.
+                                        $teksStatus = $pengajuan->status_group;
                                     @endphp
 
-                                    @if($pengajuan->status_pengajuan == 'Disetujui' || $pengajuan->status_pengajuan == 'Selesai')
+                                    @if($teksStatus == 'Disetujui')
                                         <span class="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-full text-[11px] font-bold inline-block whitespace-nowrap border border-emerald-200">
                                             {{ $teksStatus }}
                                         </span>
-                                    @elseif($pengajuan->status_pengajuan == 'Ditolak' || $pengajuan->status_pengajuan == 'Dibatalkan')
+                                    @elseif($teksStatus == 'Ditolak' || $teksStatus == 'Dibatalkan')
                                         <span class="bg-red-50 text-red-600 px-3 py-1.5 rounded-full text-[11px] font-bold inline-block whitespace-nowrap border border-red-200">
                                             {{ $teksStatus }}
                                         </span>

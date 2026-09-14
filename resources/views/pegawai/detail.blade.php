@@ -70,6 +70,14 @@
                     <h3 class="text-sm font-bold text-gray-800 tracking-wider uppercase border-b border-gray-100 pb-3 mb-6">Status Persetujuan</h3>
                     
                     <div class="relative border-l-2 border-gray-200 ml-3 space-y-8">
+                        @php
+                            // Satu sumber kebenaran: approval_step. Disamakan persis dengan
+                            // $stepFinal di PengajuanController::batal() supaya tombol batal
+                            // di bawah konsisten dengan validasi server-nya.
+                            $step = $pengajuan->approval_step;
+                            $isFinal = in_array($step, [0, 8, 9, 10]);
+                        @endphp
+
                         <!-- Step 1: Dikirim -->
                         <div class="relative pl-6">
                             <span class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-[#2A65F3] ring-4 ring-white"></span>
@@ -77,17 +85,12 @@
                             <p class="text-xs text-gray-500 mt-1">{{ $pengajuan->created_at->format('d M H:i') }}</p>
                         </div>
 
-                        <!-- Step 2: Menunggu Persetujuan / Proses -->
+                        <!-- Step 2: Proses Persetujuan -->
                         <div class="relative pl-6">
-                            @php
-                                $isProses = str_contains($pengajuan->status_pengajuan, 'Menunggu');
-                                $isSelesai = in_array($pengajuan->status_pengajuan, ['Disetujui', 'Ditolak']);
-                                $dotColor = ($isProses || $isSelesai) ? 'bg-[#2A65F3]' : 'bg-gray-300';
-                            @endphp
-                            <span class="absolute -left-[9px] top-1 w-4 h-4 rounded-full {{ $dotColor }} ring-4 ring-white"></span>
-                            <h4 class="text-sm font-bold {{ ($isProses || $isSelesai) ? 'text-gray-900' : 'text-gray-400' }}">Proses Persetujuan</h4>
-                            <p class="text-xs {{ ($isProses || $isSelesai) ? 'text-blue-600 font-semibold' : 'text-gray-400' }} mt-1">
-                                {{ $isProses ? $pengajuan->status_pengajuan : ($isSelesai ? 'Telah diproses' : 'Menunggu antrean') }}
+                            <span class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-[#2A65F3] ring-4 ring-white"></span>
+                            <h4 class="text-sm font-bold text-gray-900">Proses Persetujuan</h4>
+                            <p class="text-xs text-blue-600 font-semibold mt-1">
+                                {{ $pengajuan->status_label }}
                             </p>
                         </div>
 
@@ -96,13 +99,14 @@
                             @php
                                 $finalColor = 'bg-gray-300';
                                 $finalText = 'text-gray-400';
-                                if($pengajuan->status_pengajuan == 'Disetujui') { $finalColor = 'bg-green-500'; $finalText = 'text-green-600 font-bold'; }
-                                if($pengajuan->status_pengajuan == 'Ditolak') { $finalColor = 'bg-red-500'; $finalText = 'text-red-600 font-bold'; }
+                                if ($step === 8) { $finalColor = 'bg-green-500'; $finalText = 'text-green-600 font-bold'; }
+                                if ($step === 0) { $finalColor = 'bg-red-500'; $finalText = 'text-red-600 font-bold'; }
+                                if ($step === 10) { $finalColor = 'bg-gray-500'; $finalText = 'text-gray-600 font-bold'; }
                             @endphp
                             <span class="absolute -left-[9px] top-1 w-4 h-4 rounded-full {{ $finalColor }} ring-4 ring-white"></span>
-                            <h4 class="text-sm font-bold {{ $isSelesai ? 'text-gray-900' : 'text-gray-400' }}">Keputusan Akhir</h4>
+                            <h4 class="text-sm font-bold {{ $isFinal ? 'text-gray-900' : 'text-gray-400' }}">Keputusan Akhir</h4>
                             <p class="text-xs {{ $finalText }} mt-1">
-                                {{ $isSelesai ? 'Pengajuan ' . $pengajuan->status_pengajuan : 'Belum ada keputusan' }}
+                                {{ $isFinal ? $pengajuan->status_label : 'Belum ada keputusan' }}
                             </p>
                         </div>
                     </div>
@@ -117,17 +121,7 @@
                 Kembali
             </a>
 
-            <!-- Logika Pengecekan Status Final -->
-            @php
-                $statusFinal = ['Disetujui', 'Ditolak', 'Dibatalkan', 'Selesai'];
-                $isFinal = false;
-                foreach ($statusFinal as $sf) {
-                    if (stripos($pengajuan->status_pengajuan, $sf) !== false) {
-                        $isFinal = true;
-                        break;
-                    }
-                }
-            @endphp
+            <!-- Tombol Batalkan hanya muncul kalau belum di step final (sinkron dengan $isFinal di atas) -->
             @if(!$isFinal)
 
             <form action="{{ route('pengajuan.batal', $pengajuan->id) }}" method="POST" onsubmit="return confirm('Anda yakin ingin membatalkan pengajuan ini dari sistem?');">

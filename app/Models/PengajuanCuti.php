@@ -10,7 +10,7 @@ class PengajuanCuti extends Model
     use HasFactory;
     protected $guarded = [];
 
-    protected $appends = ['status_label'];
+    protected $appends = ['status_label', 'status_group'];
 
     protected $casts = [
         'bukti_pendukung' => 'array',
@@ -56,4 +56,19 @@ class PengajuanCuti extends Model
             default => 'Status Tidak Diketahui',
         };
     }
-}    
+
+    /**
+     * Grup status yang disederhanakan buat badge (Menunggu/Disetujui/Ditolak/Dibatalkan).
+     * SELALU diturunkan dari approval_step (bukan dari kolom status_pengajuan yang
+     * legacy dan tidak lagi diupdate), supaya nggak ada dua sumber kebenaran yang beda.
+     */
+    public function getStatusGroupAttribute()
+    {
+        return match ($this->approval_step) {
+            8 => 'Disetujui',
+            0 => 'Ditolak',
+            10 => 'Dibatalkan',
+            default => 'Menunggu',
+        };
+    }
+}
