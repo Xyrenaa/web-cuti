@@ -41,6 +41,9 @@ class RekapCutiExport implements FromCollection, WithHeadings, WithMapping
         $terpakai = PengajuanCuti::where('user_id', $user->id)
             ->where('status_pengajuan', 'Disetujui')
             ->whereYear('created_at', date('Y'))
+            ->whereHas('jenisCuti', function($query){
+                    $query->where('mengurangi_kuota', true);
+                })
             ->sum('durasi_hari');
 
         $kuota = $user->jatah_cuti ?? 12;
