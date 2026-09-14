@@ -25,9 +25,9 @@ class User extends Authenticatable
         'email',
         'password',
         'nip',
-        'bagian_bidang',
-        'sub_bagian_seksi',
-        'tingkat_jabatan',
+        'bagian_bidang_id',
+        'sub_bagian_seksi_id',
+        'level_jabatan',
         'jatah_cuti',
     ];
     public const STRUKTUR_ORGANISASI = [

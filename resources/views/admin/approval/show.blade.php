@@ -9,7 +9,6 @@
     <!-- Ambil variabel step untuk logika UI -->
     @php
         $step = $data->approval_step ?? 0;
-        $status = $data->status_pengajuan ?? '';
     @endphp
 
     <div class="pt-8 pb-12">
@@ -126,8 +125,7 @@
                         
                         @php
                             $step = $data->approval_step ?? 0;
-                            $status = $data->status_pengajuan ?? '';
-                            $halted = in_array($status, ['Ditolak', 'Dibatalkan']);
+                            $halted = in_array($step, [0,10]);
                         @endphp
 
                         <div class="relative border-l-2 border-gray-100 ml-3 space-y-6 pb-2">
@@ -143,42 +141,42 @@
                             <div class="relative pl-6">
                                 <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 1 ? 'bg-[#1e3a8a]' : ($step == 1 ? ($halted ? 'bg-red-500' : 'bg-amber-400 animate-pulse') : 'bg-gray-300') }}"></div>
                                 <h4 class="font-bold text-sm {{ $step > 1 ? 'text-gray-900' : ($step == 1 ? ($halted ? 'text-red-600' : 'text-amber-600') : 'text-gray-400') }}">Persetujuan Kepala Seksi</h4>
-                                <p class="text-[11px] {{ $step == 1 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 1 ? 'Selesai' : ($step == 1 ? ($halted ? $status : 'Menunggu Validasi') : 'Menunggu Tahap Sebelumnya') }}</p>
+                                <p class="text-[11px] {{ $step == 1 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 1 ? 'Selesai' : ($step == 1 ? ($halted ? $data->status_label : 'Menunggu Validasi') : 'Menunggu Tahap Sebelumnya') }}</p>
                             </div>
 
                             <!-- 3. Kepala Bidang -->
                             <div class="relative pl-6">
                                 <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 2 ? 'bg-[#1e3a8a]' : ($step == 2 ? ($halted ? 'bg-red-500' : 'bg-amber-400 animate-pulse') : 'bg-gray-300') }}"></div>
                                 <h4 class="font-bold text-sm {{ $step > 2 ? 'text-gray-900' : ($step == 2 ? ($halted ? 'text-red-600' : 'text-amber-600') : 'text-gray-400') }}">Persetujuan Kepala Bidang</h4>
-                                <p class="text-[11px] {{ $step == 2 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 2 ? 'Selesai' : ($step == 2 ? ($halted ? $status : 'Menunggu Validasi') : 'Menunggu Tahap Sebelumnya') }}</p>
+                                <p class="text-[11px] {{ $step == 2 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 2 ? 'Selesai' : ($step == 2 ? ($halted ? $data->status_label : 'Menunggu Validasi') : 'Menunggu Tahap Sebelumnya') }}</p>
                             </div>
 
                             <!-- 4. Kasubag -->
                             <div class="relative pl-6">
                                 <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 4 ? 'bg-[#1e3a8a]' : (in_array($step, [3, 4]) ? ($halted ? 'bg-red-500' : 'bg-amber-400 animate-pulse') : 'bg-gray-300') }}"></div>
                                 <h4 class="font-bold text-sm {{ $step > 4 ? 'text-gray-900' : (in_array($step, [3, 4]) ? ($halted ? 'text-red-600' : 'text-amber-600') : 'text-gray-400') }}">Persetujuan Kasubag</h4>
-                                <p class="text-[11px] {{ in_array($step, [3, 4]) ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 4 ? 'Selesai' : (in_array($step, [3, 4]) ? ($halted ? $status : ($step == 3 ? 'Menunggu Verifikasi Admin' : 'Menunggu Validasi Kasubag')) : 'Menunggu Tahap Sebelumnya') }}</p>
+                                <p class="text-[11px] {{ in_array($step, [3, 4]) ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 4 ? 'Selesai' : (in_array($step, [3, 4]) ? ($halted ? $data->status_label : ($step == 3 ? 'Menunggu Verifikasi Admin' : 'Menunggu Validasi Kasubag')) : 'Menunggu Tahap Sebelumnya') }}</p>
                             </div>
 
                             <!-- 5. Kepala TU -->
                             <div class="relative pl-6">
                                 <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 5 ? 'bg-[#1e3a8a]' : ($step == 5 ? ($halted ? 'bg-red-500' : 'bg-amber-400 animate-pulse') : 'bg-gray-300') }}"></div>
                                 <h4 class="font-bold text-sm {{ $step > 5 ? 'text-gray-900' : ($step == 5 ? ($halted ? 'text-red-600' : 'text-amber-600') : 'text-gray-400') }}">Persetujuan Kepala TU</h4>
-                                <p class="text-[11px] {{ $step == 5 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 5 ? 'Selesai' : ($step == 5 ? ($halted ? $status : 'Menunggu Validasi TU') : 'Menunggu Tahap Sebelumnya') }}</p>
+                                <p class="text-[11px] {{ $step == 5 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 5 ? 'Selesai' : ($step == 5 ? ($halted ? $data->status_label : 'Menunggu Validasi TU') : 'Menunggu Tahap Sebelumnya') }}</p>
                             </div>
 
                             <!-- 6. Kepala Kantor -->
                             <div class="relative pl-6">
                                 <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 6 ? 'bg-[#1e3a8a]' : ($step == 6 ? ($halted ? 'bg-red-500' : 'bg-amber-400 animate-pulse') : 'bg-gray-300') }}"></div>
                                 <h4 class="font-bold text-sm {{ $step > 6 ? 'text-gray-900' : ($step == 6 ? ($halted ? 'text-red-600' : 'text-amber-600') : 'text-gray-400') }}">Persetujuan Kepala Kantor</h4>
-                                <p class="text-[11px] {{ $step == 6 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 6 ? 'Selesai' : ($step == 6 ? ($halted ? $status : 'Menunggu Validasi Kakan') : 'Menunggu Tahap Sebelumnya') }}</p>
+                                <p class="text-[11px] {{ $step == 6 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 6 ? 'Selesai' : ($step == 6 ? ($halted ? $data->status_label : 'Menunggu Validasi Kakan') : 'Menunggu Tahap Sebelumnya') }}</p>
                             </div>
 
                             <!-- 7. Finalisasi Penomoran -->
                             <div class="relative pl-6">
                                 <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 7 ? 'bg-[#1e3a8a]' : ($step == 7 ? ($halted ? 'bg-red-500' : 'bg-amber-400 animate-pulse') : 'bg-gray-300') }}"></div>
                                 <h4 class="font-bold text-sm {{ $step > 7 ? 'text-gray-900' : ($step == 7 ? ($halted ? 'text-red-600' : 'text-amber-600') : 'text-gray-400') }}">Finalisasi Penomoran</h4>
-                                <p class="text-[11px] {{ $step == 7 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 7 ? 'Selesai' : ($step == 7 ? ($halted ? $status : 'Menunggu Proses Admin') : 'Menunggu Tahap Sebelumnya') }}</p>
+                                <p class="text-[11px] {{ $step == 7 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 7 ? 'Selesai' : ($step == 7 ? ($halted ? $data->status_label : 'Menunggu Proses Admin') : 'Menunggu Tahap Sebelumnya') }}</p>
                             </div>
 
                             <!-- 8. Final -->
