@@ -77,22 +77,30 @@
                         <h3 class="font-bold text-lg text-gray-900 mb-4">Lampiran</h3>
                         
                         @php
-                            // Ambil data raw
-                            $rawFile = $data->bukti_pendukung ?? $data->surat_pengajuan ?? $data->file_lampiran ?? null;
-                            
-                            // Dekode jadi array agar tahan error
-                            $files = [];
-                            if (is_array($rawFile)) {
-                                $files = $rawFile;
-                            } elseif (is_string($rawFile)) {
-                                $decoded = json_decode($rawFile, true);
-                                $files = is_array($decoded) ? $decoded : [$rawFile];
-                            }
+                            // Sebelumnya pakai `??` yang cuma ambil SATU field (bukti_pendukung
+                            // ATAU surat_pengajuan, bukan dua-duanya) — makanya surat wajib hilang
+                            // begitu bukti_pendukung terisi. Sekarang gabungkan keduanya, disamakan
+                            // dengan logic yang sudah benar di kepala/approval/show.blade.php.
+                            $buktiPendukung = is_array($data->bukti_pendukung)
+                                ? $data->bukti_pendukung
+                                : (json_decode($data->bukti_pendukung ?? '[]', true) ?: []);
                         @endphp
 
-                        @if(!empty($files) && count($files) > 0)
+                        @if($data->surat_pengajuan || !empty($buktiPendukung))
                             <div class="space-y-3">
-                                @foreach($files as $file)
+                                @if($data->surat_pengajuan)
+                                    <div class="border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gray-50/50 hover:bg-gray-50 transition gap-4">
+                                        <div class="flex items-center space-x-3 overflow-hidden">
+                                            <svg class="w-6 h-6 text-[#2a64f5] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                            <span class="text-sm font-bold text-gray-800 truncate">{{ basename($data->surat_pengajuan) }} (Surat Wajib)</span>
+                                        </div>
+                                        <a href="{{ asset('storage/' . $data->surat_pengajuan) }}" target="_blank" class="text-sm font-bold text-[#2a64f5] hover:text-blue-800 transition flex-shrink-0">
+                                            Unduh File
+                                        </a>
+                                    </div>
+                                @endif
+
+                                @foreach($buktiPendukung as $file)
                                     @if(is_string($file))
                                     <div class="border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gray-50/50 hover:bg-gray-50 transition gap-4">
                                         <div class="flex items-center space-x-3 overflow-hidden">
