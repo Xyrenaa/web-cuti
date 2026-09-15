@@ -37,6 +37,19 @@ class NewPasswordController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        // Cek dulu SEBELUM Password::reset() dipanggil: kalau password baru
+        // sama persis dengan yang lama, tolak dengan pesan yang jelas dan
+        // JANGAN sampai token reset-nya ikut hangus — supaya user bisa
+        // langsung coba password lain di form yang sama tanpa perlu
+        // request link reset baru lagi.
+        $user = User::where('email', $request->email)->first();
+
+        if ($user && Hash::check($request->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => ['Password baru harus berbeda dengan password sebelumnya.'],
+            ]);
+        }
+
         // Here we will attempt to reset the user's password. If it is successful we
         // will update the password on an actual user model and persist it to the
         // database. Otherwise we will parse the error and return the response.
