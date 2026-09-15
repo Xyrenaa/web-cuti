@@ -13,7 +13,24 @@
 
     <!-- 2. AREA KONTEN (Filter & Tabel) -->
     <div class="py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
-        
+
+        <!-- Notifikasi Sukses / Gagal dari aksi approve/tolak/revisi -->
+        @if(session('success'))
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded shadow-sm" role="alert">
+            {{ session('success') }}
+        </div>
+        @endif
+        @if(session('error'))
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded shadow-sm" role="alert">
+            {{ session('error') }}
+        </div>
+        @endif
+        @if(session('warning'))
+        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded shadow-sm" role="alert">
+            {{ session('warning') }}
+        </div>
+        @endif
+
         <!-- Filter & Search Bar -->
         <div class="flex flex-wrap items-center justify-between gap-4 p-4 bg-white border-b border-gray-100 shadow-sm rounded-t-xl">
             
@@ -79,17 +96,27 @@
                             <td class="px-6 py-5 font-bold text-gray-900">{{ $pengajuan->user->name ?? '-' }}</td>
                             <td class="px-6 py-5 text-gray-500 font-mono text-xs">{{ $pengajuan->user->nip ?? '-' }}</td>
                             
-                            <!-- Asumsi tabel relasi JenisCuti bernama jenisCuti -->
-                            <td class="px-6 py-5 text-gray-600">{{ $pengajuan->jenisCuti->nama ?? 'Cuti Tahunan' }}</td>
+                            <!-- Relasi ke JenisCuti, kolom aslinya nama_cuti -->
+                            <td class="px-6 py-5 text-gray-600">{{ $pengajuan->jenisCuti->nama_cuti ?? '-' }}</td>
                             
                             <!-- Format tanggal menggunakan Carbon -->
                             <td class="px-6 py-5 text-gray-500">{{ \Carbon\Carbon::parse($pengajuan->created_at)->translatedFormat('d F Y') }}</td>
                             
-                            <td class="px-6 py-5 font-bold text-gray-800">{{ $pengajuan->lama_cuti ?? 0 }} Hari</td>
+                            <td class="px-6 py-5 font-bold text-gray-800">{{ $pengajuan->durasi_hari ?? 0 }} Hari</td>
                             
+                            @php
+                                $step = $pengajuan->approval_step;
+                                $warnaBadge = match(true) {
+                                    $step === 0 => 'bg-red-100 text-red-700',
+                                    $step === 8 => 'bg-green-100 text-green-700',
+                                    $step === 9 => 'bg-orange-100 text-orange-700',
+                                    $step === 10 => 'bg-gray-200 text-gray-600',
+                                    default => 'bg-[#fef3c7] text-[#b45309]',
+                                };
+                            @endphp
                             <td class="px-6 py-5">
-                                <span class="bg-[#fef3c7] text-[#b45309] text-[11px] px-3 py-1.5 rounded-full font-bold">
-                                    Menunggu Persetujuan
+                                <span class="{{ $warnaBadge }} text-[11px] px-3 py-1.5 rounded-full font-bold">
+                                    {{ $pengajuan->status_label ?? 'Menunggu' }}
                                 </span>
                             </td>
                             

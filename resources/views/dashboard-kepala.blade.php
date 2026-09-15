@@ -163,7 +163,7 @@
                                 <td class="px-6 py-4 text-gray-600">{{ \Carbon\Carbon::parse($pengajuan->tanggal_mulai)->translatedFormat('l, d F Y') }}</td>
                                 <td class="px-6 py-4 text-center text-gray-600">{{ $pengajuan->durasi_hari }} Hari</td>
                                 <td class="px-6 py-4 text-center">
-                                    <span class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full">Menunggu</span>
+                                    <span class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full">{{ $pengajuan->status_label ?? 'Menunggu' }}</span>
                                 </td>
                                 <td class="px-6 py-4 text-center">
                                     <a href="{{ route('kepala.approval.show', $pengajuan->id) }}" class="font-bold text-[#2A65F3] hover:text-blue-800">Tinjau Berkas</a>

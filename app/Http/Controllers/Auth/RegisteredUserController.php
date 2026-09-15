@@ -42,17 +42,13 @@ class RegisteredUserController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'nip' => $request->nip,         // Simpan NIP
-            'bagian_bidang_id' => ['required', 'integer'], 
-            'sub_bagian_seksi_id' => ['required', 'integer'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'nip' => $request->nip,                                   // Simpan NIP
+            'bagian_bidang_id' => $request->bagian_bidang_id,
+            'sub_bagian_seksi_id' => $request->sub_bagian_seksi_id,
+            'password' => $request->password, // otomatis di-hash, User model punya cast 'password' => 'hashed'
         ]);
         $user->assignRole('Pegawai');
 
-        event(new Registered($user));
-
-        $user->assignRole('Pegawai');
-        
         event(new Registered($user));
 
         Auth::login($user);

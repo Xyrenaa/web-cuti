@@ -23,6 +23,14 @@
     </div>
     @endif
 
+     <!-- Notifikasi Gagal (mis. masih ada cuti aktif, tanggal tidak valid, dll) -->
+    @if(session('error'))
+    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 m-6 max-w-6xl mx-auto rounded shadow-sm" role="alert">
+        <p class="font-bold">Pengajuan Tidak Bisa Diproses</p>
+        <p>{{ session('error') }}</p>
+    </div>
+    @endif
+
     <!-- Wrapper Konten Utama -->
     <div class="relative min-h-screen bg-[#F8FAFC] py-12 px-4 sm:px-6 lg:px-24 overflow-hidden">
         
