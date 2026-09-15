@@ -48,6 +48,8 @@ class DashboardKepalaController extends Controller
                 ->pluck('id')->toArray();
         }
 
+        $bawahanIds = array_filter($bawahanIds, fn($id) => $id !== $userKepala->id);
+
         if (empty($bawahanIds)) { $bawahanIds = [0]; }
 
         // Step yang BISA DIPROSES (bukan cuma dilihat) oleh role kepala yang sedang login.

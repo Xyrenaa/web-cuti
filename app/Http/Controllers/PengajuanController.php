@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\PengajuanCuti;
 use App\Models\JenisCuti;
+use App\Models\User;
+use App\Models\BagianBidang;
 use Illuminate\Support\Facades\Auth;
 use App\Notifications\StatusCutiNotification;
+use Carbon\Carbon;
 
 class PengajuanController extends Controller
 {
@@ -19,209 +22,183 @@ class PengajuanController extends Controller
     }
 
     public function store(Request $request)
-{
-    $request->validate([
-        'jenis_cuti_id'     => 'required|exists:jenis_cutis,id',
-        'tanggal_mulai'     => 'required|date',
-        'tanggal_selesai'   => 'required|date|after_or_equal:tanggal_mulai',
-        'alasan'            => 'required|string',
-        'lokasi'            => 'required|string|max:255',
-        'surat_pengajuan'   => 'required|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
-        'bukti_pendukung'   => 'nullable|array|max:5',
-        'bukti_pendukung.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
-    ]);
-
-    $tanggal_mulai = \Carbon\Carbon::parse($request->tanggal_mulai);
-    $tanggal_selesai = \Carbon\Carbon::parse($request->tanggal_selesai);
-    
-
-    $durasi_hari = $tanggal_mulai->diffInWeekdays($tanggal_selesai->copy()->addDay());
-
-    // Validasi pencegahan jika user murni mengajukan hanya di hari libur (misal: Sabtu ke Minggu)
-    if ($durasi_hari < 1) {
-        return redirect()->back()->withInput()->with('error', 'Tanggal tidak valid. Pengajuan cuti tidak bisa dilakukan di hari libur akhir pekan.');
-    }
-
-    // Validasi: cegah pengajuan baru selama masih ada cuti yang SUDAH DISETUJUI (approval_step 8)
-    // dan periodenya belum selesai. Selama pengajuan lain masih pending (step 1-7), pengajuan baru tetap boleh.
-    $cutiAktifMasihBerjalan = PengajuanCuti::where('user_id', Auth::id())
-        ->where('approval_step', 8)
-        ->where('tanggal_selesai', '>=', now()->toDateString())
-        ->exists();
-
-    if ($cutiAktifMasihBerjalan) {
-        return redirect()->back()->withInput()->with('error', 'Anda masih memiliki cuti yang sudah disetujui dan periodenya belum selesai. Pengajuan baru bisa dibuat setelah periode cuti tersebut berakhir.');
-    }
-
-    // 1. Upload Berkas Surat Pengajuan
-    $suratFile = $request->file('surat_pengajuan');
-    $suratName = time() . '_wajib_' . preg_replace('/\s+/', '_', $suratFile->getClientOriginalName());
-    $suratPath = $suratFile->storeAs('dokumen/surat_pengajuan', $suratName, 'public');
- 
-    // 2. Upload Berkas Bukti Pendukung (Opsional / Multiple)
-    $buktiPaths = [];
-    if ($request->hasFile('bukti_pendukung')) {
-        foreach ($request->file('bukti_pendukung') as $key => $file) {
-            $buktiName = time() . '_opsi' . $key . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
-            $buktiPaths[] = $file->storeAs('dokumen/bukti_pendukung', $buktiName, 'public');
-        }
-    }
-
-    $user = Auth::user();
-    // Memeriksa apakah pegawai ini berada di ekosistem Tata Usaha (TU)
-    $is_tu = $user->bagianBidang ? $user->bagianBidang->is_tu : false;
-    
-    $inisialStep = 1; // Default Pegawai Bidang biasa masuk ke Kasi (Step 1)
-
-    if ($is_tu) {
-        // JALUR TATA USAHA: Pegawai TU langsung masuk ke Dashboard Admin (Step 3)
-        $inisialStep = 3; 
-    } else {
-        // JALUR OPERASIONAL BIDANG & POTONG KOMPAS JABATAN TINGGI
-        if ($user->hasRole('Kepala Seksi') || $user->hasRole('Admin Kepegawaian')) {
-            $inisialStep = 2; // Lompat ke Kepala Bidang
-        } elseif ($user->hasRole('Kepala Bidang')) {
-            $inisialStep = 3; 
-        } elseif ($user->hasRole('Kepala Sub Bagian')) {
-            $inisialStep = 4; 
-        } elseif ($user->hasRole('Kepala TU')) {
-            $inisialStep = 5; 
-        } elseif ($user->hasRole('Kepala Kantor')) {
-            $inisialStep = 6; 
-        }
-    }
-
-    // Menentukan Teks Status Berdasarkan Hierarki
-    $statusPengajuan = 'Menunggu Persetujuan';
-    if ($user->hasRole('Kepala Kantor')) {
-        $statusPengajuan = 'Disetujui Otomatis (Pimpinan)';
-    } else {
-        // Mapping teks status berdasarkan step awal agar informatif
-        $jabatanMap = [
-            1 => 'Menunggu Kepala Seksi',
-            2 => 'Menunggu Kepala Bidang',
-            3 => 'Menunggu Verifikasi Admin / TU',
-            4 => 'Menunggu Kepala Sub Bagian',
-            5 => 'Menunggu Kepala TU',
-            6 => 'Menunggu Kepala Kantor'
-        ];
-        $statusPengajuan = $jabatanMap[$inisialStep] ?? 'Menunggu Persetujuan';
-    }
-
-    // 3. Simpan ke Database
-    $jenisCuti = \App\Models\JenisCuti::find($request->jenis_cuti_id);
-$namaCuti = $jenisCuti ? $jenisCuti->nama_cuti : '';
-    $prefix = 'CT';
-if (str_contains($namaCuti, 'Sakit')) {
-    $prefix = 'CS';
-} elseif (str_contains($namaCuti, 'Tahunan')) {
-    $prefix = 'CT';
-} elseif (str_contains($namaCuti, 'Alasan Penting')) {
-    $prefix = 'CAP';
-} elseif (str_contains($namaCuti, 'Besar')) {
-    $prefix = 'CB';
-}
-
-$lastPengajuan = \App\Models\PengajuanCuti::where('jenis_cuti_id', $request->jenis_cuti)
-    ->orderBy('id', 'desc')
-    ->first();
-
-$nomorUrut = 1;
-if ($lastPengajuan && $lastPengajuan->kode_pengajuan) {
-    $lastUrut = (int) substr($lastPengajuan->kode_pengajuan, 2);
-    $nomorUrut = $lastUrut + 1;
-}
-
-$kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
-    PengajuanCuti::create([
-        'kode_pengajuan'    => $kodeBaru,
-        'user_id'           => $user->id,
-        'jenis_cuti_id'     => $request->jenis_cuti_id,
-        'tanggal_mulai'     => $request->tanggal_mulai,
-        'tanggal_selesai'   => $request->tanggal_selesai,
-        'durasi_hari'       => $durasi_hari, // <--- TAMBAHAN UNTUK MENYIMPAN DURASI 
-        'alasan'            => $request->alasan,
-        'lokasi'            => $request->lokasi,
-        'surat_pengajuan'   => $suratPath,
-        'bukti_pendukung'   => empty($buktiPaths) ? null : $buktiPaths,
-        'approval_step'     => $inisialStep, 
-        'status_pengajuan'  => $statusPengajuan,
-    ]);
-
-    // 4. Kirim Notifikasi ke User
-    if (method_exists($user, 'notify')) {
-        $user->notify(new StatusCutiNotification(
-            'Pengajuan Berhasil Dikirim',
-            'Pengajuan cuti Anda untuk tanggal ' . $request->tanggal_mulai . ' telah masuk sistem dan sedang diproses.'
-        ));
-    }
-
-    return redirect()->route('pengajuan.index')->with('success', 'Pengajuan cuti dan dokumen lampiran berhasil dikirim.');
-}
-
-    public function riwayat(Request $request)
     {
-        // Fungsi dasar tetap: Ambil data milik user yang sedang login
-        // (Ditambah with('jenisCuti') agar loading database lebih ringan/cepat)
-        $query = PengajuanCuti::where('user_id', Auth::id())->with('jenisCuti')->latest();
+        $request->validate([
+            'jenis_cuti_id'     => 'required|exists:jenis_cutis,id',
+            'tanggal_mulai'     => 'required|date',
+            'tanggal_selesai'   => 'required|date|after_or_equal:tanggal_mulai',
+            'alasan'            => 'required|string',
+            'lokasi'            => 'required|string|max:255',
+            'surat_pengajuan'   => 'required|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
+            'bukti_pendukung'   => 'nullable|array|max:5',
+            'bukti_pendukung.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
+        ]);
 
-        // 1. Filter Pencarian Kata Kunci (Alasan) - Asli buatanmu
-        if ($request->has('cari') && $request->cari != '') {
-            $query->where('alasan', 'like', '%' . $request->cari . '%');
+        $tanggal_mulai = Carbon::parse($request->tanggal_mulai);
+        $tanggal_selesai = Carbon::parse($request->tanggal_selesai);
+
+        $durasi_hari = $tanggal_mulai->diffInWeekdays($tanggal_selesai->copy()->addDay());
+
+        if ($durasi_hari < 1) {
+            return redirect()->back()->withInput()->with('error', 'Tanggal tidak valid. Pengajuan cuti tidak bisa dilakukan di hari libur akhir pekan.');
         }
 
-        // 2. Filter Jenis Cuti
-        if ($request->has('jenis_cuti') && $request->jenis_cuti != '') {
-            $query->where('jenis_cuti_id', $request->jenis_cuti);
+        $cutiAktifMasihBerjalan = PengajuanCuti::where('user_id', Auth::id())
+            ->where('approval_step', 8)
+            ->where('tanggal_selesai', '>=', now()->toDateString())
+            ->exists();
+
+        if ($cutiAktifMasihBerjalan) {
+            return redirect()->back()->withInput()->with('error', 'Anda masih memiliki cuti yang sudah disetujui dan periodenya belum selesai.');
         }
 
-        // 3. Filter Bulan (Dari tanggal mulai)
-        if ($request->has('bulan') && $request->bulan != '') {
-            $query->whereMonth('tanggal_mulai', $request->bulan);
-        }
-
-        // 4. Filter Tahun (Dari tanggal mulai)
-        if ($request->has('tahun') && $request->tahun != '') {
-            $query->whereYear('tanggal_mulai', $request->tahun);
-        }
-
-        // Gunakan variabel aslimu ($riwayat) dan limit 5
-        $riwayat = $query->paginate(5);
-        
-        // Ambil data jenis cuti untuk mengisi pilihan di dropdown HTML nanti
-        $jenis_cutis = \App\Models\JenisCuti::all();
-
-        return view('pegawai.riwayat', compact('riwayat', 'jenis_cutis')); 
-    }
-    public function batal($id)
-    {
-        $pengajuan = \App\Models\PengajuanCuti::find($id);
-
-       if (auth()->id() !== $pengajuan->user_id) {
-            abort(403, 'Anda hanya dapat membatalkan pengajuan cuti Anda sendiri.');
-        }
-
-        // KONDISI: Cek apakah status sudah final (Selesai, Ditolak, atau sudah Dibatalkan sebelumnya)
-        // Sesuaikan kata kunci array ini dengan kata kunci status final di sistemmu
-        $statusFinal = ['Selesai', 'Ditolak', 'Dibatalkan'];
-        $isFinal = false;
-
-        foreach ($statusFinal as $sf) {
-            if (stripos($pengajuan->status_pengajuan, $sf) !== false) {
-                $isFinal = true;
-                break;
+        // 1. Upload Berkas Surat Pengajuan
+        $suratFile = $request->file('surat_pengajuan');
+        $suratName = time() . '_wajib_' . preg_replace('/\s+/', '_', $suratFile->getClientOriginalName());
+        $suratPath = $suratFile->storeAs('dokumen/surat_pengajuan', $suratName, 'public');
+     
+        // 2. Upload Berkas Bukti Pendukung
+        $buktiPaths = [];
+        if ($request->hasFile('bukti_pendukung')) {
+            foreach ($request->file('bukti_pendukung') as $key => $file) {
+                $buktiName = time() . '_opsi' . $key . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
+                $buktiPaths[] = $file->storeAs('dokumen/bukti_pendukung', $buktiName, 'public');
             }
         }
 
-        if ($isFinal) {
-            return redirect()->back()->with('error', 'Pengajuan tidak dapat dibatalkan karena sudah diproses final atau sudah ditutup.');
+        $user = Auth::user();
+        $is_tu = $user->bagianBidang ? $user->bagianBidang->is_tu : false;
+        
+        $inisialStep = 1; // Default Pegawai Bidang biasa -> Kasi (Step 1)
+
+        if ($is_tu) {
+            $inisialStep = 3; // TU -> Direct to Admin (Step 3)
+        } else {
+            // Penyesuaian nama Role diseragamkan dengan strip ('Kepala Sub-Bagian')
+            if ($user->hasRole('Kepala Seksi') || $user->hasRole('Admin Kepegawaian')) {
+                $inisialStep = 2;
+            } elseif ($user->hasRole('Kepala Bidang')) {
+                $inisialStep = 3; 
+            } elseif ($user->hasRole('Kepala Sub-Bagian') || $user->hasRole('Kasubag')) {
+                $inisialStep = 4; 
+            } elseif ($user->hasRole('Kepala TU')) {
+                $inisialStep = 5; 
+            } elseif ($user->hasRole('Kepala Kantor')) {
+                $inisialStep = 6; 
+            }
         }
 
-        // Batalkan pengajuan
+        $statusPengajuan = 'Menunggu Persetujuan';
+        if ($user->hasRole('Kepala Kantor')) {
+            $statusPengajuan = 'Disetujui Otomatis (Pimpinan)';
+        } else {
+            $jabatanMap = [
+                1 => 'Menunggu Kepala Seksi',
+                2 => 'Menunggu Kepala Bidang',
+                3 => 'Menunggu Verifikasi Admin',
+                4 => 'Menunggu Kepala Sub-Bagian',
+                5 => 'Menunggu Kepala TU',
+                6 => 'Menunggu Kepala Kantor'
+            ];
+            $statusPengajuan = $jabatanMap[$inisialStep] ?? 'Menunggu Persetujuan';
+        }
+
+        // 3. Generate Kode Pengajuan (PERBAIKAN: jenis_cuti -> jenis_cuti_id)
+        $jenisCuti = JenisCuti::find($request->jenis_cuti_id);
+        $namaCuti = $jenisCuti ? $jenisCuti->nama_cuti : '';
+        
+        $prefix = 'CT';
+        if (str_contains($namaCuti, 'Sakit')) {
+            $prefix = 'CS';
+        } elseif (str_contains($namaCuti, 'Tahunan')) {
+            $prefix = 'CT';
+        } elseif (str_contains($namaCuti, 'Alasan Penting')) {
+            $prefix = 'CAP';
+        } elseif (str_contains($namaCuti, 'Besar')) {
+            $prefix = 'CB';
+        }
+
+        // Perbaikan di sini: Menggunakan $request->jenis_cuti_id
+        $lastPengajuan = PengajuanCuti::where('jenis_cuti_id', $request->jenis_cuti_id)
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $nomorUrut = 1;
+        if ($lastPengajuan && $lastPengajuan->kode_pengajuan) {
+            $lastUrut = (int) preg_replace('/[^0-9]/', '', $lastPengajuan->kode_pengajuan);
+            $nomorUrut = $lastUrut + 1;
+        }
+
+        $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
+
+        PengajuanCuti::create([
+            'kode_pengajuan'    => $kodeBaru,
+            'user_id'           => $user->id,
+            'jenis_cuti_id'     => $request->jenis_cuti_id,
+            'tanggal_mulai'     => $request->tanggal_mulai,
+            'tanggal_selesai'   => $request->tanggal_selesai,
+            'durasi_hari'       => $durasi_hari,
+            'alasan'            => $request->alasan,
+            'lokasi'            => $request->lokasi,
+            'surat_pengajuan'   => $suratPath,
+            'bukti_pendukung'   => empty($buktiPaths) ? null : $buktiPaths,
+            'approval_step'     => $inisialStep, 
+            'status_pengajuan'  => $statusPengajuan,
+        ]);
+
+        if (method_exists($user, 'notify')) {
+            $user->notify(new StatusCutiNotification(
+                'Pengajuan Berhasil Dikirim',
+                'Pengajuan cuti Anda untuk tanggal ' . $request->tanggal_mulai . ' telah masuk sistem dan sedang diproses.'
+            ));
+        }
+
+        return redirect()->route('pengajuan.index')->with('success', 'Pengajuan cuti dan dokumen lampiran berhasil dikirim.');
+    }
+
+    public function riwayat(Request $request)
+    {
+        $query = PengajuanCuti::where('user_id', Auth::id())->with('jenisCuti')->latest();
+
+        if ($request->filled('cari')) {
+            $query->where('alasan', 'like', '%' . $request->cari . '%');
+        }
+
+        if ($request->filled('jenis_cuti')) {
+            $query->where('jenis_cuti_id', $request->jenis_cuti);
+        }
+
+        if ($request->filled('bulan')) {
+            $query->whereMonth('tanggal_mulai', $request->bulan);
+        }
+
+        if ($request->filled('tahun')) {
+            $query->whereYear('tanggal_mulai', $request->tahun);
+        }
+
+        $riwayat = $query->paginate(5);
+        $jenis_cutis = JenisCuti::all();
+
+        return view('pegawai.riwayat', compact('riwayat', 'jenis_cutis')); 
+    }
+
+    public function batal($id)
+    {
+        $pengajuan = PengajuanCuti::findOrFail($id);
+
+        if (auth()->id() !== $pengajuan->user_id) {
+            abort(403, 'Anda hanya dapat membatalkan pengajuan cuti Anda sendiri.');
+        }
+
+        $statusFinal = ['Selesai', 'Ditolak', 'Dibatalkan'];
+        foreach ($statusFinal as $sf) {
+            if (stripos($pengajuan->status_pengajuan, $sf) !== false) {
+                return redirect()->back()->with('error', 'Pengajuan tidak dapat dibatalkan karena sudah diproses final atau sudah ditutup.');
+            }
+        }
+
         $pengajuan->update([
             'status_pengajuan' => 'Dibatalkan',
-            // Opsional: jika ada kolom 'status' (bukan status_pengajuan), update juga:
-            // 'status' => 'Dibatalkan'
         ]);
 
         return redirect()->back()->with('success', 'Pengajuan cuti berhasil dibatalkan.');
@@ -252,17 +229,16 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         $user = Auth::user();
         $step = 0;
 
-        // Tentukan hak akses meja (step) berdasarkan hierarki 5 level
         if ($user->hasRole('Kepala Seksi')) {
             $step = 1;
         } elseif ($user->hasRole('Kepala Bidang')) {
             $step = 2;
-        } elseif ($user->hasRole('Kepala Sub-Bagian')) {
-            $step = 4; // Berubah, karena Step 3 milik Admin
+        } elseif ($user->hasRole('Kepala Sub-Bagian') || $user->hasRole('Kasubag')) {
+            $step = 4;
         } elseif ($user->hasRole('Kepala TU')) {
-            $step = 5; // Berubah, langsung dari Kasubag
+            $step = 5;
         } elseif ($user->hasRole('Kepala Kantor')) {
-            $step = 6; // Berubah, langsung dari TU
+            $step = 6;
         }
 
         $pengajuans = PengajuanCuti::with('user')
@@ -275,45 +251,19 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
 
     public function showKepala($id)
     {
-        $data = \App\Models\PengajuanCuti::with('user')->find($id);
-        
-        if (!$data) {
-            $data = new \App\Models\PengajuanCuti();
-            $data->id = $id;
-            $data->nomor_pengajuan = 'CT.2026.DUMMY-' . $id;
-            $data->jenis_cuti = 'Cuti Tahunan (Mode Dummy)';
-            $data->durasi_hari = 3;
-            $data->tanggal_mulai = now()->addDays(7);
-            $data->created_at = now();
-            $data->alasan = 'Ini adalah teks dummy sementara. Sistem tidak menemukan ID ' . $id . ' di database.';
-            $data->lampiran = null;
-            $data->approval_step = 2; 
-            $data->status = 'Menunggu';
-
-            $dummyUser = new \App\Models\User();
-            $dummyUser->name = 'Budi Dummy (Tester)';
-            $data->setRelation('user', $dummyUser);
-        }
+        $data = PengajuanCuti::with('user')->find($id);
 
         return view('kepala.approval.show', compact('data'));
     }
 
-    // =================================================================
-    // FUNGSI UNTUK ADMIN KEPEGAWAIAN
-    // =================================================================
-    
- // Gunakan nama ini (tanpa 's') agar cocok dengan routes/web.php milikmu
     public function indexApproval(Request $request)
     {
         $user = Auth::user();
-        
-        // 1. Kerangka Dasar Query 
-        $query = \App\Models\PengajuanCuti::with(['user.bagianBidang', 'user.subBagianSeksi', 'jenisCuti']);
+        $query = PengajuanCuti::with(['user.bagianBidang', 'user.subBagianSeksi', 'jenisCuti']);
 
-        // 2. FILTER HIERARKI JABATAN
         if ($user->hasRole('admin')) {
-            // Biarkan kosong. Admin di halaman ini berhak melihat semua riwayat.
-        } elseif ($user->level_jabatan == 'Kepala Seksi/Sub-Bagian') {
+            // Admin dapat melihat seluruh data
+        } elseif ($user->hasRole('Kepala Seksi') || $user->hasRole('Kepala Sub-Bagian')) {
             if ($user->bagianBidang && $user->bagianBidang->is_tu) {
                 $query->where('approval_step', 4);
             } else {
@@ -321,7 +271,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
                     $q->where('sub_bagian_seksi_id', $user->sub_bagian_seksi_id);
                 });
             }
-        } elseif ($user->level_jabatan == 'Kepala Bagian/Bidang') {
+        } elseif ($user->hasRole('Kepala Bidang')) {
             if ($user->bagianBidang && $user->bagianBidang->is_tu) {
                 $query->where('approval_step', 5);
             } else {
@@ -329,11 +279,10 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
                     $q->where('bagian_bidang_id', $user->bagian_bidang_id);
                 });
             }
-        } elseif ($user->level_jabatan == 'Kepala Kantor') {
+        } elseif ($user->hasRole('Kepala Kantor')) {
             $query->where('approval_step', 6);
         }
 
-        // 3. FILTER PENCARIAN KOTAK TEKS
         if ($request->filled('search')) {
             $search = $request->search;
             $query->whereHas('user', function ($q) use ($search) {
@@ -341,56 +290,45 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
             });
         }
 
-        // 4. FILTER STATUS DROPDOWN (Anti-Meleset)
         if ($request->filled('status') && $request->status !== 'Semua Status') {
-            // Kita gunakan LIKE agar jika ada spasi tersembunyi di database, tetap terbaca
-            if ($request->status == 'Menunggu') {
-                $query->where('status_pengajuan', 'like', '%Menunggu%');
-            } else {
-                $query->where('status_pengajuan', 'like', '%' . trim($request->status) . '%');
-            }
+            $query->where('status_pengajuan', 'like', '%' . trim($request->status) . '%');
         }
 
-        // 5. FILTER TANGGAL
         if ($request->filled('date')) {
             $query->whereDate('created_at', $request->date);
         }
 
-        // 6. EKSEKUSI AKHIR (Sangat Penting: Harus paginate, BUKAN get)
         $pengajuans = $query->latest()->paginate(10)->withQueryString();
 
         return view('admin.approval.index', compact('pengajuans'));
     }
 
-public function approve($id)
-{
-    $pengajuan = PengajuanCuti::findOrFail($id);
-    $user = Auth::user();
+    public function approve($id)
+    {
+        $pengajuan = PengajuanCuti::findOrFail($id);
+        $user = Auth::user();
 
-    // Jika Admin melakukan penomoran surat (Langkah 7 ke 8)
-    if ($pengajuan->approval_step == 7 && $user->hasRole('admin')) {
-        $pengajuan->approval_step = 8;
-        $pengajuan->status = 'Disetujui'; // Status akhir
-        // Di sini bisa ditambahkan logika mengurangi jatah_cuti pegawai
-        $pegawai = $pengajuan->user;
-        $pegawai->jatah_cuti -= $pengajuan->lama_cuti;
-        $pegawai->save();
-    } 
-    // Langkah 1 sampai 6 (Approve normal)
-    else {
-        $pengajuan->approval_step += 1;
-        // Status tetap 'Menunggu Persetujuan' karena belum final
+        // PERBAIKAN: Menggunakan status_pengajuan dan durasi_hari
+        if ($pengajuan->approval_step == 7 && $user->hasRole('admin')) {
+            $pengajuan->approval_step = 8;
+            $pengajuan->status_pengajuan = 'Disetujui';
+            
+            $pegawai = $pengajuan->user;
+            if ($pegawai && isset($pegawai->jatah_cuti)) {
+                $pegawai->jatah_cuti -= $pengajuan->durasi_hari;
+                $pegawai->save();
+            }
+        } else {
+            $pengajuan->approval_step += 1;
+        }
+
+        $pengajuan->save();
+        return back()->with('success', 'Pengajuan berhasil diteruskan ke tahap selanjutnya.');
     }
-
-    $pengajuan->save();
-    return back()->with('success', 'Pengajuan berhasil diteruskan ke tahap selanjutnya.');
-}
 
     public function showApproval($id)
     {
-        // cari data asli di database terlebih dahulu
-        $data = \App\Models\PengajuanCuti::with(['user', 'jenisCuti'])->find($id);
-        
+        $data = PengajuanCuti::with(['user', 'jenisCuti'])->findOrFail($id);
         return view('admin.approval.show', compact('data'));
     }
 
@@ -399,45 +337,52 @@ public function approve($id)
         $action = $request->input('action');
         $catatan = $request->input('catatan'); 
 
-        $pengajuan = \App\Models\PengajuanCuti::find($id);
+        $pengajuan = PengajuanCuti::findOrFail($id);
 
-        // =========================================================
-        // JIKA DATA TIDAK ADA (MODE DUMMY)
-        // =========================================================
-        if (!$pengajuan) {
-            if (in_array($id, [1, 2, 3])) { 
-                if ($action == 'setujui') {
-                    return redirect()->route('admin.approval.index')->with('success', '(Mode Dummy) Berkas berhasil diteruskan/diselesaikan.');
-                } elseif ($action == 'revisi') {
-                    return redirect()->route('admin.approval.index')->with('warning', '(Mode Dummy) Berkas direvisi dengan catatan: ' . $catatan);
-                } elseif ($action == 'tolak') {
-                    return redirect()->route('admin.approval.index')->with('error', '(Mode Dummy) Berkas ditolak dengan alasan: ' . $catatan);
-                }
-            }
-            abort(404);
-        }
-
-        // =========================================================
-        // JIKA DATA ASLI (DATABASE)
-        // =========================================================
         if ($action == 'setujui') {
             if ($pengajuan->approval_step == 3) {
-                // Admin meneruskan ke Kasubag
-                $pengajuan->update(['approval_step' => 4, 'status_pengajuan' => 'Menunggu Persetujuan Kasubag']);
+                $rolePengaju = $pengajuan->user->role ?? 'Pegawai';
+
+                if ($rolePengaju == 'Kepala Sub-Bagian' || $rolePengaju == 'Kasubag') {
+                    $nextStep = 5; 
+                    $nextStatus = 'Menunggu Kepala TU';
+                } elseif ($rolePengaju == 'Kepala TU') {
+                    $nextStep = 6; 
+                    $nextStatus = 'Menunggu Kepala Kantor';
+                } else {
+                    $nextStep = 4;
+                    $nextStatus = 'Menunggu Kepala Sub-Bagian';
+                }
+
+                $pengajuan->update([
+                    'approval_step' => $nextStep, 
+                    'status_pengajuan' => $nextStatus
+                ]);
+
             } elseif ($pengajuan->approval_step == 7) {
-                // Admin finalisasi dan selesai
-                $pengajuan->update(['approval_step' => 8, 'status_pengajuan' => 'Disetujui']);
+                $pengajuan->update([
+                    'approval_step' => 8, 
+                    'status_pengajuan' => 'Disetujui'
+                ]);
+
+                // Pengurangan jatah cuti pegawai
+                $pegawai = $pengajuan->user;
+                if ($pegawai && isset($pegawai->jatah_cuti)) {
+                    $pegawai->jatah_cuti -= $pengajuan->durasi_hari;
+                    $pegawai->save();
+                }
             }
+            
             return redirect()->route('admin.approval.index')->with('success', 'Berkas berhasil diproses.');
             
-        } elseif ($action == 'revisi' && $pengajuan->approval_step == 7) {
+        } elseif ($action == 'revisi') {
             $pengajuan->update([
                 'approval_step' => 0, 
-                'status_pengajuan' => 'Perlu Revisi (Dari Admin Akhir)'
+                'status_pengajuan' => 'Perlu Revisi'
             ]);
             return redirect()->route('admin.approval.index')->with('warning', 'Berkas dikembalikan ke pegawai. Alasan: ' . $catatan);
             
-        } elseif ($action == 'tolak' && $pengajuan->approval_step == 7) {
+        } elseif ($action == 'tolak') {
             $pengajuan->update([
                 'approval_step' => 0, 
                 'status_pengajuan' => 'Ditolak'
@@ -451,57 +396,46 @@ public function approve($id)
         $notifikasis = Auth::user()->notifications;
         $belumDibaca = Auth::user()->unreadNotifications->count();
 
-        // Memanggil file view khusus admin
         return view('admin.notifikasi', compact('notifikasis', 'belumDibaca'));
     }
     
-    // 1. MESIN TOMBOL SETUJUI
     public function approveKepala(Request $request, $id)
-{
-    $pengajuan = \App\Models\PengajuanCuti::find($id);
+    {
+        $pengajuan = PengajuanCuti::findOrFail($id);
+        $user = Auth::user();
 
-    if (!$pengajuan) {
-        return redirect()->route('kepala.approval.index')->with('success', '[DUMMY MODE] Seolah-olah berhasil disetujui dan diteruskan!');
-    }
+        // Penyeragaman label status dan role
+        $transisi = [
+            'Kepala Seksi'      => [1, 2, 'Menunggu Kepala Bidang'],
+            'Kepala Bidang'     => [2, 3, 'Menunggu Verifikasi Admin'],
+            'Kepala Sub-Bagian' => [4, 5, 'Menunggu Kepala TU'],
+            'Kasubag'           => [4, 5, 'Menunggu Kepala TU'],
+            'Kepala TU'         => [5, 6, 'Menunggu Kepala Kantor'],
+            'Kepala Kantor'     => [6, 7, 'Menunggu Finalisasi Penomoran'],
+        ];
 
-    $user = Auth::user();
-
-    // peran => [step yang boleh dia proses SAAT INI, step tujuan berikutnya, label tujuan]
-    $transisi = [
-        'Kepala Seksi'      => [1, 2, 'Menunggu Kepala Bidang'],
-        'Kepala Bidang'     => [2, 3, 'Menunggu Verifikasi Admin'],
-        'Kepala Sub-Bagian' => [4, 5, 'Menunggu Kepala TU'],
-        'Kepala TU'         => [5, 6, 'Menunggu Kepala Kantor'],
-        'Kepala Kantor'     => [6, 7, 'Menunggu Persetujuan Final dari Admin'],
-    ];
-
-    $cocok = false;
-    foreach ($transisi as $peran => [$stepSekarang, $stepTujuan, $labelTujuan]) {
-        if ($user->hasRole($peran) && $pengajuan->approval_step == $stepSekarang) {
-            $pengajuan->approval_step = $stepTujuan;
-            $pengajuan->status_pengajuan = $labelTujuan;
-            $cocok = true;
-            break;
+        $cocok = false;
+        foreach ($transisi as $peran => [$stepSekarang, $stepTujuan, $labelTujuan]) {
+            if ($user->hasRole($peran) && $pengajuan->approval_step == $stepSekarang) {
+                $pengajuan->approval_step = $stepTujuan;
+                $pengajuan->status_pengajuan = $labelTujuan;
+                $cocok = true;
+                break;
+            }
         }
+
+        if (!$cocok) {
+            return redirect()->route('kepala.approval.index')
+                ->with('error', 'Pengajuan ini bukan lagi di meja Anda, atau sudah diproses pihak lain.');
+        }
+
+        $pengajuan->save();
+        return redirect()->route('kepala.approval.index')->with('success', 'Pengajuan berhasil disetujui dan diteruskan.');
     }
 
-    if (!$cocok) {
-        return redirect()->route('kepala.approval.index')
-            ->with('error', 'Pengajuan ini bukan lagi di meja Anda, atau sudah diproses pihak lain.');
-    }
-
-    $pengajuan->save();
-    return redirect()->route('kepala.approval.index')->with('success', 'Pengajuan berhasil disetujui dan diteruskan.');
-}
-
-    // 2. MESIN TOMBOL TOLAK
     public function tolakKepala(Request $request, $id)
     {
-        $pengajuan = \App\Models\PengajuanCuti::find($id);
-        
-        if (!$pengajuan) {
-            return redirect()->route('kepala.approval.index')->with('error', '[DUMMY MODE] Seolah-olah pengajuan ditolak permanen!');
-        }
+        $pengajuan = PengajuanCuti::findOrFail($id);
         
         $pengajuan->approval_step = 0; 
         $pengajuan->status_pengajuan = 'Ditolak';
@@ -510,14 +444,9 @@ public function approve($id)
         return redirect()->route('kepala.approval.index')->with('error', 'Pengajuan telah ditolak.');
     }
 
-    // 3. MESIN TOMBOL REVISI
     public function revisiKepala(Request $request, $id)
     {
-        $pengajuan = \App\Models\PengajuanCuti::find($id);
-        
-        if (!$pengajuan) {
-            return redirect()->route('kepala.approval.index')->with('warning', '[DUMMY MODE] Seolah-olah dikembalikan ke pegawai untuk direvisi!');
-        }
+        $pengajuan = PengajuanCuti::findOrFail($id);
         
         $pengajuan->approval_step = 0; 
         $pengajuan->status_pengajuan = 'Perlu Revisi';
@@ -528,10 +457,8 @@ public function approve($id)
 
     public function rekapAdmin(Request $request)
     {
-        // 1. Ambil query dasar
-        $query = \App\Models\User::with(['bagianBidang', 'subBagianSeksi']);
+        $query = User::with(['bagianBidang', 'subBagianSeksi']);
 
-        // 2. SEARCH: Logika Pencarian Nama/NIP
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -540,12 +467,10 @@ public function approve($id)
             });
         }
 
-        // 3. FILTER: Berdasarkan Divisi (Bagian/Bidang)
         if ($request->filled('divisi') && $request->divisi !== 'Semua Divisi') {
             $query->where('bagian_bidang_id', $request->divisi);
         }
 
-        // 4. SORTING & ANALITIK: Siapa yang paling sering cuti?
         if ($request->filled('sort') && $request->sort !== 'Terbaru') {
             if ($request->sort == 'Terbanyak') {
                 $query->withSum(['pengajuanCutis as total_durasi' => function($q) {
@@ -563,14 +488,12 @@ public function approve($id)
             $query->latest();
         }
 
-        // 5. Sulap data ke format View (KOLOM SUDAH DISESUAIKAN DENGAN DATABASE)
         $rekaps = $query->paginate(10)->through(function ($user) {
-            $terpakai = \App\Models\PengajuanCuti::where('user_id', $user->id)
+            $terpakai = PengajuanCuti::where('user_id', $user->id)
                 ->where('status_pengajuan', 'Disetujui')
                 ->whereYear('created_at', date('Y'))
                 ->sum('durasi_hari');
 
-            // Menggunakan kolom jatah_cuti dari database
             $kuota = $user->jatah_cuti ?? 12; 
             $divisi = $user->subBagianSeksi->nama_sub_bagian ?? $user->bagianBidang->nama_bagian ?? '-';
 
@@ -587,21 +510,19 @@ public function approve($id)
 
         $rekaps->appends(request()->query());
 
-        // 6. Data untuk Dropdown Filter & Kartu Statistik
-        $daftarDivisi = \App\Models\BagianBidang::all();
-        $daftarJenisCuti = \App\Models\JenisCuti::all();
+        $daftarDivisi = BagianBidang::all();
+        $daftarJenisCuti = JenisCuti::all();
         
-        $totalPegawai = \App\Models\User::count();
-        $pengajuanBulanIni = \App\Models\PengajuanCuti::where('status_pengajuan', 'Disetujui')
+        $totalPegawai = User::count();
+        $pengajuanBulanIni = PengajuanCuti::where('status_pengajuan', 'Disetujui')
                                 ->whereMonth('created_at', date('m'))
                                 ->whereYear('created_at', date('Y'))
                                 ->count();
         
-        // Logika Rata-rata Sisa Cuti
         $totalSisaKeseluruhan = 0;
-        $semuaUser = \App\Models\User::all();
+        $semuaUser = User::all();
         foreach ($semuaUser as $u) {
-            $terpakaiUser = \App\Models\PengajuanCuti::where('user_id', $u->id)
+            $terpakaiUser = PengajuanCuti::where('user_id', $u->id)
                 ->where('status_pengajuan', 'Disetujui')
                 ->whereYear('created_at', date('Y'))
                 ->sum('durasi_hari');
@@ -617,14 +538,13 @@ public function approve($id)
 
     public function showRekap($id)
     {
-        $user = \App\Models\User::with(['bagianBidang', 'subBagianSeksi'])->findOrFail($id);
+        $user = User::with(['bagianBidang', 'subBagianSeksi'])->findOrFail($id);
 
-        $terpakai = \App\Models\PengajuanCuti::where('user_id', $user->id)
+        $terpakai = PengajuanCuti::where('user_id', $user->id)
             ->where('status_pengajuan', 'Disetujui')
             ->whereYear('created_at', date('Y'))
             ->sum('durasi_hari');
 
-        // Menggunakan kolom jatah_cuti dari database
         $kuota = $user->jatah_cuti ?? 12;
         $divisi = $user->subBagianSeksi->nama_sub_bagian ?? $user->bagianBidang->nama_bagian ?? '-';
 
@@ -637,7 +557,7 @@ public function approve($id)
             'total_kuota' => $kuota
         ];
         
-        $riwayats = \App\Models\PengajuanCuti::with('jenisCuti')
+        $riwayats = PengajuanCuti::with('jenisCuti')
             ->where('user_id', $id)
             ->latest()
             ->get()
@@ -645,7 +565,7 @@ public function approve($id)
                 return (object)[
                     'id'            => $cuti->id,
                     'jenis'         => $cuti->jenisCuti->nama_cuti ?? 'Cuti Tahunan',
-                    'tanggal_mulai' => \Carbon\Carbon::parse($cuti->tanggal_mulai)->translatedFormat('d M Y'),
+                    'tanggal_mulai' => Carbon::parse($cuti->tanggal_mulai)->translatedFormat('d M Y'),
                     'durasi'        => $cuti->durasi_hari . ' Hari',
                     'status'        => $cuti->status_pengajuan
                 ];
@@ -656,47 +576,7 @@ public function approve($id)
 
     public function exportRekap(Request $request)
     {
-        // Panggil library Excel untuk mengunduh file
-        // Pastikan kamu sudah menjalankan `php artisan make:export RekapCutiExport`
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\RekapCutiExport, 'Rekap_Cuti_Pegawai_' . date('Y') . '.xlsx');
-    }
-
-    public function indexRekap(Request $request)
-    {
-        // 1. STATISTIK ATAS
-        $totalPegawai = \App\Models\User::count(); 
-        
-        $pengajuanBulanIni = \App\Models\PengajuanCuti::whereMonth('created_at', now()->month)
-                                ->whereYear('created_at', now()->year)
-                                ->count();
-
-        // 2. QUERY DAFTAR PEGAWAI BESERTA CUTINYA (Hanya yang disetujui tahun ini)
-        $query = \App\Models\User::with(['bagianBidang', 'subBagianSeksi', 'pengajuanCutis' => function($q) {
-            $q->where('status_pengajuan', 'Disetujui')
-              ->whereYear('tanggal_mulai', now()->year);
-        }]);
-
-        // 3. FITUR PENCARIAN (Nama atau NIP)
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('nip', 'like', "%{$search}%");
-            });
-        }
-
-        // 4. EKSEKUSI DATA
-        $users = $query->paginate(10)->withQueryString();
-
-        // 5. HITUNG RATA-RATA SISA CUTI
-        $totalSisa = 0;
-        foreach ($users as $u) {
-            $terpakai = $u->pengajuanCutis->sum('durasi_hari');
-            $totalSisa += (12 - $terpakai); // Ganti angka 12 jika kamu punya kolom $u->kuota_cuti
-        }
-        $rataSisa = $users->count() > 0 ? round($totalSisa / $users->count(), 1) : 0;
-
-        return view('admin.rekap.index', compact('totalPegawai', 'pengajuanBulanIni', 'rataSisa', 'users'));
     }
 
     public function dashboardAdmin()
@@ -704,30 +584,23 @@ public function approve($id)
         $bulanIni = now()->month;
         $tahunIni = now()->year;
 
-        // 1. DATA STATISTIK KARTU
-        // Hitung pengajuan yang masuk ke meja Admin (Step 3: Verifikasi Kasubag, Step 7: Finalisasi)
-        $pengajuanBaru = \App\Models\PengajuanCuti::whereIn('approval_step', [3, 7])->count();
+        $pengajuanBaru = PengajuanCuti::whereIn('approval_step', [3, 7])->count();
+        $menungguPersetujuan = PengajuanCuti::whereNotIn('status_pengajuan', ['Disetujui', 'Ditolak', 'Dibatalkan'])->count();
 
-        // Hitung semua pengajuan yang masih menggantung (belum final)
-        $menungguPersetujuan = \App\Models\PengajuanCuti::whereNotIn('status_pengajuan', ['Disetujui', 'Ditolak', 'Dibatalkan'])->count();
-
-        // Hitung yang disetujui pada bulan ini
-        $disetujuiBulanIni = \App\Models\PengajuanCuti::where('status_pengajuan', 'Disetujui')
+        $disetujuiBulanIni = PengajuanCuti::where('status_pengajuan', 'Disetujui')
             ->whereMonth('created_at', $bulanIni)
             ->whereYear('created_at', $tahunIni)
             ->count();
 
-        // Hitung yang ditolak pada bulan ini
-        $ditolakBulanIni = \App\Models\PengajuanCuti::whereIn('status_pengajuan', ['Ditolak', 'Dibatalkan'])
+        $ditolakBulanIni = PengajuanCuti::whereIn('status_pengajuan', ['Ditolak', 'Dibatalkan'])
             ->whereMonth('created_at', $bulanIni)
             ->whereYear('created_at', $tahunIni)
             ->count();
 
-        // 2. DATA TABEL (Butuh Tindakan Admin)
-        $antreanCuti = \App\Models\PengajuanCuti::with(['user', 'jenisCuti'])
-            ->whereIn('approval_step', [3, 7]) // Hanya tampilkan yang butuh klik dari Admin
+        $antreanCuti = PengajuanCuti::with(['user', 'jenisCuti'])
+            ->whereIn('approval_step', [3, 7])
             ->latest()
-            ->paginate(5); // Tampilkan 5 data per halaman
+            ->paginate(5);
 
         return view('admin.dashboard', compact(
             'pengajuanBaru', 
@@ -737,30 +610,25 @@ public function approve($id)
             'antreanCuti'
         ));
     }
+
     public function informasi()
-{
-    $user = auth()->user();
+    {
+        $user = auth()->user();
 
-    // Catatan: Jika di tabel users belum ada kolom ini, kamu bisa menggunakan angka statis dulu
-    // atau nanti kita buatkan file migrasinya.
-    $jatahTahunIni = $user->jatah_cuti_tahun_ini ?? 12; 
-    $jatahTahunLalu = $user->sisa_cuti_tahun_lalu ?? 2; 
-    $totalJatah = $jatahTahunIni + $jatahTahunLalu;
+        $jatahTahunIni = $user->jatah_cuti_tahun_ini ?? 12; 
+        $jatahTahunLalu = $user->sisa_cuti_tahun_lalu ?? 2; 
+        $totalJatah = $jatahTahunIni + $jatahTahunLalu;
 
-    // Menghitung statistik pengajuan pegawai dari database
-    $statistik = [
-        'total_diajukan' => \App\Models\PengajuanCuti::where('user_id', $user->id)->count(),
-        'disetujui' => \App\Models\PengajuanCuti::where('user_id', $user->id)
-                            ->where('status_pengajuan', 'Disetujui')->count(),
-        'menunggu' => \App\Models\PengajuanCuti::where('user_id', $user->id)
-                            ->where('status_pengajuan', 'LIKE', '%Menunggu%')->count(),
-    ];
+        $statistik = [
+            'total_diajukan' => PengajuanCuti::where('user_id', $user->id)->count(),
+            'disetujui'      => PengajuanCuti::where('user_id', $user->id)->where('status_pengajuan', 'Disetujui')->count(),
+            'menunggu'       => PengajuanCuti::where('user_id', $user->id)->where('status_pengajuan', 'LIKE', '%Menunggu%')->count(),
+        ];
 
-   if ($user->hasRole('Pegawai')) {
-        return view('pegawai.informasi', compact('jatahTahunIni', 'jatahTahunLalu', 'totalJatah', 'statistik'));
+        if ($user->hasRole('Pegawai')) {
+            return view('pegawai.informasi', compact('jatahTahunIni', 'jatahTahunLalu', 'totalJatah', 'statistik'));
+        }
+
+        return view('kepala.informasi', compact('jatahTahunIni', 'jatahTahunLalu', 'totalJatah', 'statistik'));
     }
-
-    // Jika bukan Pegawai (berarti Kepala Seksi/Bidang), kembalikan ke view kepala
-    return view('kepala.informasi', compact('jatahTahunIni', 'jatahTahunLalu', 'totalJatah', 'statistik'));
 }
-} 
