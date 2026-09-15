@@ -97,6 +97,17 @@
                             
                             <!-- DATA ASLI DARI DATABASE -->
                             @forelse($antreanCuti as $index => $pengajuan)
+                            @php
+                                // Logika cerdas untuk menimpa teks status yang "nyangkut" di database
+                                // Khusus untuk antrean di meja Admin (Step 3 dan 7)
+                                $teksStatus = $pengajuan->status_pengajuan;
+                                if ($pengajuan->approval_step == 3) {
+                                    $teksStatus = 'Menunggu Verifikasi Admin';
+                                } elseif ($pengajuan->approval_step == 7) {
+                                    $teksStatus = 'Menunggu Finalisasi Penomoran';
+                                }
+                            @endphp
+
                             <tr class="hover:bg-gray-50/50 transition duration-150">
                                 <td class="px-6 py-4 text-gray-500">{{ $antreanCuti->firstItem() + $index }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-900">{{ $pengajuan->user->name ?? 'User Dihapus' }}</td>
@@ -106,7 +117,8 @@
                                 <td class="px-6 py-4 font-medium text-gray-700">{{ $pengajuan->durasi_hari }} Hari</td>
                                 <td class="px-6 py-4 text-center">
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                                        {{ $pengajuan->status_pengajuan }}
+                                        <!-- Cetak variabel dinamis yang sudah kita buat -->
+                                        {{ $teksStatus }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">
