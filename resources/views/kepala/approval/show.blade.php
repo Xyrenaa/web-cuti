@@ -118,6 +118,24 @@
                             <a href="{{ asset('storage/'.$file) }}" target="_blank" class="text-sm font-bold text-[#2a64f5] hover:text-blue-800 transition">Unduh File</a>
                         </div>
                         @endforeach
+
+                        @if(!empty($data->dokumen_ttd))
+                        <div class="pt-3 mt-3 border-t border-dashed border-gray-200">
+                            <p class="mb-2 text-xs font-bold tracking-wide text-gray-400 uppercase">Dokumen Bertanda Tangan</p>
+                            @foreach($data->dokumen_ttd as $ttd)
+                            <div class="flex items-center justify-between p-4 mb-2 transition border border-green-200 bg-green-50/50 hover:bg-green-50 rounded-xl">
+                                <div class="flex items-center space-x-3">
+                                    <svg class="flex-shrink-0 w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <div>
+                                        <span class="text-sm font-bold text-gray-800">{{ basename($ttd['file']) }}</span>
+                                        <p class="text-xs text-gray-500">Ditandatangani {{ $ttd['nama'] ?? '-' }} ({{ $ttd['peran'] ?? '-' }}) &middot; {{ \Carbon\Carbon::parse($ttd['waktu'])->translatedFormat('d M Y, H:i') }}</p>
+                                    </div>
+                                </div>
+                                <a href="{{ asset('storage/'.$ttd['file']) }}" target="_blank" class="flex-shrink-0 text-sm font-bold text-green-700 hover:text-green-900 transition">Unduh File</a>
+                            </div>
+                            @endforeach
+                        </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -165,8 +183,15 @@
 
                     @if($bisaAksi)
                     <div class="flex flex-col gap-3 pt-6 mt-8 border-t border-gray-100">
-                        <form id="form-approve" action="{{ route('kepala.approval.approve', $data->id) }}" method="POST" class="w-full">
+                        <form id="form-approve" action="{{ route('kepala.approval.approve', $data->id) }}" method="POST" enctype="multipart/form-data" class="w-full">
                             @csrf @method('PUT')
+
+                            <label class="block mb-1 text-xs font-semibold text-gray-600">
+                                Upload Dokumen yang Sudah Ditandatangani <span class="font-normal text-gray-400">(opsional)</span>
+                            </label>
+                            <input type="file" name="dokumen_ttd" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                class="block w-full mb-3 text-xs text-gray-600 border border-gray-300 rounded-lg file:mr-3 file:py-2 file:px-3 file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#2A65F3] hover:file:bg-blue-100">
+
                             <button type="button" onclick="konfirmasiAksi('approve')" class="w-full px-6 py-2.5 text-sm font-semibold text-white transition bg-[#2A65F3] rounded-lg shadow-sm hover:bg-blue-700">
                                 Setujui & Teruskan
                             </button>

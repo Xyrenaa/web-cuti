@@ -400,10 +400,31 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         // =========================================================
         if ($action == 'setujui') {
             if ($pengajuan->approval_step == 3) {
-                // Admin meneruskan ke Kasubag
-                $pengajuan->update(['approval_step' => 4,]);
+                // Admin meneruskan ke Kasubag — sertakan dokumen bertanda tangan (opsional)
+                $request->validate([
+                    'dokumen_ttd' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
+                ]);
+
+                if ($request->hasFile('dokumen_ttd')) {
+                    $file = $request->file('dokumen_ttd');
+                    $namaFile = time() . '_ttd_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
+                    $path = $file->storeAs('dokumen/ttd_kepala', $namaFile, 'public');
+
+                    $daftarTtd = $pengajuan->dokumen_ttd ?? [];
+                    $daftarTtd[] = [
+                        'step'  => 3,
+                        'peran' => 'Admin Kepegawaian',
+                        'nama'  => Auth::user()->name,
+                        'file'  => $path,
+                        'waktu' => now()->toDateTimeString(),
+                    ];
+                    $pengajuan->dokumen_ttd = $daftarTtd;
+                }
+
+                $pengajuan->approval_step = 4;
+                $pengajuan->save();
             } elseif ($pengajuan->approval_step == 7) {
-                // Admin finalisasi dan selesai
+                // Admin finalisasi dan selesai (tidak perlu dokumen ttd di tahap ini)
                 $pengajuan->update(['approval_step' => 8,]);
             }
             return redirect()->route('admin.approval.index')->with('success', 'Berkas berhasil diproses.');
@@ -469,6 +490,27 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
     if ($stepBerikutnya === null) {
         return redirect()->route('kepala.approval.index')
             ->with('error', 'Pengajuan ini bukan lagi di meja Anda, atau sudah diproses pihak lain.');
+    }
+
+    // Upload dokumen yang sudah ditandatangani (opsional)
+    $request->validate([
+        'dokumen_ttd' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
+    ]);
+
+    if ($request->hasFile('dokumen_ttd')) {
+        $file = $request->file('dokumen_ttd');
+        $namaFile = time() . '_ttd_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
+        $path = $file->storeAs('dokumen/ttd_kepala', $namaFile, 'public');
+
+        $daftarTtd = $pengajuan->dokumen_ttd ?? [];
+        $daftarTtd[] = [
+            'step'  => $pengajuan->approval_step,
+            'peran' => $role,
+            'nama'  => $user->name,
+            'file'  => $path,
+            'waktu' => now()->toDateTimeString(),
+        ];
+        $pengajuan->dokumen_ttd = $daftarTtd;
     }
 
     $pengajuan->approval_step = $stepBerikutnya;

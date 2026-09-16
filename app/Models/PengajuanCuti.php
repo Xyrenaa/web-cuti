@@ -14,6 +14,7 @@ class PengajuanCuti extends Model
 
     protected $casts = [
         'bukti_pendukung' => 'array',
+        'dokumen_ttd' => 'array',
     ];
     protected $fillable = [
     'kode_pengajuan',
@@ -26,6 +27,7 @@ class PengajuanCuti extends Model
     'lokasi',       
     'surat_pengajuan',  
     'bukti_pendukung',
+    'dokumen_ttd',
     'approval_step',     
     'status_pengajuan'  
 ];
