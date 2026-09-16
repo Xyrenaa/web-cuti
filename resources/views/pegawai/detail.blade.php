@@ -121,16 +121,37 @@
                 Kembali
             </a>
 
-            <!-- Tombol Batalkan hanya muncul kalau belum di step final (sinkron dengan $isFinal di atas) -->
+                        <!-- Tombol Batalkan hanya muncul kalau belum di step final (sinkron dengan $isFinal di atas) -->
             @if(!$isFinal)
-
-            <form action="{{ route('pengajuan.batal', $pengajuan->id) }}" method="POST" onsubmit="return confirm('Anda yakin ingin membatalkan pengajuan ini dari sistem?');">
-        @csrf
-        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow">
-            Batalkan Pengajuan
-        </button>
-    </form>
+            <form id="form-batal-detail" action="{{ route('pengajuan.batal', $pengajuan->id) }}" method="POST">
+                @csrf
+                <button type="button" onclick="konfirmasiBatalDetail()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow">
+                    Batalkan Pengajuan
+                </button>
+            </form>
             @endif
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function konfirmasiBatalDetail() {
+            Swal.fire({
+                title: 'Batalkan Pengajuan?',
+                text: 'Tindakan ini tidak dapat dibatalkan.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Batalkan',
+                confirmButtonColor: '#dc2626',
+                cancelButtonText: 'Kembali',
+                cancelButtonColor: '#6b7280',
+                reverseButtons: true,
+                customClass: { popup: 'rounded-2xl shadow-xl border border-gray-100', title: 'text-xl font-bold text-gray-800' }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('form-batal-detail').submit();
+                }
+            });
+        }
+    </script>
 </x-app-layout>

@@ -62,7 +62,7 @@ Route::get('/api/sub-bagian/{bagian_id}', function ($bagian_id) {
 // ==========================================
 // ROUTE ADMIN (Wajib login)
 // ==========================================
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'role:Admin Kepegawaian'])->group(function () {
     // FIX: langsung panggil controller aslinya, jangan closure kosong,
     // supaya $pengajuanBaru, $menungguPersetujuan, dkk selalu terkirim ke view.
     Route::get('/admin/dashboard', [PengajuanController::class, 'dashboardAdmin'])->name('admin.dashboard');
@@ -85,7 +85,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // ==========================================
 // ROUTE KEPALA (Prefix: /kepala, Name: kepala.)
 // ==========================================
-Route::middleware(['auth', 'verified'])->prefix('kepala')->name('kepala.')->group(function () {
+Route::middleware(['auth', 'verified', 'role:Kepala Seksi|Kepala Bidang|Kepala Sub-Bagian|Kepala TU|Kepala Kantor'])->prefix('kepala')->name('kepala.')->group(function () {
     Route::get('/approval', [PengajuanController::class, 'indexKepala'])->name('approval.index');
     Route::get('/approval/{id}', [PengajuanController::class, 'showKepala'])->name('approval.show');
     Route::put('/approval/{id}/approve', [PengajuanController::class, 'approveKepala'])->name('approval.approve');
