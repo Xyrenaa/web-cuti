@@ -9,28 +9,31 @@ class StatusCutiNotification extends Notification
 {
     use Queueable;
 
-    protected $judul;
-    protected $pesan;
+    /**
+     * $meta menampung konteks tambahan: tipe notifikasi, kode pengajuan,
+     * id pengajuan, dan URL tujuan saat notifikasi diklik.
+     * Dibuat opsional supaya pemanggilan lama (judul, pesan) tetap jalan.
+     */
+    public function __construct(
+        protected string $judul,
+        protected string $pesan,
+        protected array $meta = []
+    ) {}
 
-    // Menerima data judul dan pesan saat notifikasi dipanggil
-    public function __construct($judul, $pesan)
-    {
-        $this->judul = $judul;
-        $this->pesan = $pesan;
-    }
-
-    // Beritahu Laravel untuk menyimpan notifikasi ini ke Database
     public function via($notifiable)
     {
         return ['database'];
     }
 
-    // Susun data yang akan masuk ke kolom 'data' (JSON) di database
     public function toArray($notifiable)
     {
-        return [
-            'judul' => $this->judul,
-            'pesan' => $this->pesan,
-        ];
+        return array_merge([
+            'judul'          => $this->judul,
+            'pesan'          => $this->pesan,
+            'tipe'           => 'umum', // aksi|status|ttd|final|tolak|revisi|batal
+            'kode_pengajuan' => null,
+            'pengajuan_id'   => null,
+            'url'            => null,
+        ], $this->meta);
     }
 }

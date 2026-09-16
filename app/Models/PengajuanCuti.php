@@ -73,4 +73,65 @@ class PengajuanCuti extends Model
             default => 'Menunggu',
         };
     }
+        /**
+     * Riwayat dokumen ttd, diurutkan dari tahap paling awal ke paling akhir.
+     * Tidak mengandalkan urutan array mentah, karena kalau nanti ada
+     * koreksi/upload ulang, urutan penyimpanannya bisa tidak kronologis.
+     */
+    public function getRiwayatTtdAttribute(): array
+    {
+        $daftar = is_array($this->dokumen_ttd) ? $this->dokumen_ttd : [];
+
+        usort($daftar, function ($a, $b) {
+            $stepA = $a['step'] ?? 0;
+            $stepB = $b['step'] ?? 0;
+
+            if ($stepA === $stepB) {
+                return strcmp($a['waktu'] ?? '', $b['waktu'] ?? '');
+            }
+
+            return $stepA <=> $stepB;
+        });
+
+        return $daftar;
+    }
+
+    /**
+     * Versi TERAKHIR dari surat yang sudah ditandatangani (null kalau belum ada).
+     */
+    public function getTtdTerakhirAttribute(): ?array
+    {
+        $riwayat = $this->riwayat_ttd;
+
+        return empty($riwayat) ? null : end($riwayat);
+    }
+
+    /**
+     * Surat yang berlaku saat ini bagi pejabat yang sedang memeriksa:
+     * versi ttd terbaru kalau sudah ada, kalau belum ya surat asli dari pemohon.
+     */
+    public function getSuratAktifAttribute(): array
+    {
+        $ttd = $this->ttd_terakhir;
+
+        if ($ttd) {
+            return [
+                'file'   => $ttd['file'] ?? null,
+                'label'  => 'Surat cuti versi terbaru',
+                'oleh'   => $ttd['nama'] ?? '-',
+                'peran'  => $ttd['peran'] ?? '-',
+                'waktu'  => $ttd['waktu'] ?? null,
+                'is_ttd' => true,
+            ];
+        }
+
+        return [
+            'file'   => $this->surat_pengajuan,
+            'label'  => 'Surat pengajuan (belum ada tanda tangan)',
+            'oleh'   => $this->user->name ?? '-',
+            'peran'  => 'Pemohon',
+            'waktu'  => optional($this->created_at)->toDateTimeString(),
+            'is_ttd' => false,
+        ];
+    }
 }

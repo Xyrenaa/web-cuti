@@ -163,13 +163,6 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         'approval_step'     => $inisialStep, 
     ]);
 
-    // 4. Kirim Notifikasi ke User
-    if (method_exists($user, 'notify')) {
-        $user->notify(new StatusCutiNotification(
-            'Pengajuan Berhasil Dikirim',
-            'Pengajuan cuti Anda untuk tanggal ' . $request->tanggal_mulai . ' telah masuk sistem dan sedang diproses.'
-        ));
-    }
 
     return redirect()->route('pengajuan.index')->with('success', 'Pengajuan cuti dan dokumen lampiran berhasil dikirim.');
 }
@@ -479,10 +472,12 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         'Kepala Kantor'     => [6, 7],
     ];
 
-    $stepBerikutnya = null;
+   $stepBerikutnya = null;
+    $peranAktif     = null;
     foreach ($transisi as $role => [$stepSekarang, $stepTujuan]) {
         if ($user->hasRole($role) && $pengajuan->approval_step == $stepSekarang) {
             $stepBerikutnya = $stepTujuan;
+            $peranAktif     = $role;
             break;
         }
     }
