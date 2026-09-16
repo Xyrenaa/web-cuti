@@ -42,6 +42,24 @@ class PengajuanController extends Controller
         return redirect()->back()->withInput()->with('error', 'Tanggal tidak valid. Pengajuan cuti tidak bisa dilakukan di hari libur akhir pekan.');
     }
 
+    // Validasi bentrok tanggal: pegawai tidak boleh mengajukan cuti baru yang
+    // tanggalnya tumpang tindih dengan pengajuan cuti lain miliknya yang masih
+    // aktif. "Aktif" di sini berarti semua status KECUALI Ditolak (0) & Dibatalkan
+    // (10) — termasuk yang masih menunggu approval (1-7) & Perlu Direvisi (9),
+    // bukan cuma yang sudah Disetujui (8), karena mengajukan dua cuti yang
+    // tanggalnya bentrok tetap tidak masuk akal walau yang lama belum final.
+    $user = Auth::user();
+
+    $adaBentrok = PengajuanCuti::where('user_id', $user->id)
+        ->whereNotIn('approval_step', [0, 10])
+        ->where('tanggal_mulai', '<=', $tanggal_selesai)
+        ->where('tanggal_selesai', '>=', $tanggal_mulai)
+        ->exists();
+
+    if ($adaBentrok) {
+        return redirect()->back()->withInput()->with('error', 'Anda masih memiliki pengajuan cuti aktif yang tanggalnya bertumpuk dengan rentang tanggal ini. Selesaikan atau batalkan pengajuan sebelumnya terlebih dahulu.');
+    }
+
     // 1. Upload Berkas Surat Pengajuan
     $suratFile = $request->file('surat_pengajuan');
     $suratName = time() . '_wajib_' . preg_replace('/\s+/', '_', $suratFile->getClientOriginalName());
@@ -56,7 +74,6 @@ class PengajuanController extends Controller
         }
     }
 
-    $user = Auth::user();
     // Memeriksa apakah pegawai ini berada di ekosistem Tata Usaha (TU)
     $is_tu = $user->bagianBidang ? $user->bagianBidang->is_tu : false;
 
@@ -121,7 +138,13 @@ $lastPengajuan = \App\Models\PengajuanCuti::where('jenis_cuti_id', $request->jen
 
 $nomorUrut = 1;
 if ($lastPengajuan && $lastPengajuan->kode_pengajuan) {
-    $lastUrut = (int) substr($lastPengajuan->kode_pengajuan, 2);
+    // PENTING: pakai strlen($prefix), BUKAN angka 2 yang di-hardcode.
+    // Prefix 'CT'/'CS'/'CB' memang 2 huruf, tapi 'CAP' (Cuti Alasan
+    // Penting) itu 3 huruf — substr(..., 2) pada "CAP01" menghasilkan
+    // "P01", lalu (int)"P01" jadi 0, sehingga nomorUrut SELALU 1 buat
+    // jenis cuti ini dan pengajuan CAP kedua ke atas pasti tabrakan
+    // kode dengan yang pertama.
+    $lastUrut = (int) substr($lastPengajuan->kode_pengajuan, strlen($prefix));
     $nomorUrut = $lastUrut + 1;
 }
 
