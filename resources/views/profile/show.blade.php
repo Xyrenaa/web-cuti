@@ -27,12 +27,18 @@
                             $nameParts = explode(' ', $user->name);
                             $initials = collect($nameParts)->map(fn($n) => substr($n, 0, 1))->take(2)->join('');
                         @endphp
-                        <div class="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center text-[#2A65F3] text-2xl font-bold uppercase shrink-0">
-                            {{ $initials }}
+                        <div class="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center text-[#2A65F3] text-2xl font-bold uppercase shrink-0 overflow-hidden relative shadow-sm border border-blue-100">
+                            @if($user->avatar)
+                                <!-- Jika ada foto di database -->
+                                <img src="{{ asset('storage/avatars/' . $user->avatar) }}" alt="Foto Profil" class="w-full h-full object-cover">
+                            @else
+                                <!-- Jika belum ada foto, tampilkan inisial -->
+                                {{ $initials }}
+                            @endif
                         </div>
                         <div>
                             <h3 class="text-xl font-bold text-gray-900">{{ $user->name }}</h3>
-                            <p class="text-sm text-gray-500 mt-1">{{ $user->subBagian->nama ?? 'Pegawai' }} — {{ $user->bagian->nama ?? 'Instansi' }}</p>
+                            <p class="text-sm text-gray-500 mt-1">{{ $user->subBagianSeksi->nama ?? 'Pegawai' }} — {{ $user->bagianBidang->nama ?? 'Instansi' }}</p>
                         </div>
                     </div>
                     <a href="{{ route('profile.edit') }}" class="px-5 py-2.5 bg-[#2A65F3] text-white text-sm font-semibold rounded-md hover:bg-blue-700 transition flex items-center gap-2 shadow-sm">
@@ -62,7 +68,7 @@
     </div>
     <div>
         <label class="block text-xs font-semibold text-gray-500 mb-2">Bagian / Bidang</label>
-        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->bagian->nama ?? '-' }}</div>
+        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->bagianBidang->nama ?? '-' }}</div>
     </div>
 
     <!-- Baris 3 -->
@@ -72,26 +78,11 @@
     </div>
     <div>
         <label class="block text-xs font-semibold text-gray-500 mb-2">Sub-Bagian / Seksi</label>
-        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->subBagian->nama ?? '-' }}</div>
+        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->subBagianSeksi->nama ?? '-' }}</div>
     </div>
    
 </div>
-                <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6 mt-6">
-    <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg flex items-center justify-between border-l-4 border-indigo-500">
-        <div class="max-w-xl">
-            <h2 class="text-lg font-medium text-gray-900">
-                Informasi Jatah Cuti
-            </h2>
-            <p class="mt-1 text-sm text-gray-600">
-                Sisa jatah cuti tahunan Anda di PELITA.
-            </p>
-        </div>
-        <div class="text-center bg-gray-50 px-6 py-4 rounded-lg shadow-inner">
-            <span class="block text-4xl font-extrabold text-indigo-600">{{ Auth::user()->jatah_cuti }}</span>
-            <span class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Hari</span>
-        </div>
-    </div>
-</div>
+
 
             </div>
         </div>

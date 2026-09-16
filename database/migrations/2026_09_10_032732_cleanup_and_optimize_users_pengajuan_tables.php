@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        //1. Drop kolom redundan di tabel users
+        //Schema::table('users', function (Blueprint $table) {
+           // $table->dropColumn(['sisa_cuti_tahunan', 'atasan_id']);
+        //});
         // Schema::table('users', function (Blueprint $table) {
             // 1. Hancurkan jembatan (Foreign Key) terlebih dahulu
             // $table->dropForeign('users_atasan_id_foreign');
@@ -21,9 +25,9 @@ return new class extends Migration
             // $table->dropColumn(['sisa_cuti_tahunan', 'atasan_id']);
         // });
 
-        // 2. Tambahkan Index untuk mempercepat query EIS Dashboard
-        Schema::table('pengajuan_cutis', function (Blueprint $table) {
-            $table->index('status_pengajuan');
+       // 2. Tambahkan Index untuk mempercepat query EIS Dashboard
+       schema::table('pengajuan_cutis', function (Blueprint $table) {
+          $table->index('status_pengajuan');
             $table->index('approval_step');
         });
     }
