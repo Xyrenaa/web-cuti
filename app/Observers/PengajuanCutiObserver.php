@@ -215,7 +215,9 @@ class PengajuanCutiObserver
                 : collect(),
             3, 7 => User::role('Admin Kepegawaian')->get(),
             4 => User::role('Kepala Sub-Bagian')
-                ->whereHas('bagianBidang', fn ($q) => $q->where('is_tu', true))->get(),
+                ->whereHas('bagianBidang', fn ($q) => $q->where('is_tu', true))
+                ->whereHas('subBagianSeksi', fn ($q) => $q->where('nama', 'like', '%Kepegawaian%'))
+                ->get(),
             5 => User::role('Kepala TU')->get(),
             6 => User::role('Kepala Kantor')->get(),
             default => collect(),

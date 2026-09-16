@@ -10,6 +10,35 @@ use App\Notifications\StatusCutiNotification;
 
 class PengajuanController extends Controller
 {
+    protected array $alurKepala = [
+        'Kepala Seksi'      => ['step' => 1, 'lanjut' => 2],
+        'Kepala Bidang'     => ['step' => 2, 'lanjut' => 3],
+        'Kepala Sub-Bagian' => ['step' => 4, 'lanjut' => 5],
+        'Kepala TU'         => ['step' => 5, 'lanjut' => 6],
+        'Kepala Kantor'     => ['step' => 6, 'lanjut' => 7],
+    ];
+    protected function mejaSaya(PengajuanCuti $pengajuan, $user): ?string
+    {
+        foreach ($this->alurKepala as $peran => $info) {
+            if (! $user->hasRole($peran) || (int) $pengajuan->approval_step !== $info['step']) {
+                continue;
+            }
+
+            if ($peran === 'Kepala Seksi'
+                && $pengajuan->user?->sub_bagian_seksi_id !== $user->sub_bagian_seksi_id) {
+                return null;
+            }
+
+            if ($peran === 'Kepala Bidang'
+                && $pengajuan->user?->bagian_bidang_id !== $user->bagian_bidang_id) {
+                return null;
+            }
+
+            return $peran;
+        }
+
+        return null;
+    }
     public function index()
     {
         $riwayat = PengajuanCuti::where('user_id', Auth::id())->latest()->paginate(5);
@@ -239,7 +268,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         return back()->with('success', 'Semua notifikasi telah ditandai dibaca.');
     } 
 
-    public function indexKepala(Request $request)
+        public function indexKepala(Request $request)
     {
         $user = Auth::user();
         $step = 0;
@@ -259,17 +288,23 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
 
         $pengajuans = PengajuanCuti::with('user')
             ->where('approval_step', $step)
-            ->where('user_id', '!=', $user->id) // Jangan tampilkan pengajuan milik sendiri
+            ->where('user_id', '!=', $user->id) 
+            ->when($step === 1, function ($q) use ($user) {
+                $q->whereHas('user', fn ($u) => $u->where('sub_bagian_seksi_id', $user->sub_bagian_seksi_id));
+            })
+            ->when($step === 2, function ($q) use ($user) {
+                $q->whereHas('user', fn ($u) => $u->where('bagian_bidang_id', $user->bagian_bidang_id));
+            })
             ->latest()
             ->paginate(10);
 
         return view('kepala.approval.index', compact('pengajuans'));
     }
 
-    public function showKepala($id)
+        public function showKepala($id)
     {
         $data = \App\Models\PengajuanCuti::with('user')->find($id);
-        
+
         if (!$data) {
             $data = new \App\Models\PengajuanCuti();
             $data->id = $id;
@@ -280,12 +315,24 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
             $data->created_at = now();
             $data->alasan = 'Ini adalah teks dummy sementara. Sistem tidak menemukan ID ' . $id . ' di database.';
             $data->lampiran = null;
-            $data->approval_step = 2; 
+            $data->approval_step = 2;
             $data->status = 'Menunggu';
 
             $dummyUser = new \App\Models\User();
             $dummyUser->name = 'Budi Dummy (Tester)';
             $data->setRelation('user', $dummyUser);
+
+            return view('kepala.approval.show', compact('data'));
+        }
+
+        $user = Auth::user();
+
+        if ($data->user_id === $user->id) {
+            abort(403, 'Anda tidak dapat membuka pengajuan cuti Anda sendiri melalui halaman approval.');
+        }
+
+        if ($this->mejaSaya($data, $user) === null) {
+            abort(403, 'Pengajuan ini bukan/belum berada di meja Anda.');
         }
 
         return view('kepala.approval.show', compact('data'));
@@ -304,7 +351,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         $query = \App\Models\PengajuanCuti::with(['user.bagianBidang', 'user.subBagianSeksi', 'jenisCuti']);
 
         // 2. FILTER HIERARKI JABATAN
-        if ($user->hasRole('admin')) {
+        if ($user->hasRole('Admin Kepegawaian')) {
             // Biarkan kosong. Admin di halaman ini berhak melihat semua riwayat.
         } elseif ($user->level_jabatan == 'Kepala Seksi/Sub-Bagian') {
             if ($user->bagianBidang && $user->bagianBidang->is_tu) {
@@ -422,9 +469,9 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
             }
             return redirect()->route('admin.approval.index')->with('success', 'Berkas berhasil diproses.');
             
-        } elseif ($action == 'revisi' && $pengajuan->approval_step == 9) {
+        } elseif ($action == 'revisi' && $pengajuan->approval_step == 7) {
             $pengajuan->update([
-                'approval_step' => 7, 
+                'approval_step' => 9, 
             ]);
             return redirect()->route('admin.approval.index')->with('warning', 'Berkas dikembalikan ke pegawai. Alasan: ' . $catatan);
             
@@ -446,89 +493,79 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
     }
     
     // 1. MESIN TOMBOL SETUJUI
-  public function approveKepala(Request $request, $id)
-{
-    $pengajuan = \App\Models\PengajuanCuti::find($id);
-
-    if (!$pengajuan) {
-        return redirect()->route('kepala.approval.index')->with('success', '[DUMMY MODE] Seolah-olah berhasil disetujui dan diteruskan!');
-    }
-
-    $user = Auth::user();
-
-    // Guard: jangan sampai seorang kepala bisa approve pengajuan cuti miliknya sendiri
-    // (proteksi tambahan di level aksi, selain fix di store() & indexKepala())
-    if ($pengajuan->user_id === $user->id) {
-        return redirect()->route('kepala.approval.index')
-            ->with('error', 'Anda tidak dapat menyetujui pengajuan cuti Anda sendiri.');
-    }
-
-    // role => [step yang boleh dia proses, step tujuan berikutnya]
-    $transisi = [
-        'Kepala Seksi'      => [1, 2],
-        'Kepala Bidang'     => [2, 3],
-        'Kepala Sub-Bagian' => [4, 5],
-        'Kepala TU'         => [5, 6],
-        'Kepala Kantor'     => [6, 7],
-    ];
-
-   $stepBerikutnya = null;
-    $peranAktif     = null;
-    foreach ($transisi as $role => [$stepSekarang, $stepTujuan]) {
-        if ($user->hasRole($role) && $pengajuan->approval_step == $stepSekarang) {
-            $stepBerikutnya = $stepTujuan;
-            $peranAktif     = $role;
-            break;
-        }
-    }
-
-    if ($stepBerikutnya === null) {
-        return redirect()->route('kepala.approval.index')
-            ->with('error', 'Pengajuan ini bukan lagi di meja Anda, atau sudah diproses pihak lain.');
-    }
-
-    // Upload dokumen yang sudah ditandatangani (opsional)
-    $request->validate([
-        'dokumen_ttd' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
-    ]);
-
-    if ($request->hasFile('dokumen_ttd')) {
-        $file = $request->file('dokumen_ttd');
-        $namaFile = time() . '_ttd_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
-        $path = $file->storeAs('dokumen/ttd_kepala', $namaFile, 'public');
-
-        $daftarTtd = $pengajuan->dokumen_ttd ?? [];
-        $daftarTtd[] = [
-            'step'  => $pengajuan->approval_step,
-            'peran' => $role,
-            'nama'  => $user->name,
-            'file'  => $path,
-            'waktu' => now()->toDateTimeString(),
-        ];
-        $pengajuan->dokumen_ttd = $daftarTtd;
-    }
-
-    $pengajuan->approval_step = $stepBerikutnya;
-    $pengajuan->save();
-
-    return redirect()->route('kepala.approval.index')->with('success', 'Pengajuan berhasil disetujui dan diteruskan.');
-}
-    // 2. MESIN TOMBOL TOLAK
-    public function tolakKepala(Request $request, $id)
+      public function approveKepala(Request $request, $id)
     {
-        $pengajuan = \App\Models\PengajuanCuti::find($id);
-        
+        $pengajuan = \App\Models\PengajuanCuti::with('user')->find($id);
+
+        if (!$pengajuan) {
+            return redirect()->route('kepala.approval.index')->with('success', '[DUMMY MODE] Seolah-olah berhasil disetujui dan diteruskan!');
+        }
+
+        $user = Auth::user();
+
+        if ($pengajuan->user_id === $user->id) {
+            return redirect()->route('kepala.approval.index')
+                ->with('error', 'Anda tidak dapat menyetujui pengajuan cuti Anda sendiri.');
+        }
+
+        $peranAktif = $this->mejaSaya($pengajuan, $user);
+
+        if ($peranAktif === null) {
+            return redirect()->route('kepala.approval.index')
+                ->with('error', 'Pengajuan ini bukan lagi di meja Anda, atau sudah diproses pihak lain.');
+        }
+
+        $stepBerikutnya = $this->alurKepala[$peranAktif]['lanjut'];
+
+        // Upload dokumen yang sudah ditandatangani (opsional)
+        $request->validate([
+            'dokumen_ttd' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
+        ]);
+
+        if ($request->hasFile('dokumen_ttd')) {
+            $file = $request->file('dokumen_ttd');
+            $namaFile = time() . '_ttd_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
+            $path = $file->storeAs('dokumen/ttd_kepala', $namaFile, 'public');
+
+            $daftarTtd = $pengajuan->dokumen_ttd ?? [];
+            $daftarTtd[] = [
+                'step'  => $pengajuan->approval_step,
+                'peran' => $peranAktif,
+                'nama'  => $user->name,
+                'file'  => $path,
+                'waktu' => now()->toDateTimeString(),
+            ];
+            $pengajuan->dokumen_ttd = $daftarTtd;
+        }
+
+        $pengajuan->approval_step = $stepBerikutnya;
+        $pengajuan->save();
+
+        return redirect()->route('kepala.approval.index')->with('success', 'Pengajuan berhasil disetujui dan diteruskan.');
+    }
+    // 2. MESIN TOMBOL TOLAK
+        public function tolakKepala(Request $request, $id)
+    {
+        $pengajuan = \App\Models\PengajuanCuti::with('user')->find($id);
+
         if (!$pengajuan) {
             return redirect()->route('kepala.approval.index')->with('error', '[DUMMY MODE] Seolah-olah pengajuan ditolak permanen!');
         }
 
-        if ($pengajuan->user_id === Auth::id()) {
+        $user = Auth::user();
+
+        if ($pengajuan->user_id === $user->id) {
             return redirect()->route('kepala.approval.index')
                 ->with('error', 'Anda tidak dapat menolak pengajuan cuti Anda sendiri.');
         }
 
-        $pengajuan->approval_step = 0; 
-        
+        if ($this->mejaSaya($pengajuan, $user) === null) {
+            return redirect()->route('kepala.approval.index')
+                ->with('error', 'Pengajuan ini bukan lagi di meja Anda, atau sudah diproses pihak lain.');
+        }
+
+        $pengajuan->approval_step = 0;
+
         $pengajuan->save();
         return redirect()->route('kepala.approval.index')->with('error', 'Pengajuan telah ditolak.');
     }
@@ -536,19 +573,26 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
     // 3. MESIN TOMBOL REVISI
     public function revisiKepala(Request $request, $id)
     {
-        $pengajuan = \App\Models\PengajuanCuti::find($id);
-        
+        $pengajuan = \App\Models\PengajuanCuti::with('user')->find($id);
+
         if (!$pengajuan) {
             return redirect()->route('kepala.approval.index')->with('warning', '[DUMMY MODE] Seolah-olah dikembalikan ke pegawai untuk direvisi!');
         }
-        
-        if ($pengajuan->user_id === Auth::id()) {
+
+        $user = Auth::user();
+
+        if ($pengajuan->user_id === $user->id) {
             return redirect()->route('kepala.approval.index')
                 ->with('error', 'Anda tidak dapat mengembalikan pengajuan cuti Anda sendiri untuk direvisi.');
         }
 
-        $pengajuan->approval_step = 9; 
-        
+        if ($this->mejaSaya($pengajuan, $user) === null) {
+            return redirect()->route('kepala.approval.index')
+                ->with('error', 'Pengajuan ini bukan lagi di meja Anda, atau sudah diproses pihak lain.');
+        }
+
+        $pengajuan->approval_step = 9;
+
         $pengajuan->save();
         return redirect()->route('kepala.approval.index')->with('warning', 'Berkas dikembalikan ke pegawai untuk direvisi.');
     }

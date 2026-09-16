@@ -143,24 +143,6 @@
                             <a href="{{ asset('storage/'.$file) }}" target="_blank" class="flex-shrink-0 ml-3 text-sm font-bold text-[#2a64f5] hover:text-blue-800 transition">Unduh File</a>
                         </div>
                         @endforeach
-
-                        @if(!empty($data->dokumen_ttd))
-                        <div class="pt-3 mt-3 border-t border-dashed border-gray-200">
-                            <p class="mb-2 text-xs font-bold tracking-wide text-gray-400 uppercase">Dokumen Bertanda Tangan</p>
-                            @foreach($data->dokumen_ttd as $ttd)
-                            <div class="flex items-center justify-between p-4 mb-2 transition border border-green-200 bg-green-50/50 hover:bg-green-50 rounded-xl">
-                                <div class="flex items-center space-x-3">
-                                    <svg class="flex-shrink-0 w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                    <div>
-                                        <span class="text-sm font-bold text-gray-800">{{ basename($ttd['file']) }}</span>
-                                        <p class="text-xs text-gray-500">Ditandatangani {{ $ttd['nama'] ?? '-' }} ({{ $ttd['peran'] ?? '-' }}) &middot; {{ \Carbon\Carbon::parse($ttd['waktu'])->translatedFormat('d M Y, H:i') }}</p>
-                                    </div>
-                                </div>
-                                <a href="{{ asset('storage/'.$ttd['file']) }}" target="_blank" class="flex-shrink-0 text-sm font-bold text-green-700 hover:text-green-900 transition">Unduh File</a>
-                            </div>
-                            @endforeach
-                        </div>
-                        @endif
                     </div>
                 </div>
             </div>

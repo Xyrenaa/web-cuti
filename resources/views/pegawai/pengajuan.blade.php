@@ -5,7 +5,7 @@
         <h1 class="text-white text-3xl font-bold">Pengajuan Cuti</h1>
     </div>
 
-    <!-- Notifikasi Sukses -->
+        <!-- Notifikasi Sukses -->
     @if(session('success'))
     <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 m-6 max-w-6xl mx-auto rounded shadow-sm" role="alert">
         <p class="font-bold">Berhasil!</p>
@@ -96,31 +96,46 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Cuti <span class="text-red-500">*</span></label>
-                        <select name="jenis_cuti_id" required class="w-full bg-white/70 border border-gray-300 rounded-md px-4 py-2.5 text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                                <select name="jenis_cuti_id" required class="w-full bg-white/70 border {{ $errors->has('jenis_cuti_id') ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500' }} rounded-md px-4 py-2.5 text-gray-700 focus:ring-1">
                             <option value="" disabled selected>Pilih Jenis Cuti</option>
                             @foreach($jenisCutis as $jc)
-                                <option value="{{ $jc->id }}">{{ $jc->nama_cuti }}</option>
+                                <option value="{{ $jc->id }}" {{ old('jenis_cuti_id') == $jc->id ? 'selected' : '' }}>{{ $jc->nama_cuti }}</option>
                             @endforeach
                         </select>
+                        @error('jenis_cuti_id')
+                            <p class="mt-1.5 text-xs font-medium text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Mulai <span class="text-red-500">*</span></label>
-                        <input type="date" name="tanggal_mulai" required class="w-full bg-white/70 border border-gray-300 rounded-md px-4 py-2.5 text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <input type="date" name="tanggal_mulai" required class="w-full bg-white/70 border {{ $errors->has('tanggal_mulai') ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500' }} rounded-md px-4 py-2.5 text-gray-700 focus:ring-1">
+                        @error('tanggal_mulai')
+                            <p class="mt-1.5 text-xs font-medium text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Selesai <span class="text-red-500">*</span></label>
-                        <input type="date" name="tanggal_selesai" required class="w-full bg-white/70 border border-gray-300 rounded-md px-4 py-2.5 text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <input type="date" name="tanggal_selesai" required class="w-full bg-white/70 border {{ $errors->has('tanggal_selesai') ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500' }} rounded-md px-4 py-2.5 text-gray-700 focus:ring-1">
+                        @error('tanggal_selesai')
+                            <p class="mt-1.5 text-xs font-medium text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
                     <!-- 1. KOLOM LOKASI KETIKA CUTI -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Lokasi Selama Cuti <span class="text-red-500">*</span></label>
-                        <input type="text" name="lokasi" required placeholder="Contoh: Surabaya, Jawa Timur" class="w-full bg-white/70 border border-gray-300 rounded-md px-4 py-2.5 text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <input type="text" name="lokasi" required placeholder="Contoh: Surabaya, Jawa Timur" class="w-full bg-white/70 border {{ $errors->has('lokasi') ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500' }} rounded-md px-4 py-2.5 text-gray-700 focus:ring-1">
+                        @error('lokasi')
+                            <p class="mt-1.5 text-xs font-medium text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
                 </div>
 
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Alasan Cuti <span class="text-red-500">*</span></label>
-                    <textarea name="alasan" rows="3" required placeholder="Tuliskan alasan lengkap pengajuan cuti Anda..." class="w-full bg-white/70 border border-gray-300 rounded-md px-4 py-3 text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"></textarea>
+                    <textarea name="alasan" rows="3" required placeholder="Tuliskan alasan lengkap pengajuan cuti Anda..." class="w-full bg-white/70 border {{ $errors->has('alasan') ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500' }} rounded-md px-4 py-3 text-gray-700 focus:ring-1"></textarea>
+                    @error('alasan')
+                        <p class="mt-1.5 text-xs font-medium text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <hr class="border-gray-200 mb-6">
@@ -139,6 +154,9 @@
                         </button>
                         <input type="file" id="surat_pengajuan" name="surat_pengajuan" required accept=".doc,.docx" class="hidden" onchange="handleFileUpload(this, 'surat-list', 'surat')">
                         <p class="text-xs text-gray-500 mt-2">Maksimal 5MB. Format: .doc, .docx</p>
+                        @error('surat_pengajuan')
+                            <p class="mt-1.5 text-xs font-medium text-red-600">{{ $message }}</p>
+                        @enderror
 
                         <!-- List Item Render (Muncul jika ada file dipilih) -->
                         <div id="surat-list" class="mt-3 hidden items-center justify-between p-3 bg-white border border-blue-200 rounded-lg shadow-sm">
@@ -165,6 +183,12 @@
                         <input type="file" id="bukti_pendukung" name="bukti_pendukung[]" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" class="hidden" onchange="handleMultipleFiles(this)">
                         
                         <p class="text-xs text-gray-500 mt-2">Bisa pilih lebih dari 1 file (Maks 5). Format: PDF, JPG, PNG, DOCX.</p>
+                        @error('bukti_pendukung')
+                            <p class="mt-1.5 text-xs font-medium text-red-600">{{ $message }}</p>
+                        @enderror
+                        @error('bukti_pendukung.*')
+                            <p class="mt-1.5 text-xs font-medium text-red-600">{{ $message }}</p>
+                        @enderror
 
                         <!-- Wadah untuk memunculkan list file yang dipilih -->
                         <div id="bukti-list-container" class="mt-3 hidden flex-col gap-2">
@@ -185,19 +209,59 @@
                 </div>
             </form>
 
-    <!-- Script untuk mengganti nama teks upload ketika file dipilih -->
-  <!-- Script Interaktif UI -->
-    <!-- Script Interaktif UI -->
+    <
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 4000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.onmouseenter = Swal.stopTimer;
+                toast.onmouseleave = Swal.resumeTimer;
+            }
+        });
+
+        @if(session('success'))
+            Toast.fire({ icon: 'success', title: @json(session('success')) });
+        @endif
+
+        @if(session('error'))
+            Toast.fire({ icon: 'error', title: @json(session('error')) });
+        @endif
         // --- 1. Logika Surat Pengajuan (Single File) ---
+                    const MAX_UKURAN_FILE = 5 * 1024 * 1024; // 5MB, samakan dengan max:5120 di server
+
+        function formatUkuran(bytes) {
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
         function handleFileUpload(input, listId, type) {
             const listContainer = document.getElementById(listId);
             const fileNameDisplay = document.getElementById(type + '-filename');
 
             if (input.files && input.files.length > 0) {
+                const file = input.files[0];
+
+                if (file.size > MAX_UKURAN_FILE) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Ukuran File Terlalu Besar',
+                        text: `"${file.name}" berukuran ${formatUkuran(file.size)}, melebihi batas maksimal 5MB.`,
+                        confirmButtonText: 'Mengerti',
+                        confirmButtonColor: '#2A65F3',
+                        customClass: { popup: 'rounded-2xl shadow-xl border border-gray-100', title: 'text-xl font-bold text-gray-800' }
+                    });
+                    removeFile(input.id, listId);
+                    return;
+                }
+
                 listContainer.classList.remove('hidden');
                 listContainer.classList.add('flex');
-                fileNameDisplay.textContent = input.files[0].name;
+                fileNameDisplay.textContent = file.name;
             } else {
                 listContainer.classList.add('hidden');
                 listContainer.classList.remove('flex');
@@ -214,30 +278,57 @@
         // --- 2. Logika Bukti Pendukung (Multiple Files Maks 5) ---
         let buktiFiles = new DataTransfer(); 
 
-        function handleMultipleFiles(input) {
+                function handleMultipleFiles(input) {
             if (!input.files || input.files.length === 0) return;
 
+            const fileTerlaluBesar = [];
+
             for (let i = 0; i < input.files.length; i++) {
+                const file = input.files[i];
+
+                if (file.size > MAX_UKURAN_FILE) {
+                    fileTerlaluBesar.push(`${file.name} (${formatUkuran(file.size)})`);
+                    continue;
+                }
+
                 let isDuplicate = false;
                 for (let j = 0; j < buktiFiles.files.length; j++) {
-                    if (buktiFiles.files[j].name === input.files[i].name) {
+                    if (buktiFiles.files[j].name === file.name) {
                         isDuplicate = true;
                         break;
                     }
                 }
-                
+
                 if (!isDuplicate) {
-                    buktiFiles.items.add(input.files[i]);
+                    buktiFiles.items.add(file);
                 }
             }
-            
+
+            if (fileTerlaluBesar.length > 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Ada File yang Terlalu Besar',
+                    html: 'File berikut melebihi batas 5MB dan tidak ditambahkan:<br><b>' + fileTerlaluBesar.join('<br>') + '</b>',
+                    confirmButtonText: 'Mengerti',
+                    confirmButtonColor: '#2A65F3',
+                    customClass: { popup: 'rounded-2xl shadow-xl border border-gray-100', title: 'text-xl font-bold text-gray-800' }
+                });
+            }
+
             if (buktiFiles.files.length > 5) {
-                alert("Maksimal hanya boleh melampirkan 5 file bukti pendukung.");
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Terlalu Banyak File',
+                    text: 'Maksimal hanya boleh melampirkan 5 file bukti pendukung. Kelebihannya tidak akan disertakan.',
+                    confirmButtonText: 'Mengerti',
+                    confirmButtonColor: '#2A65F3',
+                    customClass: { popup: 'rounded-2xl shadow-xl border border-gray-100', title: 'text-xl font-bold text-gray-800' }
+                });
                 const temp = new DataTransfer();
-                for(let k = 0; k < 5; k++){
+                for (let k = 0; k < 5; k++) {
                     temp.items.add(buktiFiles.files[k]);
                 }
-                buktiFiles = temp; 
+                buktiFiles = temp;
             }
 
             renderMultiFileList();
@@ -286,9 +377,23 @@
 
         // --- 3. Logika Pop-up Batal ---
         function konfirmasiBatal() {
-            if (confirm("⚠ PERINGATAN!\n\nApakah Anda yakin ingin membatalkan pengajuan ini?\nSemua data yang telah Anda ketik dan file yang diunggah akan dihapus secara permanen.")) {
-                window.location.href = "{{ route('dashboard') }}";
-            }
+              Swal.fire({
+                title: 'Batalkan Pengajuan?',
+                text: 'Semua data yang telah Anda ketik dan file yang diunggah akan dihapus secara permanen.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Batalkan',
+                confirmButtonColor: '#dc2626',
+                cancelButtonText: 'Kembali Mengisi',
+                cancelButtonColor: '#6b7280',
+                reverseButtons: true,
+                customClass: { popup: 'rounded-2xl shadow-xl border border-gray-100', title: 'text-xl font-bold text-gray-800' }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = "{{ route('dashboard') }}";
+                }
+            });
         }
     </script>
+    
 </x-app-layout>

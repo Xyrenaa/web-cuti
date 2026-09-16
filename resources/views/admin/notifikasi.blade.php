@@ -39,9 +39,9 @@
                     @endif
                 </div>
 
-                <!-- Daftar Notifikasi (Looping Database) -->
+                                <!-- Daftar Notifikasi (Looping Database) -->
                 <div class="space-y-3">
-                     @php
+                    @php
                         $gaya = [
                             'aksi'   => ['Butuh Tindakan', 'bg-amber-100 text-amber-700'],
                             'status' => ['Perubahan Status', 'bg-blue-100 text-blue-700'],
@@ -53,15 +53,19 @@
                             'umum'   => ['Pemberitahuan', 'bg-gray-100 text-gray-600'],
                         ];
                     @endphp
-                    
+
                     @forelse ($notifikasis as $notif)
+                        @php
+                            $tipe = $notif->data['tipe'] ?? 'umum';
+                            [$labelTipe, $warnaTipe] = $gaya[$tipe] ?? $gaya['umum'];
+                        @endphp
                         <!-- Render Otomatis Berdasarkan Status Baca -->
                         <form action="{{ route('notifikasi.read', $notif->id) }}" method="POST" class="contents">
                             @csrf
                             <button type="submit" class="w-full text-left relative {{ $notif->unread() ? 'bg-blue-50/50 border-blue-100' : 'bg-white border-gray-100' }} border rounded-lg p-4 flex justify-between items-start gap-4 transition hover:shadow-sm cursor-pointer">
                                 <div>
                                     <!-- Judul Notifikasi -->
-                                                                         <div class="flex flex-wrap items-center gap-2 mb-1">
+                            <div class="flex flex-wrap items-center gap-2 mb-1">
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide {{ $warnaTipe }}">{{ $labelTipe }}</span>
                                         @if(!empty($notif->data['kode_pengajuan']))
                                             <span class="text-[11px] font-semibold text-gray-400">{{ $notif->data['kode_pengajuan'] }}</span>
