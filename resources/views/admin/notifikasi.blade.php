@@ -41,6 +41,18 @@
 
                 <!-- Daftar Notifikasi (Looping Database) -->
                 <div class="space-y-3">
+                     @php
+                        $gaya = [
+                            'aksi'   => ['Butuh Tindakan', 'bg-amber-100 text-amber-700'],
+                            'status' => ['Perubahan Status', 'bg-blue-100 text-blue-700'],
+                            'ttd'    => ['Tanda Tangan', 'bg-green-100 text-green-700'],
+                            'final'  => ['Disetujui', 'bg-emerald-100 text-emerald-700'],
+                            'tolak'  => ['Ditolak', 'bg-red-100 text-red-700'],
+                            'revisi' => ['Perlu Revisi', 'bg-yellow-100 text-yellow-700'],
+                            'batal'  => ['Dibatalkan', 'bg-gray-100 text-gray-600'],
+                            'umum'   => ['Pemberitahuan', 'bg-gray-100 text-gray-600'],
+                        ];
+                    @endphp
                     
                     @forelse ($notifikasis as $notif)
                         <!-- Render Otomatis Berdasarkan Status Baca -->
@@ -49,6 +61,13 @@
                             <button type="submit" class="w-full text-left relative {{ $notif->unread() ? 'bg-blue-50/50 border-blue-100' : 'bg-white border-gray-100' }} border rounded-lg p-4 flex justify-between items-start gap-4 transition hover:shadow-sm cursor-pointer">
                                 <div>
                                     <!-- Judul Notifikasi -->
+                                                                         <div class="flex flex-wrap items-center gap-2 mb-1">
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide {{ $warnaTipe }}">{{ $labelTipe }}</span>
+                                        @if(!empty($notif->data['kode_pengajuan']))
+                                            <span class="text-[11px] font-semibold text-gray-400">{{ $notif->data['kode_pengajuan'] }}</span>
+                                        @endif
+                                    </div>
+
                                     <h4 class="font-bold {{ $notif->unread() ? 'text-gray-900' : 'text-gray-700' }} text-sm">
                                         {{ $notif->data['judul'] ?? 'Pemberitahuan Baru' }}
                                     </h4>

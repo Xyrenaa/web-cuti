@@ -54,14 +54,22 @@
                     Riwayat Pengajuan
                 </a>
 
-                <!-- Menu Notifikasi (Dengan Efek Lonceng Goyang) -->
-                <a href="{{ route('notifikasi') }}" 
-                class="group px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center gap-1.5 
+                               <!-- Menu Notifikasi (Lonceng + Badge Belum Dibaca) -->
+                @php $jumlahNotif = $jumlahNotifBelumDibaca ?? 0; @endphp
+                <a href="{{ route('notifikasi') }}"
+                class="group px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center gap-1.5
                 {{ request()->is('notifikasi') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
                     Notifikasi
-                    <svg class="w-4 h-4 transition-all duration-300 origin-top group-hover:rotate-12 group-hover:scale-110 {{ request()->is('notifikasi') ? 'text-[#2A65F3]' : 'text-gray-400 group-hover:text-[#2A65F3]' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                    </svg>
+                    <span class="relative inline-flex">
+                        <svg class="w-4 h-4 transition-all duration-300 origin-top group-hover:rotate-12 group-hover:scale-110 {{ request()->is('notifikasi') ? 'text-[#2A65F3]' : 'text-gray-400 group-hover:text-[#2A65F3]' }} {{ $jumlahNotif > 0 ? 'animate-pulse' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                        </svg>
+                        @if($jumlahNotif > 0)
+                            <span class="absolute -top-2 -right-2.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white">
+                                {{ $jumlahNotif > 9 ? '9+' : $jumlahNotif }}
+                            </span>
+                        @endif
+                    </span>
                 </a>
 
                 <!-- Dropdown Profil (Dengan Gaya Pill yang Sama) -->
@@ -132,13 +140,13 @@
             <x-responsive-nav-link :href="route('pengajuan.riwayat')" :active="request()->routeIs('pengajuan.riwayat', 'pengajuan.show')">
                 Riwayat Pengajuan
             </x-responsive-nav-link>
-
             <x-responsive-nav-link :href="route('notifikasi')" :active="request()->routeIs('notifikasi')">
                 Notifikasi
-            </x-responsive-nav-link>
-
-             <x-responsive-nav-link :href="route('notifikasi')" :active="request()->routeIs('notifikasi')">
-                Notifikasi
+                @if(($jumlahNotifBelumDibaca ?? 0) > 0)
+                    <span class="ml-2 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                        {{ $jumlahNotifBelumDibaca > 9 ? '9+' : $jumlahNotifBelumDibaca }}
+                    </span>
+                @endif
             </x-responsive-nav-link>
             <!-- TAMBAHKAN DUA MENU INI UNTUK VERSI MOBILE -->
             <x-responsive-nav-link :href="route('profile.show')" :active="request()->routeIs('profile.*')">
