@@ -120,42 +120,21 @@
                             </div>
                         @endif
 
-                                                @php $riwayatTtd = $data->riwayat_ttd; @endphp
-
-                        @if(!empty($riwayatTtd))
+                        @if(!empty($data->dokumen_ttd))
                         <div class="pt-3 mt-3 border-t border-dashed border-gray-200">
-                            <p class="mb-2 text-xs font-bold tracking-wide text-gray-400 uppercase">Surat Versi Terbaru</p>
-
-                            @php $terbaru = $data->ttd_terakhir; @endphp
-                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 transition border border-green-200 bg-green-50/50 hover:bg-green-50 rounded-xl">
-                                <div class="flex items-center min-w-0 space-x-3">
+                            <p class="mb-2 text-xs font-bold tracking-wide text-gray-400 uppercase">Dokumen Bertanda Tangan</p>
+                            @foreach($data->dokumen_ttd as $ttd)
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 mb-2 transition border border-green-200 bg-green-50/50 hover:bg-green-50 rounded-xl">
+                                <div class="flex items-center overflow-hidden space-x-3">
                                     <svg class="flex-shrink-0 w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                    <div class="min-w-0">
-                                        <span class="block text-sm font-bold text-gray-800 truncate">{{ basename($terbaru['file']) }}</span>
-                                        <p class="text-xs text-gray-500">Ditandatangani {{ $terbaru['nama'] ?? '-' }} ({{ $terbaru['peran'] ?? '-' }}) &middot; {{ \Carbon\Carbon::parse($terbaru['waktu'])->translatedFormat('d M Y, H:i') }}</p>
+                                    <div class="truncate">
+                                        <span class="text-sm font-bold text-gray-800">{{ basename($ttd['file']) }}</span>
+                                        <p class="text-xs text-gray-500">Ditandatangani {{ $ttd['nama'] ?? '-' }} ({{ $ttd['peran'] ?? '-' }}) &middot; {{ \Carbon\Carbon::parse($ttd['waktu'])->translatedFormat('d M Y, H:i') }}</p>
                                     </div>
                                 </div>
-                                <a href="{{ asset('storage/'.$terbaru['file']) }}" target="_blank" class="flex-shrink-0 text-sm font-bold text-green-700 hover:text-green-900 transition">Unduh File</a>
+                                <a href="{{ asset('storage/'.$ttd['file']) }}" target="_blank" class="flex-shrink-0 text-sm font-bold text-green-700 hover:text-green-900 transition">Unduh File</a>
                             </div>
-
-                            @if(count($riwayatTtd) > 1)
-                            <details class="mt-3 group">
-                                <summary class="text-xs font-semibold text-gray-500 cursor-pointer hover:text-gray-700 select-none">
-                                    Lihat riwayat versi sebelumnya ({{ count($riwayatTtd) - 1 }} berkas)
-                                </summary>
-                                <div class="mt-2 space-y-2">
-                                    @foreach(array_slice($riwayatTtd, 0, -1) as $ttd)
-                                    <div class="flex items-center justify-between gap-4 p-3 border border-gray-200 rounded-lg bg-gray-50/60">
-                                        <div class="min-w-0">
-                                            <span class="block text-xs font-semibold text-gray-600 truncate">{{ basename($ttd['file']) }}</span>
-                                            <p class="text-[11px] text-gray-400">{{ $ttd['nama'] ?? '-' }} ({{ $ttd['peran'] ?? '-' }}) &middot; {{ \Carbon\Carbon::parse($ttd['waktu'])->translatedFormat('d M Y, H:i') }}</p>
-                                        </div>
-                                        <a href="{{ asset('storage/'.$ttd['file']) }}" target="_blank" class="flex-shrink-0 text-xs font-bold text-gray-500 hover:text-gray-800">Unduh</a>
-                                    </div>
-                                    @endforeach
-                                </div>
-                            </details>
-                            @endif
+                            @endforeach
                         </div>
                         @endif
                     </div>
@@ -248,7 +227,17 @@
                                 if($step == 3) $btnText = 'Setujui & Teruskan ke Kasubag';
                                 if($step == 7) $btnText = 'Selesaikan & Terbitkan Nomor Cuti';
                             @endphp
-                            
+
+                            @if($step == 3)
+                            <div class="mb-2">
+                                <label class="block mb-1 text-xs font-semibold text-gray-600">
+                                    Upload Dokumen yang Sudah Ditandatangani <span class="font-normal text-gray-400">(opsional)</span>
+                                </label>
+                                <input type="file" name="dokumen_ttd" form="form-verifikasi-admin" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                    class="block w-full text-xs text-gray-600 border border-gray-300 rounded-lg file:mr-3 file:py-2 file:px-3 file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#2a64f5] hover:file:bg-blue-100">
+                            </div>
+                            @endif
+
                             <!-- Tombol Setujui (Memicu Modal) -->
                             <button type="button" @click="openModal = true; modalAction = 'setujui'" class="w-full bg-[#2a64f5] text-white rounded-lg py-3 font-bold text-sm hover:bg-blue-700 transition">
                                 {{ $btnText }}
@@ -289,19 +278,9 @@
                                 
                                 <p class="text-sm text-gray-500 mb-5" x-text="modalAction === 'setujui' ? 'Apakah Anda yakin dokumen pengajuan ini sudah siap diteruskan?' : 'Silakan berikan deskripsi atau alasan detail mengapa pengajuan ini memerlukan revisi atau ditolak.'"></p>
 
-                                <form action="{{ route('admin.approval.verifikasi', $data->id) }}" method="POST" enctype="multipart/form-data">
+                                <form id="form-verifikasi-admin" action="{{ route('admin.approval.verifikasi', $data->id) }}" method="POST" enctype="multipart/form-data">
                                     @csrf
                                     <input type="hidden" name="action" x-bind:value="modalAction">
-
-                                    @if($step == 3)
-                                    <div x-show="modalAction === 'setujui'" class="mb-5">
-                                        <label class="block mb-1 text-xs font-semibold text-gray-600">
-                                            Upload Dokumen yang Sudah Ditandatangani <span class="font-normal text-gray-400">(opsional)</span>
-                                        </label>
-                                        <input type="file" name="dokumen_ttd" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                                            class="block w-full text-xs text-gray-600 border border-gray-300 rounded-lg file:mr-3 file:py-2 file:px-3 file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#2a64f5] hover:file:bg-blue-100">
-                                    </div>
-                                    @endif
 
                                     <div x-show="modalAction !== 'setujui'">
                                         <textarea name="catatan" rows="4" x-bind:required="modalAction !== 'setujui'"

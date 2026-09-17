@@ -29,7 +29,8 @@ class PengajuanCuti extends Model
     'bukti_pendukung',
     'dokumen_ttd',
     'approval_step',     
-    'status_pengajuan'  
+    'status_pengajuan',
+    'catatan_penolakan'  
 ];
 
     public function jenisCuti() {

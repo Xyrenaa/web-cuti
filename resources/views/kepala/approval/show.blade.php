@@ -97,52 +97,45 @@
                          di form pengajuan. Lihat catatan di bawah jawaban ini. --}}
                 </div>
 
-                                <!-- Card: Lampiran -->
+                <!-- Card: Lampiran -->
                 <div class="p-7 bg-white border border-gray-100 shadow-sm rounded-2xl">
                     <h3 class="mb-4 text-lg font-bold text-gray-900">Lampiran</h3>
-
-                    @php $surat = $data->surat_aktif; @endphp
-
                     <div class="space-y-3">
-                        {{-- Hanya versi TERBARU yang ditampilkan. Versi lama sengaja
-                             disembunyikan agar pejabat di atasnya tidak salah unduh
-                             berkas yang belum lengkap tanda tangannya. Riwayat penuh
-                             tetap tersimpan di kolom dokumen_ttd & bisa dilihat Admin. --}}
-                        @if($surat['file'])
-                        <div class="flex items-center justify-between p-4 transition border rounded-xl
-                            {{ $surat['is_ttd'] ? 'border-green-200 bg-green-50/50 hover:bg-green-50' : 'border-gray-200 bg-gray-50/50 hover:bg-gray-50' }}">
-                            <div class="flex items-center min-w-0 space-x-3">
-                                @if($surat['is_ttd'])
-                                    <svg class="flex-shrink-0 w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                @else
-                                    <svg class="flex-shrink-0 w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                                @endif
-                                <div class="min-w-0">
-                                    <span class="block text-sm font-bold text-gray-800 truncate">{{ basename($surat['file']) }}</span>
-                                    <p class="text-xs text-gray-500">
-                                        {{ $surat['label'] }} &middot; {{ $surat['oleh'] }} ({{ $surat['peran'] }})
-                                        @if($surat['waktu'])
-                                            &middot; {{ \Carbon\Carbon::parse($surat['waktu'])->translatedFormat('d M Y, H:i') }}
-                                        @endif
-                                    </p>
-                                </div>
+                        <div class="flex items-center justify-between p-4 transition border border-gray-200 bg-gray-50/50 hover:bg-gray-50 rounded-xl">
+                            <div class="flex items-center space-x-3">
+                                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                <span class="text-sm font-bold text-gray-800">{{ basename($data->surat_pengajuan) }} (Surat Wajib)</span>
                             </div>
-                            <a href="{{ asset('storage/'.$surat['file']) }}" target="_blank"
-                               class="flex-shrink-0 ml-3 text-sm font-bold transition {{ $surat['is_ttd'] ? 'text-green-700 hover:text-green-900' : 'text-[#2a64f5] hover:text-blue-800' }}">
-                                Unduh File
-                            </a>
+                            <a href="{{ asset('storage/'.$data->surat_pengajuan) }}" target="_blank" class="text-sm font-bold text-[#2a64f5] hover:text-blue-800 transition">Unduh File</a>
                         </div>
-                        @endif
 
                         @foreach($bukti as $file)
                         <div class="flex items-center justify-between p-4 transition border border-gray-200 bg-gray-50/50 hover:bg-gray-50 rounded-xl">
-                            <div class="flex items-center min-w-0 space-x-3">
-                                <svg class="flex-shrink-0 w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                                <span class="text-sm font-bold text-gray-800 truncate">{{ basename($file) }} <span class="font-normal text-gray-400">(bukti pendukung)</span></span>
+                            <div class="flex items-center space-x-3">
+                                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                <span class="text-sm font-bold text-gray-800">{{ basename($file) }}</span>
                             </div>
-                            <a href="{{ asset('storage/'.$file) }}" target="_blank" class="flex-shrink-0 ml-3 text-sm font-bold text-[#2a64f5] hover:text-blue-800 transition">Unduh File</a>
+                            <a href="{{ asset('storage/'.$file) }}" target="_blank" class="text-sm font-bold text-[#2a64f5] hover:text-blue-800 transition">Unduh File</a>
                         </div>
                         @endforeach
+
+                        @if(!empty($data->dokumen_ttd))
+                        <div class="pt-3 mt-3 border-t border-dashed border-gray-200">
+                            <p class="mb-2 text-xs font-bold tracking-wide text-gray-400 uppercase">Dokumen Bertanda Tangan</p>
+                            @foreach($data->dokumen_ttd as $ttd)
+                            <div class="flex items-center justify-between p-4 mb-2 transition border border-green-200 bg-green-50/50 hover:bg-green-50 rounded-xl">
+                                <div class="flex items-center space-x-3">
+                                    <svg class="flex-shrink-0 w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <div>
+                                        <span class="text-sm font-bold text-gray-800">{{ basename($ttd['file']) }}</span>
+                                        <p class="text-xs text-gray-500">Ditandatangani {{ $ttd['nama'] ?? '-' }} ({{ $ttd['peran'] ?? '-' }}) &middot; {{ \Carbon\Carbon::parse($ttd['waktu'])->translatedFormat('d M Y, H:i') }}</p>
+                                    </div>
+                                </div>
+                                <a href="{{ asset('storage/'.$ttd['file']) }}" target="_blank" class="flex-shrink-0 text-sm font-bold text-green-700 hover:text-green-900 transition">Unduh File</a>
+                            </div>
+                            @endforeach
+                        </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -233,15 +226,52 @@
             if (jenis === 'approve') {
                 config = { title: "Setujui Pengajuan?", text: "Berkas akan diteruskan ke tahap selanjutnya.", icon: "question", confirmButtonText: "Ya, Setujui", confirmButtonColor: "#2A65F3" };
             } else if (jenis === 'revisi') {
-                config = { title: "Kembalikan Berkas?", text: "Pegawai harus merevisi dokumen ini.", icon: "warning", confirmButtonText: "Ya, Kembalikan", confirmButtonColor: "#eab308" };
+                config = {
+                    title: "Kembalikan Berkas?",
+                    text: "Pegawai harus merevisi dokumen ini.",
+                    icon: "warning",
+                    input: 'textarea',
+                    inputLabel: 'Alasan / catatan revisi untuk pegawai',
+                    inputPlaceholder: 'Tuliskan apa yang perlu diperbaiki...',
+                    inputAttributes: { 'aria-label': 'Alasan revisi' },
+                    inputValidator: (value) => !value ? 'Alasan revisi wajib diisi.' : undefined,
+                    confirmButtonText: "Ya, Kembalikan",
+                    confirmButtonColor: "#eab308"
+                };
             } else if (jenis === 'reject') {
-                config = { title: "Tolak Permanen?", text: "Pengajuan ini tidak dapat diproses lagi.", icon: "error", confirmButtonText: "Ya, Tolak", confirmButtonColor: "#dc2626" };
+                config = {
+                    title: "Tolak Permanen?",
+                    text: "Pengajuan ini tidak dapat diproses lagi.",
+                    icon: "error",
+                    input: 'textarea',
+                    inputLabel: 'Alasan penolakan untuk pegawai',
+                    inputPlaceholder: 'Tuliskan alasan pengajuan ini ditolak...',
+                    inputAttributes: { 'aria-label': 'Alasan penolakan' },
+                    inputValidator: (value) => !value ? 'Alasan penolakan wajib diisi.' : undefined,
+                    confirmButtonText: "Ya, Tolak",
+                    confirmButtonColor: "#dc2626"
+                };
             }
             Swal.fire({
                 ...config, showCancelButton: true, cancelButtonText: "Batal", cancelButtonColor: "#6b7280", reverseButtons: true,
                 customClass: { popup: 'rounded-2xl shadow-xl border border-gray-100', title: 'text-xl font-bold text-gray-800' }
             }).then((result) => {
-                if (result.isConfirmed) document.getElementById('form-' + jenis).submit();
+                if (!result.isConfirmed) return;
+
+                const form = document.getElementById('form-' + jenis);
+
+                if (jenis === 'revisi' || jenis === 'reject') {
+                    let hidden = form.querySelector('input[name="catatan"]');
+                    if (!hidden) {
+                        hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = 'catatan';
+                        form.appendChild(hidden);
+                    }
+                    hidden.value = result.value;
+                }
+
+                form.submit();
             });
         }
     </script>

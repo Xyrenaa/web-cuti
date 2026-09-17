@@ -470,14 +470,18 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
             return redirect()->route('admin.approval.index')->with('success', 'Berkas berhasil diproses.');
             
         } elseif ($action == 'revisi' && $pengajuan->approval_step == 7) {
+            $request->validate(['catatan' => 'required|string|max:1000'], ['catatan.required' => 'Alasan revisi wajib diisi.']);
             $pengajuan->update([
                 'approval_step' => 9, 
+                'catatan_penolakan' =>$catatan,
             ]);
             return redirect()->route('admin.approval.index')->with('warning', 'Berkas dikembalikan ke pegawai. Alasan: ' . $catatan);
             
         } elseif ($action == 'tolak' && $pengajuan->approval_step == 9) {
+             $request->validate(['catatan' => 'required|string|max:1000'], ['catatan.required' => 'Alasan penolakan wajib diisi.']);
             $pengajuan->update([
                 'approval_step' => 0, 
+                'catatan_penolakan' => $catatan,
             ]);
             return redirect()->route('admin.approval.index')->with('error', 'Berkas pengajuan cuti ditolak. Alasan: ' . $catatan);
         }
@@ -564,7 +568,15 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
                 ->with('error', 'Pengajuan ini bukan lagi di meja Anda, atau sudah diproses pihak lain.');
         }
 
+        $request->validate([
+            'catatan' => 'required|string|max:1000',
+        ], [
+            'catatan.required' => 'Alasan penolakan wajib diisi.',
+        ]);
+
+
         $pengajuan->approval_step = 0;
+        $pengajuan->catatan_penolakan = $request->catatan;
 
         $pengajuan->save();
         return redirect()->route('kepala.approval.index')->with('error', 'Pengajuan telah ditolak.');
@@ -591,7 +603,14 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
                 ->with('error', 'Pengajuan ini bukan lagi di meja Anda, atau sudah diproses pihak lain.');
         }
 
+        $request->validate([
+            'catatan' => 'required|string|max:1000',
+        ], [
+            'catatan.required' => 'Alasan penolakan wajib diisi.',
+        ]);
+
         $pengajuan->approval_step = 9;
+        $pengajuan->catatan_penolakan = $request->catatan;
 
         $pengajuan->save();
         return redirect()->route('kepala.approval.index')->with('warning', 'Berkas dikembalikan ke pegawai untuk direvisi.');

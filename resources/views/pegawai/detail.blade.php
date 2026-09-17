@@ -110,6 +110,15 @@
                             </p>
                         </div>
                     </div>
+
+                    @if($pengajuan->catatan_penolakan)
+                    <div class="mt-6 p-4 rounded-lg border {{ $step === 0 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200' }}">
+                        <p class="text-xs font-bold uppercase tracking-wide {{ $step === 0 ? 'text-red-700' : 'text-amber-700' }} mb-1">
+                            {{ $step === 0 ? 'Alasan Penolakan' : 'Catatan Revisi dari Atasan' }}
+                        </p>
+                        <p class="text-sm {{ $step === 0 ? 'text-red-800' : 'text-amber-800' }}">{{ $pengajuan->catatan_penolakan }}</p>
+                    </div>
+                    @endif
                 </div>
             </div>
 
@@ -121,18 +130,18 @@
                 Kembali
             </a>
 
-                        <!-- Tombol Batalkan hanya muncul kalau belum di step final (sinkron dengan $isFinal di atas) -->
+            <!-- Tombol Batalkan hanya muncul kalau belum di step final (sinkron dengan $isFinal di atas) -->
             @if(!$isFinal)
-            <form id="form-batal-detail" action="{{ route('pengajuan.batal', $pengajuan->id) }}" method="POST">
-                @csrf
-                <button type="button" onclick="konfirmasiBatalDetail()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow">
-                    Batalkan Pengajuan
-                </button>
-            </form>
+
+            <form action="{{ route('pengajuan.batal', $pengajuan->id) }}" method="POST" onsubmit="return confirm('Anda yakin ingin membatalkan pengajuan ini dari sistem?');">
+        @csrf
+        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow">
+            Batalkan Pengajuan
+        </button>
+    </form>
             @endif
         </div>
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         function konfirmasiBatalDetail() {
