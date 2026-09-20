@@ -65,6 +65,17 @@ class DashboardKepalaController extends Controller
             default => null,
         };
 
+        // Level hierarki viewer, dipakai buat nentuin cakupan & bentuk chart Risiko Kekosongan:
+        // - kantor: lihat semua Bagian/Bidang, tiap slice bisa di-klik buat rincian per Sub-Bagian/Seksi
+        // - bidang: hanya Sub-Bagian/Seksi di bawah bagian_bidang miliknya sendiri
+        // - seksi : cuma satu angka ringkasan buat seksi/sub-bagiannya sendiri (tidak ada breakdown lagi)
+        $levelKepala = match (true) {
+            $userKepala->hasRole('Kepala Kantor') => 'kantor',
+            $userKepala->hasAnyRole(['Kepala Bagian', 'Kepala Bidang', 'Kepala TU']) => 'bidang',
+            $userKepala->hasAnyRole(['Kepala Seksi', 'Kepala Sub-Bagian']) => 'seksi',
+            default => null,
+        };
+
         // ==========================================
         // 1. STATISTIK UTAMA (Difilter berdasar hierarki)
         // ==========================================
@@ -108,31 +119,93 @@ class DashboardKepalaController extends Controller
         for ($i = 1; $i <= 12; $i++) { $trenBulanan[] = $trenBulananData[$i] ?? 0; }
 
         // ==========================================
-        // 4. RISIKO KEKOSONGAN (Hanya Bidang yang ada bawahannya)
+        // 4. RISIKO KEKOSONGAN — bentuk & cakupan data beda per level jabatan
         // ==========================================
-        $divisiData = BagianBidang::with(['users' => function ($query) use ($bawahanIds) {
-            $query->role('pegawai')->whereIn('id', $bawahanIds);
-        }])->get();
+        $hitungSedangCuti = function (array $userIds) use ($now) {
+            if (empty($userIds)) return 0;
+            return PengajuanCuti::whereIn('user_id', $userIds)
+                ->where('approval_step', $this->stepDisetujui)
+                ->where('tanggal_mulai', '<=', $now->toDateString())
+                ->where('tanggal_selesai', '>=', $now->toDateString())
+                ->count();
+        };
 
         $risikoDivisi = [];
-        foreach ($divisiData as $divisi) {
-            $totalPegawaiDivisi = $divisi->users->count();
-            if ($totalPegawaiDivisi > 0) {
-                $pegawaiCutiSaatIni = PengajuanCuti::whereIn('user_id', $divisi->users->pluck('id'))
-                    ->where('approval_step', $this->stepDisetujui)
-                    ->where('tanggal_mulai', '<=', $now->toDateString())
-                    ->where('tanggal_selesai', '>=', $now->toDateString())
-                    ->count();
+        $risikoRingkas = null;
 
-                $persentase = ($pegawaiCutiSaatIni / $totalPegawaiDivisi) * 100;
+        if ($levelKepala === 'kantor') {
+            // Kepala Kantor: semua Bagian/Bidang, tiap Bagian/Bidang dibekali rincian
+            // per Sub-Bagian/Seksi di dalamnya buat drill-down pas slice-nya diklik.
+            $semuaBagian = BagianBidang::with([
+                'users' => fn ($q) => $q->role('pegawai'),
+                'subBagianSeksis.users' => fn ($q) => $q->role('pegawai'),
+            ])->get();
+
+            foreach ($semuaBagian as $bagian) {
+                $totalBagian = $bagian->users->count();
+                if ($totalBagian === 0) continue;
+
+                $cutiBagian = $hitungSedangCuti($bagian->users->pluck('id')->toArray());
+                $persentaseBagian = round(($cutiBagian / $totalBagian) * 100, 1);
+
+                $rincianSub = [];
+                foreach ($bagian->subBagianSeksis as $sub) {
+                    $totalSub = $sub->users->count();
+                    if ($totalSub === 0) continue;
+                    $cutiSub = $hitungSedangCuti($sub->users->pluck('id')->toArray());
+                    $persentaseSub = round(($cutiSub / $totalSub) * 100, 1);
+                    $rincianSub[] = [
+                        'nama' => $sub->nama,
+                        'total_pegawai' => $totalSub,
+                        'sedang_cuti' => $cutiSub,
+                        'persentase' => $persentaseSub,
+                        'status_bahaya' => $persentaseSub > 50,
+                    ];
+                }
+
                 $risikoDivisi[] = [
-                    'nama_divisi' => $divisi->{$this->kolomNamaDivisi},
-                    'total_pegawai' => $totalPegawaiDivisi,
-                    'sedang_cuti' => $pegawaiCutiSaatIni,
-                    'persentase' => round($persentase, 1),
-                    'status_bahaya' => $persentase > 20,
+                    'nama_divisi' => $bagian->{$this->kolomNamaDivisi},
+                    'total_pegawai' => $totalBagian,
+                    'sedang_cuti' => $cutiBagian,
+                    'persentase' => $persentaseBagian,
+                    'status_bahaya' => $persentaseBagian > 50,
+                    'rincian' => $rincianSub,
                 ];
             }
+        } elseif ($levelKepala === 'bidang') {
+            // Kepala Bidang/Bagian/TU: HANYA Sub-Bagian/Seksi di bawah bagian_bidang miliknya sendiri.
+            $subs = SubBagianSeksi::where('bagian_bidang_id', $userKepala->bagian_bidang_id)
+                ->with(['users' => fn ($q) => $q->role('pegawai')])
+                ->get();
+
+            foreach ($subs as $sub) {
+                $totalSub = $sub->users->count();
+                if ($totalSub === 0) continue;
+                $cutiSub = $hitungSedangCuti($sub->users->pluck('id')->toArray());
+                $persentaseSub = round(($cutiSub / $totalSub) * 100, 1);
+
+                $risikoDivisi[] = [
+                    'nama_divisi' => $sub->nama,
+                    'total_pegawai' => $totalSub,
+                    'sedang_cuti' => $cutiSub,
+                    'persentase' => $persentaseSub,
+                    'status_bahaya' => $persentaseSub > 50,
+                    'rincian' => [],
+                ];
+            }
+        } elseif ($levelKepala === 'seksi') {
+            // Kepala Seksi/Sub-Bagian: cukup satu angka ringkasan, tidak ada lagi yang bisa di-drill-down.
+            $idsValid = ($bawahanIds === [0]) ? [] : $bawahanIds;
+            $totalSeksi = count($idsValid);
+            $cutiSeksi = $hitungSedangCuti($idsValid);
+            $persentaseSeksi = $totalSeksi > 0 ? round(($cutiSeksi / $totalSeksi) * 100, 1) : 0;
+
+            $risikoRingkas = [
+                'total_pegawai' => $totalSeksi,
+                'sedang_cuti' => $cutiSeksi,
+                'persentase' => $persentaseSeksi,
+                'status_bahaya' => $persentaseSeksi > 50,
+            ];
         }
 
         // ==========================================
@@ -151,7 +224,7 @@ class DashboardKepalaController extends Controller
 
         return view('dashboard-kepala', compact(
             'countMenunggu', 'countDisetujui', 'countDitolak', 'totalPegawai',
-            'menungguPerDivisi', 'trenBulanan', 'risikoDivisi', 'pengajuanTerbaru'
+            'menungguPerDivisi', 'trenBulanan', 'risikoDivisi', 'risikoRingkas', 'levelKepala', 'pengajuanTerbaru'
         ));
     }
 }
