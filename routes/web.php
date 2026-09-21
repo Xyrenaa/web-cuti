@@ -6,6 +6,7 @@ use App\Http\Controllers\NotifikasiController;
 use Illuminate\Support\Facades\Route;
 use App\Models\SubBagianSeksi;
 use App\Http\Controllers\DashboardKepalaController;
+use App\Http\Controllers\MigrasiDataController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -63,6 +64,9 @@ Route::get('/api/sub-bagian/{bagian_id}', function ($bagian_id) {
 // ROUTE ADMIN (Wajib login)
 // ==========================================
 Route::middleware(['auth', 'verified', 'role:Admin Kepegawaian'])->group(function () {
+    Route::get('/admin/migrasi-data', [MigrasiDataController::class, 'index'])->name('admin.migrasi.index');
+    Route::post('/admin/migrasi-data/pegawai', [MigrasiDataController::class, 'importPegawai'])->name('admin.migrasi.pegawai');
+    Route::post('/admin/migrasi-data/rekap', [MigrasiDataController::class, 'importRekap'])->name('admin.migrasi.rekap');
     // FIX: langsung panggil controller aslinya, jangan closure kosong,
     // supaya $pengajuanBaru, $menungguPersetujuan, dkk selalu terkirim ke view.
     Route::get('/admin/dashboard', [PengajuanController::class, 'dashboardAdmin'])->name('admin.dashboard');

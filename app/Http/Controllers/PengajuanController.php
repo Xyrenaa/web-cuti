@@ -238,7 +238,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         abort(403, 'Anda hanya dapat membatalkan pengajuan cuti Anda sendiri.');
     }
 
-    $stepFinal = [0, 8, 9, 10]; // Ditolak, Disetujui, Perlu Revisi, Dibatalkan — sesuaikan kalau "Perlu Revisi" mau tetap boleh dibatalkan
+    $stepFinal = [0, 8, 10]; // Ditolak, Disetujui, Dibatalkan — sesuaikan kalau "Perlu Revisi" mau tetap boleh dibatalkan
 
     if (in_array($pengajuan->approval_step, $stepFinal)) {
         return redirect()->back()->with('error', 'Pengajuan tidak dapat dibatalkan karena sudah diproses final atau sudah ditutup.');
@@ -477,7 +477,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
             ]);
             return redirect()->route('admin.approval.index')->with('warning', 'Berkas dikembalikan ke pegawai. Alasan: ' . $catatan);
             
-        } elseif ($action == 'tolak' && $pengajuan->approval_step == 9) {
+        } elseif ($action == 'tolak' && $pengajuan->approval_step == 7) {
              $request->validate(['catatan' => 'required|string|max:1000'], ['catatan.required' => 'Alasan penolakan wajib diisi.']);
             $pengajuan->update([
                 'approval_step' => 0, 
@@ -759,45 +759,6 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         // Pastikan kamu sudah menjalankan `php artisan make:export RekapCutiExport`
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\RekapCutiExport, 'Rekap_Cuti_Pegawai_' . date('Y') . '.xlsx');
     }
-
-    public function indexRekap(Request $request)
-    {
-        // 1. STATISTIK ATAS
-        $totalPegawai = \App\Models\User::count(); 
-        
-        $pengajuanBulanIni = \App\Models\PengajuanCuti::whereMonth('created_at', now()->month)
-                                ->whereYear('created_at', now()->year)
-                                ->count();
-
-        // 2. QUERY DAFTAR PEGAWAI BESERTA CUTINYA (Hanya yang disetujui tahun ini)
-        $query = \App\Models\User::with(['bagianBidang', 'subBagianSeksi', 'pengajuanCutis' => function($q) {
-            $q->where('approval_step',6)
-              ->whereYear('tanggal_mulai', now()->year);
-        }]);
-
-        // 3. FITUR PENCARIAN (Nama atau NIP)
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('nip', 'like', "%{$search}%");
-            });
-        }
-
-        // 4. EKSEKUSI DATA
-        $users = $query->paginate(10)->withQueryString();
-
-        // 5. HITUNG RATA-RATA SISA CUTI
-        $totalSisa = 0;
-        foreach ($users as $u) {
-            $terpakai = $u->pengajuanCutis->sum('durasi_hari');
-            $totalSisa += (12 - $terpakai); // Ganti angka 12 jika kamu punya kolom $u->kuota_cuti
-        }
-        $rataSisa = $users->count() > 0 ? round($totalSisa / $users->count(), 1) : 0;
-
-        return view('admin.rekap.index', compact('totalPegawai', 'pengajuanBulanIni', 'rataSisa', 'users'));
-    }
-
     public function dashboardAdmin()
     {
         $bulanIni = now()->month;
@@ -811,7 +772,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         $menungguPersetujuan = \App\Models\PengajuanCuti::whereNotIn('approval_step', [8,0,10])->count();
 
         // Hitung yang disetujui pada bulan ini
-        $disetujuiBulanIni = \App\Models\PengajuanCuti::where('approval_step', [8])
+        $disetujuiBulanIni = \App\Models\PengajuanCuti::where('approval_step',8)
             ->whereMonth('created_at', $bulanIni)
             ->whereYear('created_at', $tahunIni)
             ->count();
