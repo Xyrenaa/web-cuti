@@ -615,7 +615,29 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         $pengajuan->save();
         return redirect()->route('kepala.approval.index')->with('warning', 'Berkas dikembalikan ke pegawai untuk direvisi.');
     }
+    public function updateJatahMassal(Request $request)
+    {
+        $request->validate([
+            'jumlah_hari'         => 'required|integer|min:0|max:365',
+            'target'              => 'required|in:semua,divisi,sub_bagian',
+            'bagian_bidang_id'    => 'required_if:target,divisi|exists:bagian_bidangs,id',
+            'sub_bagian_seksi_id' => 'required_if:target,sub_bagian|exists:sub_bagian_seksis,id',
+        ]);
 
+        $query = \App\Models\User::query();
+
+        if ($request->target === 'divisi') {
+            $query->where('bagian_bidang_id', $request->bagian_bidang_id);
+        } elseif ($request->target === 'sub_bagian') {
+            $query->where('sub_bagian_seksi_id', $request->sub_bagian_seksi_id);
+        }
+        // target === 'semua' -> tidak difilter, kena seluruh pegawai
+
+        $jumlahDiubah = $query->update(['jatah_cuti' => $request->jumlah_hari]);
+
+        return redirect()->route('admin.rekap.index')
+            ->with('success', "Jatah cuti berhasil diubah menjadi {$request->jumlah_hari} hari untuk {$jumlahDiubah} pegawai.");
+    }
     public function rekapAdmin(Request $request)
     {
         // 1. Ambil query dasar
@@ -644,7 +666,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
             } else {
                 $jenisId = $request->sort;
                 $query->withSum(['pengajuanCutis as total_spesifik' => function($q) use ($jenisId) {
-                    $q->where('approval_cuti', 8)
+                    $q->where('approval_step', 8)
                       ->where('jenis_cuti_id', $jenisId)
                       ->whereYear('created_at', date('Y'));
                 }], 'durasi_hari')->orderByDesc('total_spesifik');
@@ -665,7 +687,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
 
             // Menggunakan kolom jatah_cuti dari database
             $kuota = $user->jatah_cuti ?? 12; 
-            $divisi = $user->subBagianSeksi->nama_sub_bagian ?? $user->bagianBidang->nama_bagian ?? '-';
+            $divisi = $user->subBagianSeksi->nama ?? $user->bagianBidang->nama ?? '-';
 
             return (object)[
                 'id'       => $user->id,
@@ -681,7 +703,8 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         $rekaps->appends(request()->query());
 
         // 6. Data untuk Dropdown Filter & Kartu Statistik
-        $daftarDivisi = \App\Models\BagianBidang::all();
+                $daftarDivisi = \App\Models\BagianBidang::withCount('users')->get();
+        $daftarSubBagian = \App\Models\SubBagianSeksi::with('bagianBidang')->withCount('users')->get();
         $daftarJenisCuti = \App\Models\JenisCuti::all();
         
         $totalPegawai = \App\Models\User::count();
@@ -708,7 +731,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
 
         $rataSisa = $totalPegawai > 0 ? round($totalSisaKeseluruhan / $totalPegawai, 1) : 0;
 
-        return view('admin.rekap.index', compact('rekaps', 'totalPegawai', 'pengajuanBulanIni', 'rataSisa', 'daftarDivisi', 'daftarJenisCuti'));
+        return view('admin.rekap.index', compact('rekaps', 'totalPegawai', 'pengajuanBulanIni', 'rataSisa', 'daftarDivisi', 'daftarSubBagian', 'daftarJenisCuti'));
     }
 
     public function showRekap($id)
@@ -725,7 +748,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
 
         // Menggunakan kolom jatah_cuti dari database
         $kuota = $user->jatah_cuti ?? 12;
-        $divisi = $user->subBagianSeksi->nama_sub_bagian ?? $user->bagianBidang->nama_bagian ?? '-';
+        $divisi = $user->subBagianSeksi->nama ?? $user->bagianBidang->nama ?? '-';
 
         $pegawai = (object)[
             'id'          => $user->id,
@@ -803,19 +826,15 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
 
     // Catatan: Jika di tabel users belum ada kolom ini, kamu bisa menggunakan angka statis dulu
     // atau nanti kita buatkan file migrasinya.
-    $jatahTahunIni = $user->jatah_cuti_tahun_ini ?? 12; 
-    $jatahTahunLalu = $user->sisa_cuti_tahun_lalu ?? 2; 
-    $totalJatah = $jatahTahunIni + $jatahTahunLalu;
+    $totalJatah = $user->jatah_cuti ?? 12;
 
-    // Menghitung statistik pengajuan pegawai dari database
     $statistik = [
         'total_diajukan' => \App\Models\PengajuanCuti::where('user_id', $user->id)->count(),
         'disetujui' => \App\Models\PengajuanCuti::where('user_id', $user->id)
-                            ->where('approval_step',8)->count(),
+                            ->where('approval_step', 8)->count(),
         'menunggu' => \App\Models\PengajuanCuti::where('user_id', $user->id)
-                            ->where('approval_step', 'LIKE', '%Menunggu%')->count(),
+                            ->whereNotIn('approval_step', [0, 8, 10])->count(),
     ];
-
    if ($user->hasRole('Pegawai')) {
         return view('pegawai.informasi', compact('jatahTahunIni', 'jatahTahunLalu', 'totalJatah', 'statistik'));
     }

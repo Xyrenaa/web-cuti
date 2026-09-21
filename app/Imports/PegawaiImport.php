@@ -27,8 +27,20 @@ class PegawaiImport implements ToModel, WithHeadingRow, WithBatchInserts, WithCh
         $bagianId = null;
         $namaSubExcel = $row['subbag_seksi'] ?? null; 
 
-        if ($namaSubExcel) {
-            $subBagian = SubBagianSeksi::where('nama', 'LIKE', '%' . trim($namaSubExcel) . '%')->first();
+       if ($namaSubExcel) {
+            $namaSubExcel = trim($namaSubExcel);
+            $subBagian = SubBagianSeksi::where('nama', 'LIKE', '%' . $namaSubExcel . '%')->first();
+
+            // Cadangan: kalau gagal ketemu, coba lagi dengan menukar "dan" <-> "&",
+            // karena penulisan resmi di database vs Excel kadang beda konvensi
+            // untuk kata penghubung ini (contoh: "Seksi A dan B" vs "Seksi A & B").
+            if (!$subBagian) {
+                $altNama = str_contains($namaSubExcel, ' dan ')
+                    ? str_replace(' dan ', ' & ', $namaSubExcel)
+                    : str_replace(' & ', ' dan ', $namaSubExcel);
+                $subBagian = SubBagianSeksi::where('nama', 'LIKE', '%' . $altNama . '%')->first();
+            }
+
             if ($subBagian) {
                 $subBagianId = $subBagian->id;
                 $bagianId = $subBagian->bagian_bidang_id;

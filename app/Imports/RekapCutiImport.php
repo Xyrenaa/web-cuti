@@ -66,7 +66,7 @@ class RekapCutiImport implements ToModel, WithHeadingRow, WithBatchInserts, With
                 'durasi_hari'     => isset($row['lama']) ? (int) $row['lama'] : 1,
                 'alasan'          => 'Migrasi rekap manual historis',
                 'status_pengajuan'=> $status,
-                'approval_step'   => 8, 
+                'approval_step'   => $isCancel ? 10 : 8,
             ]);
 
             // Paksa sistem menyimpan dengan tanggal dari Excel, bukan tanggal hari ini
