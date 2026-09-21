@@ -6,6 +6,7 @@ use App\Http\Controllers\NotifikasiController;
 use Illuminate\Support\Facades\Route;
 use App\Models\SubBagianSeksi;
 use App\Http\Controllers\DashboardKepalaController;
+use App\Http\Controllers\MigrasiDataController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -63,8 +64,9 @@ Route::get('/api/sub-bagian/{bagian_id}', function ($bagian_id) {
 // ROUTE ADMIN (Wajib login)
 // ==========================================
 Route::middleware(['auth', 'verified', 'role:Admin Kepegawaian'])->group(function () {
-    // FIX: langsung panggil controller aslinya, jangan closure kosong,
-    // supaya $pengajuanBaru, $menungguPersetujuan, dkk selalu terkirim ke view.
+    Route::get('/admin/migrasi-data', [MigrasiDataController::class, 'index'])->name('admin.migrasi.index');
+    Route::post('/admin/migrasi-data/pegawai', [MigrasiDataController::class, 'importPegawai'])->name('admin.migrasi.pegawai');
+    Route::post('/admin/migrasi-data/rekap', [MigrasiDataController::class, 'importRekap'])->name('admin.migrasi.rekap');
     Route::get('/admin/dashboard', [PengajuanController::class, 'dashboardAdmin'])->name('admin.dashboard');
 
     Route::get('/admin/approval', [PengajuanController::class, 'indexApproval'])->name('admin.approval.index');
@@ -77,6 +79,7 @@ Route::middleware(['auth', 'verified', 'role:Admin Kepegawaian'])->group(functio
     Route::get('/admin/profile/edit', [ProfileController::class, 'editAdmin'])->name('admin.profile.edit');
 
     Route::get('/admin/rekap', [PengajuanController::class, 'rekapAdmin'])->name('admin.rekap.index');
+    Route::post('/admin/rekap/update-jatah', [PengajuanController::class, 'updateJatahMassal'])->name('admin.rekap.update-jatah');
     Route::get('/admin/rekap/export', [PengajuanController::class, 'exportRekap'])->name('admin.rekap.export');
     Route::get('/admin/rekap/{id}', [PengajuanController::class, 'showRekap'])->name('admin.rekap.show');
 });

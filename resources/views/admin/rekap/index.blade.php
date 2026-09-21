@@ -72,7 +72,7 @@
                         <select name="divisi" onchange="this.form.submit()" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 transition text-sm py-2.5 bg-gray-50 text-gray-600">
                             <option value="Semua Divisi">Semua Divisi</option>
                             @foreach($daftarDivisi as $div)
-                                <option value="{{ $div->id }}" {{ request('divisi') == $div->id ? 'selected' : '' }}>{{ $div->nama_bagian }}</option>
+                                <option value="{{ $div->id }}" {{ request('divisi') == $div->id ? 'selected' : '' }}>{{ $div->nama }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -94,10 +94,74 @@
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                         Ekspor (XLSX)
                     </a>
-                    
+
+                    <button type="button" x-data @click="$dispatch('open-modal-jatah')" class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-5 rounded-xl transition shadow-sm text-sm whitespace-nowrap h-[42px] flex items-center">
+                        <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        Update Jatah Cuti Massal
+                    </button>
                 </div>
             </form>
+            <!-- Modal Update Jatah Cuti Massal -->
+            <div x-data="{ open: false, target: 'semua' }" @open-modal-jatah.window="open = true">
+                <div x-show="open" style="display:none" class="fixed inset-0 z-50 flex items-center justify-center">
+                    <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                         x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+                         class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="open = false"></div>
 
+                    <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                         x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" x-transition:leave-end="opacity-0 translate-y-4 sm:scale-95"
+                         class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4 z-10">
+
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-gray-900">Update Jatah Cuti Massal</h3>
+                            <button type="button" @click="open = false" class="text-gray-400 hover:text-gray-600">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+
+                        <form id="form-update-jatah" action="{{ route('admin.rekap.update-jatah') }}" method="POST" onsubmit="return konfirmasiUpdateJatah(event)">
+                            @csrf
+
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Jumlah Hari</label>
+                            <input type="number" name="jumlah_hari" min="0" max="365" required
+                                   class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2.5 mb-4"
+                                   placeholder="Contoh: 12">
+
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Terapkan Untuk</label>
+                            <select name="target" x-model="target" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 transition text-sm py-2.5 bg-gray-50 mb-4">
+                                <option value="semua">Semua Pegawai ({{ $totalPegawai }} orang)</option>
+                                <option value="divisi">Divisi Tertentu</option>
+                                <option value="sub_bagian">Sub-Bagian/Seksi Tertentu</option>
+                            </select>
+
+                            <div x-show="target === 'divisi'" class="mb-4">
+                                <select name="bagian_bidang_id" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 transition text-sm py-2.5">
+                                    <option value="">-- Pilih Divisi --</option>
+                                    @foreach($daftarDivisi as $div)
+                                        <option value="{{ $div->id }}">{{ $div->nama }} ({{ $div->users_count }} orang)</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div x-show="target === 'sub_bagian'" class="mb-4">
+                                <select name="sub_bagian_seksi_id" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 transition text-sm py-2.5">
+                                    <option value="">-- Pilih Sub-Bagian/Seksi --</option>
+                                    @foreach($daftarSubBagian as $sub)
+                                        <option value="{{ $sub->id }}">{{ $sub->nama }} — {{ $sub->bagianBidang->nama ?? '-' }} ({{ $sub->users_count }} orang)</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <p class="text-xs text-gray-400 mb-4">Nilai lama akan ditimpa langsung dan tidak tersimpan sebagai riwayat.</p>
+
+                            <div class="flex justify-end gap-3">
+                                <button type="button" @click="open = false" class="px-5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition">Batal</button>
+                                <button type="submit" class="px-5 py-2.5 bg-[#2a64f5] hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition shadow-sm">Ubah</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
                 <!-- TABLE -->
                 <div class="overflow-x-auto border border-gray-100 rounded-xl">
                     <table class="w-full text-sm text-left">
@@ -173,4 +237,49 @@
             </div>
         </div>
     </div>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        @if(session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                text: @json(session('success')),
+                confirmButtonColor: '#2a64f5',
+                customClass: { popup: 'rounded-2xl shadow-xl border border-gray-100' }
+            });
+        @endif
+
+        function konfirmasiUpdateJatah(e) {
+            e.preventDefault();
+            const form = document.getElementById('form-update-jatah');
+            const jumlah = form.jumlah_hari.value;
+
+            if (!jumlah) {
+                Swal.fire({ icon: 'warning', title: 'Isi jumlah hari dulu', confirmButtonColor: '#2a64f5', customClass: { popup: 'rounded-2xl shadow-xl border border-gray-100' } });
+                return false;
+            }
+
+            const targetText = {
+                semua: 'SEMUA pegawai',
+                divisi: 'pegawai di divisi yang dipilih',
+                sub_bagian: 'pegawai di sub-bagian/seksi yang dipilih'
+            }[form.target.value];
+
+            Swal.fire({
+                title: 'Ubah Jatah Cuti?',
+                html: `Jatah cuti akan diubah menjadi <b>${jumlah} hari</b> untuk <b>${targetText}</b>. Nilai lama akan ditimpa.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Ubah',
+                confirmButtonColor: '#2a64f5',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                customClass: { popup: 'rounded-2xl shadow-xl border border-gray-100', title: 'text-xl font-bold text-gray-800' }
+            }).then((result) => {
+                if (result.isConfirmed) form.submit();
+            });
+
+            return false;
+        }
+    </script>
 </x-admin-layout>

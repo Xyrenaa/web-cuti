@@ -25,6 +25,7 @@ class User extends Authenticatable
         'email',
         'password',
         'nip',
+        'jenis_kelamin',
         'bagian_bidang_id',
         'sub_bagian_seksi_id',
         'level_jabatan',

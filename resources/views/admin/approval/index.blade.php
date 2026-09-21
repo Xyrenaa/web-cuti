@@ -123,12 +123,28 @@
 
                 <!-- Pagination -->
                 <div class="p-6 border-t border-gray-50 flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
-                    <div>Menampilkan 5 dari 24 data</div>
+                    <div>Menampilkan {{ $pengajuans->firstItem() ?? 0 }} sampai {{ $pengajuans->lastItem() ?? 0 }} dari {{ $pengajuans->total() }} data</div>
+
                     <div class="flex items-center space-x-2 mt-4 md:mt-0">
-                        <button class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 font-bold text-gray-600 transition">Sebelumnya</button>
-                        <button class="px-4 py-2 bg-[#2a64f5] text-white rounded-xl font-bold shadow-md shadow-blue-500/20">1</button>
-                        <button class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 font-bold text-gray-600 transition">2</button>
-                        <button class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 font-bold text-gray-600 transition">Selanjutnya</button>
+                        @if ($pengajuans->onFirstPage())
+                            <span class="px-4 py-2 border border-gray-200 rounded-xl bg-gray-50 text-gray-400 font-bold">Sebelumnya</span>
+                        @else
+                            <a href="{{ $pengajuans->previousPageUrl() }}" class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 font-bold text-gray-600 transition">Sebelumnya</a>
+                        @endif
+
+                        @foreach ($pengajuans->getUrlRange(1, $pengajuans->lastPage()) as $page => $url)
+                            @if ($page == $pengajuans->currentPage())
+                                <span class="px-4 py-2 bg-[#2a64f5] text-white rounded-xl font-bold shadow-md shadow-blue-500/20">{{ $page }}</span>
+                            @else
+                                <a href="{{ $url }}" class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 font-bold text-gray-600 transition">{{ $page }}</a>
+                            @endif
+                        @endforeach
+
+                        @if ($pengajuans->hasMorePages())
+                            <a href="{{ $pengajuans->nextPageUrl() }}" class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 font-bold text-gray-600 transition">Selanjutnya</a>
+                        @else
+                            <span class="px-4 py-2 border border-gray-200 rounded-xl bg-gray-50 text-gray-400 font-bold">Selanjutnya</span>
+                        @endif
                     </div>
                 </div>
             </div>
