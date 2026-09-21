@@ -79,8 +79,10 @@ class DashboardKepalaController extends Controller
         $countDitolak = PengajuanCuti::whereIn('approval_step', $this->stepDitolakRevisi)
             ->whereIn('user_id', $bawahanIds)->count();
 
-        // TOTAL PEGAWAI: Tetap Hitung Semua (Request Khusus)
-        $totalPegawai = User::role('pegawai')->count();
+        // TOTAL PEGAWAI: ikut hierarki, sama seperti kartu-kartu lainnya di atas
+        // (sebelumnya di-hardcode ke seluruh kantor via User::role('pegawai')->count(),
+        // makanya kartu ini selalu 173 berapa pun jabatan yang login).
+        $totalPegawai = ($bawahanIds === [0]) ? 0 : count($bawahanIds);
 
         // ==========================================
         // 2. DATA DRILL-DOWN

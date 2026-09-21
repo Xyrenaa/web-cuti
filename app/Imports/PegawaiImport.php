@@ -9,8 +9,10 @@ use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterImport;
 
-class PegawaiImport implements ToModel, WithHeadingRow, WithBatchInserts, WithChunkReading
+class PegawaiImport implements ToModel, WithHeadingRow, WithBatchInserts, WithChunkReading, WithEvents
 {
     public function model(array $row)
     {
@@ -93,5 +95,31 @@ class PegawaiImport implements ToModel, WithHeadingRow, WithBatchInserts, WithCh
     public function chunkSize(): int
     {
         return 100;
+    }
+
+    /**
+     * SOLUSI ROLE KOSONG: karena baris dari model() di-bulk insert lewat
+     * WithBatchInserts (bukan lewat save() satu-satu), event Eloquent tidak
+     * pernah jalan di titik itu sehingga assignRole() tidak bisa dipanggil
+     * langsung di dalam model(). Sebagai gantinya, role 'Pegawai' diberikan
+     * di sini setelah seluruh baris selesai tersimpan.
+     *
+     * Query ini juga otomatis membereskan akun-akun lama yang sudah kadung
+     * ter-import tanpa role (bukan cuma baris baru di file ini) — cukup
+     * upload ulang file pegawai (boleh file yang sama) untuk memicu backfill.
+     */
+    public function registerEvents(): array
+    {
+        return [
+            AfterImport::class => function (AfterImport $event) {
+                User::whereDoesntHave('roles')
+                    ->where('level_jabatan', 'Pegawai')
+                    ->chunkById(200, function ($users) {
+                        foreach ($users as $user) {
+                            $user->assignRole('Pegawai');
+                        }
+                    });
+            },
+        ];
     }
 }
