@@ -39,7 +39,7 @@ class RekapCutiExport implements FromCollection, WithHeadings, WithMapping
 
         // Hitung cuti terpakai
         $terpakai = PengajuanCuti::where('user_id', $user->id)
-            ->where('status_pengajuan', 'Disetujui')
+            ->where('approval_step', 8)
             ->whereYear('created_at', date('Y'))
             ->whereHas('jenisCuti', function($query){
                     $query->where('mengurangi_kuota', true);
@@ -47,7 +47,7 @@ class RekapCutiExport implements FromCollection, WithHeadings, WithMapping
             ->sum('durasi_hari');
 
         $kuota = $user->jatah_cuti ?? 12;
-        $divisi = $user->subBagianSeksi->nama_sub_bagian ?? $user->bagianBidang->nama_bagian ?? '-';
+        $divisi = $user->subBagianSeksi->nama ?? $user->bagianBidang->nama ?? '-';
 
         return [
             $no,

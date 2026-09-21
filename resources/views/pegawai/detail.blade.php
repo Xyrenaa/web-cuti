@@ -75,7 +75,7 @@
                             // $stepFinal di PengajuanController::batal() supaya tombol batal
                             // di bawah konsisten dengan validasi server-nya.
                             $step = $pengajuan->approval_step;
-                            $isFinal = in_array($step, [0, 8, 9, 10]);
+                            $isFinal = in_array($step, [0, 8, 10]);
                         @endphp
 
                         <!-- Step 1: Dikirim -->
@@ -132,13 +132,12 @@
 
             <!-- Tombol Batalkan hanya muncul kalau belum di step final (sinkron dengan $isFinal di atas) -->
             @if(!$isFinal)
-
-            <form action="{{ route('pengajuan.batal', $pengajuan->id) }}" method="POST" onsubmit="return confirm('Anda yakin ingin membatalkan pengajuan ini dari sistem?');">
-        @csrf
-        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow">
-            Batalkan Pengajuan
-        </button>
-    </form>
+            <form id="form-batal-detail" action="{{ route('pengajuan.batal', $pengajuan->id) }}" method="POST">
+                @csrf
+                <button type="button" onclick="konfirmasiBatalDetail()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow">
+                    Batalkan Pengajuan
+                </button>
+            </form>
             @endif
         </div>
     </div>
