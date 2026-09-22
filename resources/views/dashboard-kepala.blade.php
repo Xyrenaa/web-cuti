@@ -80,7 +80,14 @@
                     </div>
 
                     <div class="p-6">
-                        <h3 class="text-blue-500 text-sm font-medium uppercase tracking-wider">Total Pegawai Aktif</h3>
+                        <h3 class="text-blue-500 text-sm font-medium uppercase tracking-wider">
+                            {{ match($levelKepala) {
+                                'kantor' => 'Total Pegawai Aktif',
+                                'bidang' => 'Pegawai di Bidang/Bagian Anda',
+                                'seksi' => 'Pegawai di Seksi/Sub-Bagian Anda',
+                                default => 'Total Pegawai Aktif',
+                            } }}
+                        </h3>
                         <div class="flex items-end gap-2 mt-2">
                             <p class="text-3xl font-bold text-blue-600">{{ $totalPegawai }}</p>
                             <p class="text-sm text-blue-400 font-medium mb-1">Personel</p>
@@ -103,17 +110,58 @@
                         </div>
                     </div>
 
+                    @if($levelKepala === 'seksi' && $risikoRingkas)
+                    <!-- MODE KEPALA SEKSI/SUB-BAGIAN: satu angka ringkasan + bisa klik lihat nama pegawainya -->
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col">
+                        <h3 class="text-md font-medium text-gray-700 mb-1">Risiko Kekosongan Seksi/Sub-Bagian Anda</h3>
+                        <p class="text-xs text-gray-500 mb-6">Deteksi dini staf cuti &gt; 50%</p>
+                        <div class="flex-grow flex flex-col items-center justify-center gap-2 py-6">
+                            <p class="text-5xl font-bold {{ $risikoRingkas['status_bahaya'] ? 'text-red-600' : 'text-blue-600' }}">{{ $risikoRingkas['persentase'] }}%</p>
+                            <p class="text-sm text-gray-500">{{ $risikoRingkas['sedang_cuti'] }} pegawai sedang cuti</p>
+                            <span class="mt-2 px-3 py-1 text-xs font-bold rounded-full {{ $risikoRingkas['status_bahaya'] ? 'bg-red-100 text-red-700 animate-pulse' : 'bg-green-100 text-green-700' }}">
+                                {{ $risikoRingkas['status_bahaya'] ? 'Bahaya!' : 'Aman' }}
+                            </span>
+                            @if($risikoRingkas['sedang_cuti'] > 0)
+                            <button type="button"
+                                onclick='openRincianModal("Seksi/Sub-Bagian Anda", @json($risikoRingkas["daftar_pegawai"]), "pegawai")'
+                                class="mt-3 text-sm font-semibold text-[#2A65F3] hover:text-blue-800">
+                                Lihat nama pegawai yang cuti
+                            </button>
+                            @endif
+                        </div>
+                    </div>
+                    @else
+                    <!-- MODE KEPALA KANTOR (rincian sub-unit) & KEPALA BIDANG/BAGIAN (rincian nama pegawai) -->
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col">
                         <h3 class="text-md font-medium text-gray-700 mb-2">Risiko Kekosongan per Divisi</h3>
-                        <p class="text-xs text-gray-500 mb-4">Deteksi dini divisi dengan staf cuti > 20%</p>
+                        <p class="text-xs text-gray-500 mb-4">
+                            Deteksi dini divisi dengan staf cuti &gt; 50%
+                            @if($levelKepala === 'kantor')
+                                &middot; <span class="text-[#2A65F3] font-medium">klik salah satu bagian untuk lihat rincian sub-unit</span>
+                            @elseif($levelKepala === 'bidang')
+                                &middot; <span class="text-[#2A65F3] font-medium">klik salah satu seksi untuk lihat nama pegawainya</span>
+                            @endif
+                        </p>
                         <div class="relative h-64 w-full flex-grow">
                             <canvas id="riskChart"></canvas>
                         </div>
                         <div class="mt-4 space-y-2 max-h-32 overflow-y-auto pr-2">
-                            @forelse($risikoDivisi as $risiko)
-                                <div class="flex justify-between items-center text-sm {{ $risiko['status_bahaya'] ? 'border-l-4 border-red-500 pl-2 bg-red-50 py-1' : '' }}">
+                            @forelse($risikoDivisi as $i => $risiko)
+                                @php
+                                    $bisaDiklik = ($levelKepala === 'kantor' && !empty($risiko['rincian']))
+                                        || ($levelKepala === 'bidang' && $risiko['sedang_cuti'] > 0);
+                                    $tipeRincian = $levelKepala === 'kantor' ? 'sub_unit' : 'pegawai';
+                                @endphp
+                                <div
+                                    @if($bisaDiklik)
+                                        onclick='openRincianModal(@json($risiko["nama_divisi"]), @json($risiko["rincian"]), @json($tipeRincian))'
+                                        class="flex justify-between items-center text-sm cursor-pointer hover:bg-gray-50 rounded {{ $risiko['status_bahaya'] ? 'border-l-4 border-red-500 pl-2 bg-red-50 py-1' : '' }}"
+                                    @else
+                                        class="flex justify-between items-center text-sm {{ $risiko['status_bahaya'] ? 'border-l-4 border-red-500 pl-2 bg-red-50 py-1' : '' }}"
+                                    @endif
+                                >
                                     <span class="{{ $risiko['status_bahaya'] ? 'font-semibold text-red-700' : 'text-gray-700' }}">
-                                        {{ $risiko['nama_divisi'] }} ({{ $risiko['persentase'] }}%)
+                                        {{ $risiko['nama_divisi'] }} — ({{ $risiko['persentase'] }}%)
                                     </span>
                                     @if($risiko['status_bahaya'])
                                         <span class="px-2 py-1 bg-red-600 text-white rounded-full text-[10px] animate-pulse">Bahaya!</span>
@@ -126,6 +174,7 @@
                             @endforelse
                         </div>
                     </div>
+                    @endif
 
                 </div>
             </div>
@@ -218,7 +267,23 @@
         </div>
     </div>
 
-    <!-- Panggil Library Chart.js -->
+    <!-- MODAL RINCIAN RISIKO (klik slice/baris di chart Risiko Kekosongan, khusus Kepala Kantor) -->
+    <div id="rincianDivisiModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
+            <button onclick="closeRincianModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <h3 id="rincianDivisiTitle" class="text-lg font-bold text-gray-800 mb-1">Rincian Divisi</h3>
+            <p id="rincianDivisiSubtitle" class="text-xs text-gray-500 mb-4">Sebaran pegawai yang sedang cuti per sub-unit</p>
+
+            <ul id="rincianDivisiList" class="divide-y divide-gray-100 max-h-80 overflow-y-auto"></ul>
+
+            <div class="mt-6 text-right">
+                <button onclick="closeRincianModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">Tutup</button>
+            </div>
+        </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // --- FUNGSI MODAL DRILL-DOWN ---
@@ -228,6 +293,48 @@
 
         function closeDrillDownModal() {
             document.getElementById('drillDownModal').classList.add('hidden');
+        }
+
+        // --- FUNGSI MODAL RINCIAN RISIKO (klik slice chart Risiko Kekosongan) ---
+        // tipe: 'sub_unit' (breakdown per Seksi/Sub-Bagian, khusus Kepala Kantor)
+        //    atau 'pegawai' (daftar nama pegawai yang sedang cuti, Kepala Bidang & Kepala Seksi)
+        function openRincianModal(namaDivisi, rincian, tipe) {
+            document.getElementById('rincianDivisiTitle').textContent = 'Rincian ' + namaDivisi;
+            const list = document.getElementById('rincianDivisiList');
+
+            if (!rincian || rincian.length === 0) {
+                const teksKosong = tipe === 'pegawai' ? 'Tidak ada pegawai yang sedang cuti.' : 'Tidak ada sub-unit dengan pegawai aktif.';
+                list.innerHTML = `<li class="py-4 text-center text-gray-500 text-sm">${teksKosong}</li>`;
+            } else if (tipe === 'pegawai') {
+                document.getElementById('rincianDivisiSubtitle').textContent = 'Daftar pegawai yang sedang cuti';
+                list.innerHTML = rincian.map(p => `
+                    <li class="py-3 flex justify-between items-center gap-3">
+                        <div>
+                            <span class="text-gray-800 font-medium block">${p.nama}</span>
+                            <span class="text-xs text-gray-400">NIP ${p.nip} &middot; ${p.tanggal_mulai} - ${p.tanggal_selesai}</span>
+                        </div>
+                    </li>
+                `).join('');
+            } else {
+                document.getElementById('rincianDivisiSubtitle').textContent = 'Sebaran pegawai yang sedang cuti per sub-unit';
+                list.innerHTML = rincian.map(r => `
+                    <li class="py-3 flex justify-between items-center gap-3">
+                        <div>
+                            <span class="text-gray-800 font-medium block">${r.nama}</span>
+                            <span class="text-xs text-gray-400">${r.sedang_cuti} dari ${r.total_pegawai} pegawai sedang cuti</span>
+                        </div>
+                        <span class="flex-shrink-0 px-3 py-1 text-xs font-bold rounded-full ${r.status_bahaya ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
+                            ${r.persentase}%
+                        </span>
+                    </li>
+                `).join('');
+            }
+
+            document.getElementById('rincianDivisiModal').classList.remove('hidden');
+        }
+
+        function closeRincianModal() {
+            document.getElementById('rincianDivisiModal').classList.add('hidden');
         }
 
         // --- INISIALISASI GRAFIK CHART.JS ---
@@ -265,12 +372,24 @@
             const riskCtx = document.getElementById('riskChart');
             if(riskCtx) {
                 const risikoDataRaw = @json($risikoDivisi);
-                
+                const levelKepala = @json($levelKepala);
+
                 const labelsDivisi = risikoDataRaw.map(item => item.nama_divisi);
                 const dataPersentase = risikoDataRaw.map(item => item.persentase);
-                
-                const backgroundColors = dataPersentase.map(persen => 
-                    persen > 20 ? 'rgba(239, 68, 68, 0.8)' : 'rgba(59, 130, 246, 0.7)'
+
+                // Palet warna beda per bagian/bidang; merah HANYA dipakai khusus status bahaya
+                const palet = [
+                    'rgba(59, 130, 246, 0.85)',   // biru
+                    'rgba(16, 185, 129, 0.85)',   // hijau
+                    'rgba(245, 158, 11, 0.85)',   // amber
+                    'rgba(139, 92, 246, 0.85)',   // ungu
+                    'rgba(236, 72, 153, 0.85)',   // pink
+                    'rgba(20, 184, 166, 0.85)',   // teal
+                    'rgba(99, 102, 241, 0.85)',   // indigo
+                    'rgba(234, 179, 8, 0.85)',    // kuning
+                ];
+                const backgroundColors = risikoDataRaw.map((item, idx) =>
+                    item.status_bahaya ? 'rgba(239, 68, 68, 0.9)' : palet[idx % palet.length]
                 );
 
                 new Chart(riskCtx, {
@@ -287,7 +406,29 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            legend: { position: 'right' }
+                            legend: { position: 'right' },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => {
+                                        const item = risikoDataRaw[context.dataIndex];
+                                        return `${item.nama_divisi}: ${item.sedang_cuti}/${item.total_pegawai} pegawai (${item.persentase}%)`;
+                                    }
+                                }
+                            }
+                        },
+                        onClick: (evt, elements) => {
+                            // Kepala Kantor -> rincian sub-unit; Kepala Bidang -> daftar nama pegawai
+                            if (elements.length === 0) return;
+                            const item = risikoDataRaw[elements[0].index];
+                            if (levelKepala === 'kantor' && item.rincian && item.rincian.length > 0) {
+                                openRincianModal(item.nama_divisi, item.rincian, 'sub_unit');
+                            } else if (levelKepala === 'bidang' && item.sedang_cuti > 0) {
+                                openRincianModal(item.nama_divisi, item.rincian, 'pegawai');
+                            }
+                        },
+                        onHover: (evt, elements) => {
+                            const bisaDiklik = elements.length > 0 && (levelKepala === 'kantor' || levelKepala === 'bidang');
+                            evt.native.target.style.cursor = bisaDiklik ? 'pointer' : 'default';
                         }
                     }
                 });

@@ -50,55 +50,109 @@
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                 
                 <!-- Form Pencarian, Filter & Sort -->
-            <form action="{{ route('admin.rekap.index') }}" method="GET" class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
-                
-                <!-- Search Bar -->
-                <div class="w-full lg:w-1/3 relative">
-                    <label class="block text-xs font-bold text-gray-600 mb-2">Cari Pegawai</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                        </span>
-                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Ketik nama atau NIP lalu tekan Enter..." class="w-full pl-10 rounded-xl border-gray-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2.5">
+            <form action="{{ route('admin.rekap.index') }}" method="GET"
+                  x-data='{
+                      filterOpen: {{ (request()->filled("divisi") && request("divisi") !== "Semua Divisi") || (request()->filled("sub_bagian") && request("sub_bagian") !== "Semua Sub-Bagian") ? "true" : "false" }},
+                      divisiId: "{{ request("divisi") }}",
+                      subBagianList: @json($daftarSubBagian),
+                      get filteredSubBagian() {
+                          if (!this.divisiId || this.divisiId === "Semua Divisi") return this.subBagianList;
+                          return this.subBagianList.filter(s => s.bagian_bidang_id == this.divisiId);
+                      }
+                  }'
+                  class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                    <!-- Search Bar -->
+                    <div class="w-full lg:w-1/3 relative">
+                        <label class="block text-xs font-bold text-gray-600 mb-2">Cari Pegawai</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </span>
+                            <input type="text" name="search" value="{{ request('search') }}" placeholder="Ketik nama atau NIP lalu tekan Enter..." class="w-full pl-10 rounded-xl border-gray-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2.5">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto mt-4 lg:mt-0 items-end">
+
+                        <!-- Toggle Panel Filter -->
+                        <button type="button" @click="filterOpen = !filterOpen"
+                                class="w-full sm:w-auto flex items-center justify-center gap-2 border rounded-xl px-5 py-2.5 text-sm font-bold transition h-[42px] whitespace-nowrap"
+                                :class="filterOpen || (divisiId && divisiId !== 'Semua Divisi') ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 01.8 1.6l-6.3 8.4v5.2a1 1 0 01-1.45.9l-4-2A1 1 0 018 16.2v-3.2L1.7 4.6A1 1 0 013 4z"></path></svg>
+                            Filter
+                            <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="filterOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+
+                        <!-- Tombol Ekspor (Bawa query parameter agar filter ikut ke Excel) -->
+                        <a href="{{ route('admin.rekap.export', request()->query()) }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl transition shadow-sm text-sm whitespace-nowrap h-[42px] flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Ekspor (XLSX)
+                        </a>
+
+                        <button type="button" x-data @click="$dispatch('open-modal-jatah')" class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-5 rounded-xl transition shadow-sm text-sm whitespace-nowrap h-[42px] flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            Update Jatah Cuti Massal
+                        </button>
                     </div>
                 </div>
-                
-                <!-- Dropdown Filter & Urutkan -->
-                <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto mt-4 lg:mt-0 items-end">
-                    
-                    <!-- Filter Divisi -->
-                    <div class="w-full sm:w-auto">
-                        <label class="block text-xs font-bold text-gray-600 mb-2">Divisi</label>
-                        <select name="divisi" onchange="this.form.submit()" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 transition text-sm py-2.5 bg-gray-50 text-gray-600">
-                            <option value="Semua Divisi">Semua Divisi</option>
-                            @foreach($daftarDivisi as $div)
-                                <option value="{{ $div->id }}" {{ request('divisi') == $div->id ? 'selected' : '' }}>{{ $div->nama }}</option>
-                            @endforeach
-                        </select>
+
+<!-- Panel Filter Lanjutan: collapsible, isinya Divisi + Sub-Bagian (baru) + Urutkan -->
+                <div x-show="filterOpen" x-cloak x-transition class="mt-4 pt-4 border-t border-gray-100">
+                    <div class="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
+
+                        <!-- Filter Divisi -->
+                        <div class="w-full sm:w-56">
+                            <label class="block text-xs font-bold text-gray-600 mb-2">Divisi</label>
+                            <!-- HAPUS onchange, biarkan user memilih dengan tenang -->
+                            <select name="divisi" x-model="divisiId" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 transition text-sm py-2.5 bg-gray-50 text-gray-600">
+                                <option value="Semua Divisi">Semua Divisi</option>
+                                @foreach($daftarDivisi as $div)
+                                    <option value="{{ $div->id }}">{{ $div->nama }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Filter Sub-Bagian/Seksi -->
+                        <div class="w-full sm:w-56">
+                            <label class="block text-xs font-bold text-gray-600 mb-2">Sub-Bagian / Seksi</label>
+                            <!-- HAPUS onchange -->
+                            <select name="sub_bagian" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 transition text-sm py-2.5 bg-gray-50 text-gray-600">
+                                <option value="Semua Sub-Bagian">Semua Sub-Bagian</option>
+                                <template x-for="sub in filteredSubBagian" :key="sub.id">
+                                    <option :value="sub.id" x-text="sub.nama" :selected="sub.id == '{{ request('sub_bagian') }}'"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <!-- Analitik / Urutkan -->
+                        <div class="w-full sm:w-64">
+                            <label class="block text-xs font-bold text-gray-600 mb-2">Analisis (Paling Sering)</label>
+                            <!-- HAPUS onchange -->
+                            <select name="sort" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 transition text-sm py-2.5 bg-gray-50 text-gray-600">
+                                <option value="Terbaru">Normal (Terbaru)</option>
+                                <option value="Terbanyak" {{ request('sort') == 'Terbanyak' ? 'selected' : '' }}>🔥 Paling Sering Cuti (Total)</option>
+                                @foreach($daftarJenisCuti as $jenis)
+                                    <option value="{{ $jenis->id }}" {{ request('sort') == $jenis->id ? 'selected' : '' }}>📌 Terbanyak: {{ $jenis->nama_cuti }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Tombol Terapkan & Reset Filter -->
+                        <div class="flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+                            <button type="submit" class="bg-[#2a64f5] hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl transition shadow-sm text-sm h-[42px]">
+                                Terapkan Filter
+                            </button>
+
+                            @if((request('divisi') && request('divisi') !== 'Semua Divisi') || (request('sub_bagian') && request('sub_bagian') !== 'Semua Sub-Bagian') || (request('sort') && request('sort') !== 'Terbaru'))
+                                <a href="{{ route('admin.rekap.index', array_filter(['search' => request('search')])) }}" class="text-sm font-bold text-red-500 hover:text-red-700 py-2.5 whitespace-nowrap ml-5">
+                                    Reset
+                                </a>
+                            @endif
+                        </div>
+
                     </div>
-
-                    <!-- Analitik / Urutkan -->
-                    <div class="w-full sm:w-auto">
-                        <label class="block text-xs font-bold text-gray-600 mb-2">Analisis (Paling Sering)</label>
-                        <select name="sort" onchange="this.form.submit()" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 transition text-sm py-2.5 bg-gray-50 text-gray-600">
-                            <option value="Terbaru">Normal (Terbaru)</option>
-                            <option value="Terbanyak" {{ request('sort') == 'Terbanyak' ? 'selected' : '' }}>🔥 Paling Sering Cuti (Total)</option>
-                            @foreach($daftarJenisCuti as $jenis)
-                                <option value="{{ $jenis->id }}" {{ request('sort') == $jenis->id ? 'selected' : '' }}>📌 Terbanyak: {{ $jenis->nama_cuti }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <!-- Tombol Ekspor (Bawa query parameter agar filter ikut ke Excel) -->
-                    <a href="{{ route('admin.rekap.export', request()->query()) }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl transition shadow-sm text-sm whitespace-nowrap h-[42px] flex items-center">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        Ekspor (XLSX)
-                    </a>
-
-                    <button type="button" x-data @click="$dispatch('open-modal-jatah')" class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-5 rounded-xl transition shadow-sm text-sm whitespace-nowrap h-[42px] flex items-center">
-                        <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                        Update Jatah Cuti Massal
-                    </button>
                 </div>
             </form>
             <!-- Modal Update Jatah Cuti Massal -->
@@ -207,25 +261,30 @@
                     </table>
                 </div>
 
-                <!-- Pagination -->
+<!-- Pagination -->
                 <div class="p-6 border-t border-gray-50 flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
                     <div>Menampilkan {{ $rekaps->firstItem() ?? 0 }} sampai {{ $rekaps->lastItem() ?? 0 }} dari {{ $rekaps->total() }} data</div>
                     
                     <div class="flex items-center space-x-2 mt-4 md:mt-0">
+                        <!-- Tombol Sebelumnya -->
                         @if ($rekaps->onFirstPage())
                             <span class="px-4 py-2 border border-gray-200 rounded-xl bg-gray-50 text-gray-400 font-bold">Sebelumnya</span>
                         @else
                             <a href="{{ $rekaps->previousPageUrl() }}" class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 font-bold text-gray-600 transition">Sebelumnya</a>
                         @endif
 
-                        @foreach ($rekaps->getUrlRange(1, $rekaps->lastPage()) as $page => $url)
-                            @if ($page == $rekaps->currentPage())
-                                <span class="px-4 py-2 bg-[#2a64f5] text-white rounded-xl font-bold shadow-md shadow-blue-500/20">{{ $page }}</span>
+                        <!-- Logika Angka dan Elipsis -->
+                        @foreach ($rekaps->linkCollection()->slice(1, -1) as $link)
+                            @if ($link['label'] === '...')
+                                <span class="px-4 py-2 border border-gray-200 rounded-xl bg-gray-50 text-gray-400 font-bold">...</span>
+                            @elseif ($link['active'])
+                                <span class="px-4 py-2 bg-[#2a64f5] text-white rounded-xl font-bold shadow-md shadow-blue-500/20">{{ $link['label'] }}</span>
                             @else
-                                <a href="{{ $url }}" class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 font-bold text-gray-600 transition">{{ $page }}</a>
+                                <a href="{{ $link['url'] }}" class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 font-bold text-gray-600 transition">{{ $link['label'] }}</a>
                             @endif
                         @endforeach
 
+                        <!-- Tombol Selanjutnya -->
                         @if ($rekaps->hasMorePages())
                             <a href="{{ $rekaps->nextPageUrl() }}" class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 font-bold text-gray-600 transition">Selanjutnya</a>
                         @else

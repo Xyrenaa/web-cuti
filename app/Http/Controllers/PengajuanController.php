@@ -657,6 +657,11 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
             $query->where('bagian_bidang_id', $request->divisi);
         }
 
+        // 3b. FILTER: Berdasarkan Sub-Bagian/Seksi
+        if ($request->filled('sub_bagian') && $request->sub_bagian !== 'Semua Sub-Bagian') {
+            $query->where('sub_bagian_seksi_id', $request->sub_bagian);
+        }
+
         // 4. SORTING & ANALITIK: Siapa yang paling sering cuti?
         if ($request->filled('sort') && $request->sort !== 'Terbaru') {
             if ($request->sort == 'Terbanyak') {
@@ -676,7 +681,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         }
 
         // 5. Sulap data ke format View (KOLOM SUDAH DISESUAIKAN DENGAN DATABASE)
-        $rekaps = $query->paginate(10)->through(function ($user) {
+        $rekaps = $query->paginate(10)->onEachSide(1)->through(function ($user) {
             $terpakai = \App\Models\PengajuanCuti::where('user_id', $user->id)
                 ->where('approval_step',8)
                 ->whereYear('created_at', date('Y'))
