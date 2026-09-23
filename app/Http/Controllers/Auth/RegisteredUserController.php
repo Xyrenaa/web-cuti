@@ -28,24 +28,36 @@ class RegisteredUserController extends Controller
      *
      * @throws ValidationException
      */
-    public function store(Request $request): RedirectResponse
+        public function store(Request $request): RedirectResponse
     {
+        // Bersihkan NIP dari segala karakter selain angka SEBELUM divalidasi.
+        // Ini yang bikin "anomali spasi" hilang total: berapa pun bentuk
+        // spasi/format yang terkirim dari mask di form, yang sampai ke sini
+        // dan tersimpan selalu 18 digit polos — sama persis konvensinya
+        // dengan NIP hasil import Excel.
+        $request->merge([
+            'nip' => preg_replace('/\D/', '', (string) $request->input('nip')),
+        ]);
+
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'nip' => ['required', 'string', 'max:50', 'unique:'.User::class], // Validasi NIP
-            'bagian_bidang_id' => ['required', 'integer'], 
+            'nip' => ['required', 'regex:/^\d{18}$/', 'unique:'.User::class],
+            'bagian_bidang_id' => ['required', 'integer'],
             'sub_bagian_seksi_id' => ['required', 'integer'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ], [
+            'nip.regex' => 'NIP harus terdiri dari tepat 18 digit angka, tidak boleh kurang atau lebih.',
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'nip' => $request->nip,                                   // Simpan NIP
+            'nip' => $request->nip,
+            'status_kepegawaian' => User::statusKepegawaianDariNip($request->nip),
             'bagian_bidang_id' => $request->bagian_bidang_id,
             'sub_bagian_seksi_id' => $request->sub_bagian_seksi_id,
-            'password' => $request->password, // otomatis di-hash, User model punya cast 'password' => 'hashed'
+            'password' => $request->password,
         ]);
         $user->assignRole('Pegawai');
 

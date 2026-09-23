@@ -39,10 +39,19 @@ class PengajuanController extends Controller
 
         return null;
     }
-    public function index()
+        public function index()
     {
         $riwayat = PengajuanCuti::where('user_id', Auth::id())->latest()->paginate(5);
-        $jenisCutis = JenisCuti::all();
+        $user = Auth::user();
+
+        $jenisCutis = JenisCuti::query()
+            ->when($user->status_kepegawaian === 'PPPK', function ($q) {
+                $q->where('untuk_pppk', true);
+            })
+            ->when($user->jenis_kelamin === 'L', function ($q) {
+                $q->where('khusus_perempuan', false);
+            })
+            ->get();
 
         return view('pegawai.pengajuan', compact('riwayat', 'jenisCutis'));
     }
@@ -59,6 +68,14 @@ class PengajuanController extends Controller
         'bukti_pendukung'   => 'nullable|array|max:5',
         'bukti_pendukung.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
     ]);
+     $jenisCutiDipilih = \App\Models\JenisCuti::find($request->jenis_cuti_id);
+
+    if (Auth::user()->status_kepegawaian === 'PPPK' && $jenisCutiDipilih && !$jenisCutiDipilih->untuk_pppk) {
+        return redirect()->back()->withInput()->with('error', 'Jenis cuti "' . $jenisCutiDipilih->nama_cuti . '" tidak tersedia untuk status kepegawaian PPPK.');
+    }
+    if (Auth::user()->jenis_kelamin === 'L' && $jenisCutiDipilih && $jenisCutiDipilih->khusus_perempuan) {
+        return redirect()->back()->withInput()->with('error', 'Jenis cuti "' . $jenisCutiDipilih->nama_cuti . '" khusus untuk pegawai perempuan.');
+    }
 
     $tanggal_mulai = \Carbon\Carbon::parse($request->tanggal_mulai);
     $tanggal_selesai = \Carbon\Carbon::parse($request->tanggal_selesai);
