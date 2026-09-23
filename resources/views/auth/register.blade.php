@@ -19,7 +19,7 @@
             </div>
 
             <!-- Inisialisasi Alpine.js x-data pada form -->
-            <form method="POST" action="{{ route('register') }}" x-data="{ 
+             <form method="POST" action="{{ route('register') }}" x-data="{ 
                 bagian_id: '{{ old('bagian_bidang_id') }}', 
                 subBagians: [], 
                 fetchSubBagians() {
@@ -31,10 +31,21 @@
                         .then(res => res.json())
                         .then(data => this.subBagians = data);
                 },
+                maskNip(event) {
+                    let digit = event.target.value.replace(/\D/g, '').slice(0, 18);
+                    let hasil = digit.slice(0, 8);
+                    if (digit.length > 8)  hasil += ' ' + digit.slice(8, 14);
+                    if (digit.length > 14) hasil += ' ' + digit.slice(14, 15);
+                    if (digit.length > 15) hasil += ' ' + digit.slice(15, 18);
+                    event.target.value = hasil;
+                },
                 init() {
-                    // Berjalan otomatis saat halaman dimuat (berguna jika form gagal validasi dan reload)
                     if(this.bagian_id) {
                         this.fetchSubBagians();
+                    }
+                    const nipInput = document.getElementById('nip');
+                    if (nipInput && nipInput.value) {
+                        this.maskNip({ target: nipInput });
                     }
                 }
             }">
@@ -49,7 +60,10 @@
                     </div>
                     <div>
                         <label for="nip" class="block text-xs font-semibold text-gray-700 mb-1">NIP</label>
-                        <input id="nip" type="text" name="nip" :value="old('nip')" required placeholder="Contoh: 19940321..." class="w-full rounded-lg border-gray-300 focus:border-blue-600 focus:ring-blue-600 shadow-sm px-4 py-2 text-sm">
+                        <input id="nip" type="text" name="nip" :value="old('nip')" @input="maskNip($event)"
+                               required maxlength="21" inputmode="numeric" autocomplete="off"
+                               placeholder="19940321 202112 1 003"
+                               class="w-full rounded-lg border-gray-300 focus:border-blue-600 focus:ring-blue-600 shadow-sm px-4 py-2 text-sm">
                         <x-input-error :messages="$errors->get('nip')" class="mt-1" />
                     </div>
                 </div>

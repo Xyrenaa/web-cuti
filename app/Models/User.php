@@ -15,6 +15,27 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasRoles;
 
+     /**
+     * Tentukan status kepegawaian dari struktur NIP 18 digit, sesuai aturan
+     * BKN (PP 49/2018 & Perka BKN 22/2007): digit ke-13—14 pada NIP PNS
+     * selalu bulan pengangkatan CPNS (01–12), sedangkan pada NI PPPK itu
+     * kode frekuensi pengangkatan yang selalu mulai dari 21 ke atas.
+     * Return null kalau NIP-nya tidak 18 digit murni (kasus lama/tidak
+     * standar) — biarkan diisi manual oleh admin, jangan salah tebak.
+     */
+    public static function statusKepegawaianDariNip(?string $nip): ?string
+    {
+        $digit = preg_replace('/\D/', '', (string) $nip);
+
+        if (strlen($digit) !== 18) {
+            return null;
+        }
+
+        $kodeTmt = (int) substr($digit, 12, 2);
+
+        return ($kodeTmt >= 1 && $kodeTmt <= 12) ? 'PNS' : 'PPPK';
+    }
+
     /**
      * The attributes that are mass assignable.
      *
