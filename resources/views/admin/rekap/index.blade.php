@@ -46,14 +46,37 @@
                 </div>
             </div>
 
-            <!-- MAIN TABLE SECTION -->
+                        <!-- MAIN TABLE SECTION -->
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                
+
+                @php
+                    $bulanIndo = [
+                        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+                    ];
+                    $sortByOptions = [
+                        'nama' => 'Nama Pegawai',
+                        'tanggal_pengajuan' => 'Pengajuan Terakhir',
+                        'jumlah_ajuan' => 'Jumlah Ajuan',
+                        'jumlah_terpakai' => 'Cuti Terpakai',
+                        'sisa_jatah' => 'Sisa Jatah',
+                    ];
+                    $filterAktif = (request()->filled('divisi') && request('divisi') !== 'Semua Divisi')
+                        || (request()->filled('sub_bagian') && request('sub_bagian') !== 'Semua Sub-Bagian')
+                        || (request()->filled('jenis_cuti') && request('jenis_cuti') !== 'Semua Jenis')
+                        || (request()->filled('bulan') && request('bulan') !== 'Semua Bulan')
+                        || (request()->filled('tahun') && (int) request('tahun') !== (int) date('Y'))
+                        || (request()->filled('sort_by') && request('sort_by') !== 'nama')
+                        || (request()->filled('sort_dir') && request('sort_dir') !== 'asc');
+                @endphp
+
                 <!-- Form Pencarian, Filter & Sort -->
             <form action="{{ route('admin.rekap.index') }}" method="GET"
                   x-data='{
-                      filterOpen: {{ (request()->filled("divisi") && request("divisi") !== "Semua Divisi") || (request()->filled("sub_bagian") && request("sub_bagian") !== "Semua Sub-Bagian") ? "true" : "false" }},
+                      filterOpen: {{ $filterAktif ? "true" : "false" }},
                       divisiId: "{{ request("divisi") }}",
+                      sortDir: "{{ $sortDir }}",
                       subBagianList: @json($daftarSubBagian),
                       get filteredSubBagian() {
                           if (!this.divisiId || this.divisiId === "Semua Divisi") return this.subBagianList;
@@ -76,12 +99,15 @@
 
                     <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto mt-4 lg:mt-0 items-end">
 
-                        <!-- Toggle Panel Filter -->
+                                                <!-- Toggle Panel Filter -->
                         <button type="button" @click="filterOpen = !filterOpen"
-                                class="w-full sm:w-auto flex items-center justify-center gap-2 border rounded-xl px-5 py-2.5 text-sm font-bold transition h-[42px] whitespace-nowrap"
-                                :class="filterOpen || (divisiId && divisiId !== 'Semua Divisi') ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'">
+                                class="relative w-full sm:w-auto flex items-center justify-center gap-2 border rounded-xl px-5 py-2.5 text-sm font-bold transition h-[42px] whitespace-nowrap"
+                                :class="filterOpen || {{ $filterAktif ? 'true' : 'false' }} ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 01.8 1.6l-6.3 8.4v5.2a1 1 0 01-1.45.9l-4-2A1 1 0 018 16.2v-3.2L1.7 4.6A1 1 0 013 4z"></path></svg>
                             Filter
+                            @if($filterAktif)
+                                <span class="absolute -top-1.5 -right-1.5 h-2.5 w-2.5 rounded-full bg-blue-600 ring-2 ring-white"></span>
+                            @endif
                             <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="filterOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
 
@@ -99,59 +125,113 @@
                 </div>
 
 <!-- Panel Filter Lanjutan: collapsible, isinya Divisi + Sub-Bagian (baru) + Urutkan -->
-                <div x-show="filterOpen" x-cloak x-transition class="mt-4 pt-4 border-t border-gray-100">
-                    <div class="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
+                                <div x-show="filterOpen" x-cloak x-transition class="mt-4 pt-4 border-t border-gray-100 space-y-5">
 
-                        <!-- Filter Divisi -->
-                        <div class="w-full sm:w-56">
-                            <label class="block text-xs font-bold text-gray-600 mb-2">Divisi</label>
-                            <!-- HAPUS onchange, biarkan user memilih dengan tenang -->
-                            <select name="divisi" x-model="divisiId" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 transition text-sm py-2.5 bg-gray-50 text-gray-600">
-                                <option value="Semua Divisi">Semua Divisi</option>
-                                @foreach($daftarDivisi as $div)
-                                    <option value="{{ $div->id }}">{{ $div->nama }}</option>
-                                @endforeach
-                            </select>
+                    <!-- Baris 1: Filter Data -->
+                    <div>
+                        <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Filter Data</div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+
+                            <!-- Filter Divisi -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-2">Bidang / Bagian</label>
+                                <select name="divisi" x-model="divisiId" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2.5 bg-gray-50 text-gray-600">
+                                    <option value="Semua Divisi">Semua Bidang/Bagian</option>
+                                    @foreach($daftarDivisi as $div)
+                                        <option value="{{ $div->id }}">{{ $div->nama }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Filter Sub-Bagian/Seksi -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-2">Sub-Bagian / Seksi</label>
+                                <select name="sub_bagian" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2.5 bg-gray-50 text-gray-600">
+                                    <option value="Semua Sub-Bagian">Semua Sub-Bagian</option>
+                                    <template x-for="sub in filteredSubBagian" :key="sub.id">
+                                        <option :value="sub.id" x-text="sub.nama" :selected="sub.id == '{{ request('sub_bagian') }}'"></option>
+                                    </template>
+                                </select>
+                            </div>
+
+                            <!-- Filter Jenis Cuti -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-2">Jenis Cuti</label>
+                                <select name="jenis_cuti" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2.5 bg-gray-50 text-gray-600">
+                                    <option value="Semua Jenis">Semua Jenis Cuti</option>
+                                    @foreach($daftarJenisCuti as $jenis)
+                                        <option value="{{ $jenis->id }}" {{ (string) request('jenis_cuti') === (string) $jenis->id ? 'selected' : '' }}>{{ $jenis->nama_cuti }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Filter Tahun -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-2">Tahun</label>
+                                <select name="tahun" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2.5 bg-gray-50 text-gray-600">
+                                    @foreach($daftarTahun as $th)
+                                        <option value="{{ $th }}" {{ $tahun == $th ? 'selected' : '' }}>{{ $th }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Filter Bulan -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-2">Bulan</label>
+                                <select name="bulan" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2.5 bg-gray-50 text-gray-600">
+                                    <option value="Semua Bulan">Semua Bulan</option>
+                                    @foreach($bulanIndo as $angka => $nama)
+                                        <option value="{{ $angka }}" {{ $bulan == $angka ? 'selected' : '' }}>{{ $nama }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
                         </div>
+                    </div>
 
-                        <!-- Filter Sub-Bagian/Seksi -->
-                        <div class="w-full sm:w-56">
-                            <label class="block text-xs font-bold text-gray-600 mb-2">Sub-Bagian / Seksi</label>
-                            <!-- HAPUS onchange -->
-                            <select name="sub_bagian" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 transition text-sm py-2.5 bg-gray-50 text-gray-600">
-                                <option value="Semua Sub-Bagian">Semua Sub-Bagian</option>
-                                <template x-for="sub in filteredSubBagian" :key="sub.id">
-                                    <option :value="sub.id" x-text="sub.nama" :selected="sub.id == '{{ request('sub_bagian') }}'"></option>
-                                </template>
-                            </select>
-                        </div>
-
-                        <!-- Analitik / Urutkan -->
+                    <!-- Baris 2: Urutkan -->
+                    <div class="flex flex-col sm:flex-row sm:items-end gap-3 pt-1">
                         <div class="w-full sm:w-64">
-                            <label class="block text-xs font-bold text-gray-600 mb-2">Analisis (Paling Sering)</label>
-                            <!-- HAPUS onchange -->
-                            <select name="sort" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 transition text-sm py-2.5 bg-gray-50 text-gray-600">
-                                <option value="Terbaru">Normal (Terbaru)</option>
-                                <option value="Terbanyak" {{ request('sort') == 'Terbanyak' ? 'selected' : '' }}>🔥 Paling Sering Cuti (Total)</option>
-                                @foreach($daftarJenisCuti as $jenis)
-                                    <option value="{{ $jenis->id }}" {{ request('sort') == $jenis->id ? 'selected' : '' }}>📌 Terbanyak: {{ $jenis->nama_cuti }}</option>
+                            <label class="block text-xs font-bold text-gray-600 mb-2">Urutkan Berdasarkan</label>
+                            <select name="sort_by" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2.5 bg-gray-50 text-gray-600">
+                                @foreach($sortByOptions as $val => $label)
+                                    <option value="{{ $val }}" {{ $sortBy === $val ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
+                        </div>
+
+                        <!-- Arah Urutan: segmented control -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-2">Arah</label>
+                            <input type="hidden" name="sort_dir" :value="sortDir">
+                            <div class="inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1 h-[42px]">
+                                <button type="button" @click="sortDir = 'asc'"
+                                        class="flex items-center gap-1.5 px-4 rounded-lg text-sm font-bold transition"
+                                        :class="sortDir === 'asc' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 4h13M3 8h9M3 12h5m4 8V4m0 16l-4-4m4 4l4-4"></path></svg>
+                                    Ascending
+                                </button>
+                                <button type="button" @click="sortDir = 'desc'"
+                                        class="flex items-center gap-1.5 px-4 rounded-lg text-sm font-bold transition"
+                                        :class="sortDir === 'desc' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 4h5m-5 4h9m-9 4h13m-4-8v16m0 0l4-4m-4 4l-4-4"></path></svg>
+                                    Descending
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Tombol Terapkan & Reset Filter -->
-                        <div class="flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
-                            <button type="submit" class="bg-[#2a64f5] hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl transition shadow-sm text-sm h-[42px]">
+                        <div class="flex items-center gap-3 sm:ml-auto">
+                            <button type="submit" class="bg-[#2a64f5] hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl transition shadow-sm text-sm h-[42px] whitespace-nowrap">
                                 Terapkan Filter
                             </button>
 
-                            @if((request('divisi') && request('divisi') !== 'Semua Divisi') || (request('sub_bagian') && request('sub_bagian') !== 'Semua Sub-Bagian') || (request('sort') && request('sort') !== 'Terbaru'))
-                                <a href="{{ route('admin.rekap.index', array_filter(['search' => request('search')])) }}" class="text-sm font-bold text-red-500 hover:text-red-700 py-2.5 whitespace-nowrap ml-5">
+                            @if($filterAktif)
+                                <a href="{{ route('admin.rekap.index', array_filter(['search' => request('search')])) }}" class="text-sm font-bold text-red-500 hover:text-red-700 py-2.5 whitespace-nowrap">
                                     Reset
                                 </a>
                             @endif
                         </div>
-
                     </div>
                 </div>
             </form>
@@ -216,6 +296,22 @@
                     </div>
                 </div>
             </div>
+                                <!-- Info Periode Aktif -->
+                <div class="flex flex-wrap items-center gap-2 mb-4 text-xs">
+                    <span class="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 font-bold px-3 py-1.5 rounded-full">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        Periode: {{ $bulan ? $bulanIndo[$bulan] . ' ' : '' }}{{ $tahun }}
+                    </span>
+                    @if(request()->filled('jenis_cuti') && request('jenis_cuti') !== 'Semua Jenis')
+                        <span class="inline-flex items-center gap-1.5 bg-gray-50 text-gray-600 font-bold px-3 py-1.5 rounded-full border border-gray-100">
+                            Jenis: {{ optional($daftarJenisCuti->firstWhere('id', (int) request('jenis_cuti')))->nama_cuti }}
+                        </span>
+                    @endif
+                    <span class="inline-flex items-center gap-1.5 bg-gray-50 text-gray-600 font-bold px-3 py-1.5 rounded-full border border-gray-100">
+                        Urut: {{ $sortByOptions[$sortBy] ?? 'Nama Pegawai' }} ({{ $sortDir === 'desc' ? 'Descending' : 'Ascending' }})
+                    </span>
+                </div>
+
                 <!-- TABLE -->
                 <div class="overflow-x-auto border border-gray-100 rounded-xl">
                     <table class="w-full text-sm text-left">
@@ -226,6 +322,7 @@
                                 <th class="px-6 py-4 whitespace-nowrap">NIP</th>
                                 <th class="px-6 py-4 whitespace-nowrap">Divisi / Subbagian</th>
                                 <th class="px-6 py-4 whitespace-nowrap text-center">Kuota Tahunan</th>
+                                <th class="px-6 py-4 whitespace-nowrap text-center">Jumlah Ajuan</th>
                                 <th class="px-6 py-4 whitespace-nowrap text-center">Cuti Terpakai</th>
                                 <th class="px-6 py-4 whitespace-nowrap text-center">Sisa Kuota</th>
                                 <th class="px-6 py-4 whitespace-nowrap text-center">Aksi</th>
@@ -239,7 +336,9 @@
                                 <td class="px-6 py-5 text-gray-500 font-mono text-xs">{{ $rekap->nip }}</td>
                                 <td class="px-6 py-5 text-gray-600">{{ $rekap->divisi }}</td>
                                 <td class="px-6 py-5 text-gray-500">{{ $rekap->kuota }} Hari</td>
-                                
+
+                                <td class="px-6 py-5 text-center text-gray-600 font-semibold">{{ $rekap->jumlah_ajuan }}</td>
+
                                 <!-- Warna merah untuk cuti terpakai -->
                                 <td class="px-6 py-5 font-bold text-red-500">{{ $rekap->terpakai }} Hari</td>
                                 
@@ -254,7 +353,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="8" class="px-6 py-8 text-center text-gray-500 font-medium">Belum ada data pegawai.</td>
+                                <td colspan="9" class="px-6 py-8 text-center text-gray-500 font-medium">Belum ada data pegawai untuk periode/filter ini.</td>
                             </tr>
                             @endforelse
                         </tbody>

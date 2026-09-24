@@ -130,13 +130,23 @@
         </div>
     </div>
 
-    <!-- Dropdown Menu Mobile -->
+        <!-- Dropdown Menu Mobile -->
    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden bg-white/90 backdrop-blur-md border-t border-gray-100">
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 Beranda
             </x-responsive-nav-link>
-            
+
+            @hasanyrole(['Kepala Seksi','Kepala Bagian', 'Kepala Bidang', 'Kepala Sub-Bagian', 'Kepala TU', 'Kepala Kantor'])
+                <x-responsive-nav-link :href="route('kepala.approval.index')" :active="request()->routeIs('kepala.approval.*')">
+                    Approval Cuti
+                </x-responsive-nav-link>
+            @endhasanyrole
+
+            <x-responsive-nav-link :href="route('pengajuan.index')" :active="request()->is('pengajuan')">
+                Pengajuan Cuti
+            </x-responsive-nav-link>
+
             <x-responsive-nav-link :href="route('pengajuan.riwayat')" :active="request()->routeIs('pengajuan.riwayat', 'pengajuan.show')">
                 Riwayat Pengajuan
             </x-responsive-nav-link>
@@ -148,7 +158,6 @@
                     </span>
                 @endif
             </x-responsive-nav-link>
-            <!-- TAMBAHKAN DUA MENU INI UNTUK VERSI MOBILE -->
             <x-responsive-nav-link :href="route('profile.show')" :active="request()->routeIs('profile.*')">
                 Profil
             </x-responsive-nav-link>
@@ -157,14 +166,12 @@
                     {{ __('Informasi & Jatah Cuti') }}
                 </x-responsive-nav-link>
             @endunlessrole
-            
+
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
-                <x-responsive-nav-link :href="route('logout')"
-                        onclick="event.preventDefault(); this.closest('form')->submit();"
-                        class="text-red-600 hover:text-red-700 hover:bg-red-50">
+                <button type="submit" class="block w-full ps-3 pe-4 py-2 border-l-4 border-transparent text-start text-base font-medium text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-300 focus:outline-none focus:text-red-700 focus:bg-red-50 focus:border-red-300 transition duration-150 ease-in-out">
                     Keluar
-                </x-responsive-nav-link>
+                </button>
             </form>
         </div>
     </div>
