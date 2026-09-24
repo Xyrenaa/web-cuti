@@ -15,7 +15,6 @@ class JenisCutiSeeder extends Seeder
             ['nama_cuti' => 'Cuti Alasan Penting', 'mengurangi_kuota' => false, 'wajib_lampiran' => true, 'untuk_pppk' => false, 'khusus_perempuan' => false],
             ['nama_cuti' => 'Cuti Besar', 'mengurangi_kuota' => true, 'wajib_lampiran' => false, 'untuk_pppk' => false, 'khusus_perempuan' => false],
             ['nama_cuti' => 'Cuti Melahirkan', 'mengurangi_kuota' => false, 'wajib_lampiran' => true, 'untuk_pppk' => true, 'khusus_perempuan' => true],
-            ['nama_cuti' => 'Cuti Bersama', 'mengurangi_kuota' => false, 'wajib_lampiran' => false, 'untuk_pppk' => true, 'khusus_perempuan' => false],
         ];
 
         foreach ($jenis_cuti as $jenis) {
