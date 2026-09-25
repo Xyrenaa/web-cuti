@@ -896,6 +896,93 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
 
         return \Maatwebsite\Excel\Facades\Excel::download($export, $namaFile);
     }
+        public function updateJatahIndividu(Request $request, $id)
+    {
+        $request->validate([
+            'jatah_cuti' => 'required|integer|min:0|max:365',
+        ]);
+
+        $user = \App\Models\User::findOrFail($id);
+        $lamaJatah = $user->jatah_cuti ?? 12;
+        $user->jatah_cuti = $request->jatah_cuti;
+        $user->save();
+
+        return redirect()->route('admin.rekap.show', $id)
+            ->with('success', "Jatah cuti {$user->name} diubah dari {$lamaJatah} menjadi {$request->jatah_cuti} hari.");
+    }
+    private function hitungRolloverTahun(int $tahunDitutup)
+    {
+        $constraint = $this->constraintPengajuanRekap($tahunDitutup, null, null);
+
+        return \App\Models\User::query()
+            ->withSum(['pengajuanCutis as terpakai_tahun_ini' => function ($q) use ($constraint) {
+                $constraint($q);
+                $q->whereHas('jenisCuti', fn ($jq) => $jq->where('mengurangi_kuota', true));
+            }], 'durasi_hari')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($user) {
+                $jatahSaatIni = $user->jatah_cuti ?? 12;
+                $terpakai = (int) ($user->terpakai_tahun_ini ?? 0);
+                $sisaMentah = max(0, $jatahSaatIni - $terpakai);
+                $sisaDibawa = min(6, $sisaMentah);
+                $jatahBaru = $sisaDibawa + 12;
+
+                return (object) [
+                    'id'             => $user->id,
+                    'nama'           => $user->name,
+                    'nip'            => $user->nip,
+                    'jatah_saat_ini' => $jatahSaatIni,
+                    'terpakai'       => $terpakai,
+                    'sisa_mentah'    => $sisaMentah,
+                    'sisa_dibawa'    => $sisaDibawa,
+                    'jatah_baru'     => $jatahBaru,
+                ];
+            });
+    }
+
+    public function previewTutupTahun(Request $request)
+    {
+        $tahunDitutup = (int) ($request->input('tahun') ?: date('Y'));
+
+        $sudahDitutup = \App\Models\TutupTahunLog::where('tahun_ditutup', $tahunDitutup)->latest()->first();
+        $tahunBelumBerakhir = $tahunDitutup >= (int) date('Y') && !(date('Y') > $tahunDitutup);
+        $hasil = $this->hitungRolloverTahun($tahunDitutup);
+
+        return view('admin.rekap.tutup-tahun', [
+            'tahunDitutup'       => $tahunDitutup,
+            'tahunBaru'          => $tahunDitutup + 1,
+            'hasil'              => $hasil,
+            'sudahDitutup'       => $sudahDitutup,
+            'tahunBelumBerakhir' => $tahunBelumBerakhir,
+        ]);
+    }
+
+    public function prosesTutupTahun(Request $request)
+    {
+        $request->validate([
+            'tahun'       => 'required|integer|min:2020|max:2100',
+            'konfirmasi'  => 'required|accepted',
+        ]);
+
+        $tahunDitutup = (int) $request->tahun;
+        $hasil = $this->hitungRolloverTahun($tahunDitutup);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($hasil, $tahunDitutup) {
+            foreach ($hasil as $baris) {
+                \App\Models\User::whereKey($baris->id)->update(['jatah_cuti' => $baris->jatah_baru]);
+            }
+
+            \App\Models\TutupTahunLog::create([
+                'tahun_ditutup'   => $tahunDitutup,
+                'jumlah_pegawai'  => $hasil->count(),
+                'dilakukan_oleh'  => auth()->id(),
+            ]);
+        });
+
+        return redirect()->route('admin.rekap.index')
+            ->with('success', "Tutup Tahun {$tahunDitutup} berhasil. Jatah cuti {$hasil->count()} pegawai sudah diperbarui untuk tahun " . ($tahunDitutup + 1) . ".");
+    }
     public function dashboardAdmin()
     {
         $bulanIni = now()->month;

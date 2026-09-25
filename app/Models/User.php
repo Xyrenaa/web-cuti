@@ -51,6 +51,7 @@ class User extends Authenticatable
         'sub_bagian_seksi_id',
         'level_jabatan',
         'jatah_cuti',
+        'status_kepegawaian',
     ];
     public const STRUKTUR_ORGANISASI = [
         'Bagian Tata Usaha' => [
