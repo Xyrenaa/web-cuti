@@ -248,9 +248,14 @@
 
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-lg font-bold text-gray-900">Update Jatah Cuti Massal</h3>
-                            <button type="button" @click="open = false" class="text-gray-400 hover:text-gray-600">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            </button>
+                         <button type="button" x-data @click="$dispatch('open-modal-jatah')" class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-5 rounded-xl transition shadow-sm text-sm whitespace-nowrap h-[42px] flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            Update Jatah Cuti Massal
+                        </button>
+                        <a href="{{ route('admin.rekap.tutup-tahun.preview') }}" class="bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-700 font-bold py-2.5 px-5 rounded-xl transition shadow-sm text-sm whitespace-nowrap h-[42px] flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            Tutup Tahun
+                        </a>
                         </div>
 
                         <form id="form-update-jatah" action="{{ route('admin.rekap.update-jatah') }}" method="POST" onsubmit="return konfirmasiUpdateJatah(event)">
