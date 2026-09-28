@@ -35,6 +35,26 @@ class User extends Authenticatable
 
         return ($kodeTmt >= 1 && $kodeTmt <= 12) ? 'PNS' : 'PPPK';
     }
+        /**
+     * Pecah saldo cuti ala Excel. Sisa tahun lalu dipakai lebih dulu.
+     */
+    public static function hitungSaldo(int $jatah, int $saldoLalu, int $terpakai): array
+    {
+        $saldoLalu     = max(0, min($saldoLalu, $jatah));
+        $jatahBerjalan = $jatah - $saldoLalu;
+        $dariLalu      = min($terpakai, $saldoLalu);
+        $dariBerjalan  = $terpakai - $dariLalu;
+
+        return [
+            'saldo_lalu'       => $saldoLalu,
+            'dipakai_lalu'     => $dariLalu,
+            'sisa_lalu'        => $saldoLalu - $dariLalu,
+            'jatah_berjalan'   => $jatahBerjalan,
+            'dipakai_berjalan' => $dariBerjalan,
+            'sisa_berjalan'    => $jatahBerjalan - $dariBerjalan,
+            'total_sisa'       => $jatah - $terpakai,
+        ];
+    }
 
     /**
      * The attributes that are mass assignable.

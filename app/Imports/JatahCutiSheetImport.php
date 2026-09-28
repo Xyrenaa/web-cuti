@@ -16,21 +16,19 @@ class JatahCutiSheetImport implements ToModel, WithHeadingRow, WithBatchInserts,
             return null;
         }
 
-        $nipBersih = str_replace(' ', '', $row['nip']);
-        $user = User::where('nip', $nipBersih)->first();
-
+        $user = User::where('nip', str_replace(' ', '', $row['nip']))->first();
         if (!$user) {
-            return null; // NIP tidak ketemu di sistem — lewati, jangan bikin akun baru dari sheet ini
+            return null;
         }
 
-        $finalSisa2025 = (float) ($row['final_sisa_tahun_2025'] ?? 0);
-        $asliSisa2026  = (float) ($row['asli_sisa_tahun_2026'] ?? 12);
+        $asliSisaLalu = (float) ($row['asli_sisa_tahun_2025'] ?? 0);
+        $asliSisaIni  = (float) ($row['asli_sisa_tahun_2026'] ?? 12);
 
-        // Jatah "kotor" tahun ini: sisa tahun lalu (sudah dibatasi maks 6 hari
-        // oleh HR) + jatah segar tahun berjalan. Pemakaian tahun berjalan
-        // TIDAK dikurangkan di sini — biarkan sistem yang menghitungnya
-        // sendiri dari data pengajuan, supaya tidak terpotong dua kali.
-        $user->jatah_cuti = (int) round($finalSisa2025 + $asliSisa2026);
+        // Sama dengan kolom "Hitung Sisa 2025" di Excel: dibawa maks. 6 hari, tidak boleh negatif.
+        $saldoLalu = (int) min(6, max(0, round($asliSisaLalu)));
+
+        $user->saldo_tahun_lalu = $saldoLalu;
+        $user->jatah_cuti       = $saldoLalu + (int) round($asliSisaIni); // pemakaian dihitung sistem
         $user->save();
 
         return null;

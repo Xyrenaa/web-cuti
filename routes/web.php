@@ -81,10 +81,10 @@ Route::middleware(['auth', 'verified', 'role:Admin Kepegawaian'])->group(functio
     Route::get('/admin/rekap', [PengajuanController::class, 'rekapAdmin'])->name('admin.rekap.index');
     Route::post('/admin/rekap/update-jatah', [PengajuanController::class, 'updateJatahMassal'])->name('admin.rekap.update-jatah');
     Route::get('/admin/rekap/export', [PengajuanController::class, 'exportRekap'])->name('admin.rekap.export');
-    Route::get('/admin/rekap/{id}', [PengajuanController::class, 'showRekap'])->name('admin.rekap.show');
-    Route::post('/admin/rekap/{id}/update-jatah', [PengajuanController::class, 'updateJatahIndividu'])->name('admin.rekap.update-jatah-individu');
     Route::get('/admin/rekap/tutup-tahun', [PengajuanController::class, 'previewTutupTahun'])->name('admin.rekap.tutup-tahun.preview');
-Route::post('/admin/rekap/tutup-tahun', [PengajuanController::class, 'prosesTutupTahun'])->name('admin.rekap.tutup-tahun.proses');
+    Route::post('/admin/rekap/tutup-tahun', [PengajuanController::class, 'prosesTutupTahun'])->name('admin.rekap.tutup-tahun.proses');
+    Route::get('/admin/rekap/{id}', [PengajuanController::class, 'showRekap'])->whereNumber('id')->name('admin.rekap.show');
+    Route::post('/admin/rekap/{id}/update-jatah', [PengajuanController::class, 'updateJatahIndividu'])->whereNumber('id')->name('admin.rekap.update-jatah-individu');
 });
 
 
