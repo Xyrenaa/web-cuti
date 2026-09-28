@@ -1,4 +1,31 @@
 <x-app-layout>
+    <style>
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .reveal {
+            opacity: 0;
+            animation: fadeSlideUp .7s cubic-bezier(.16,1,.3,1) forwards;
+        }
+        .card-lift {
+            transition: transform .25s ease, box-shadow .25s ease;
+        }
+        .card-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 14px 28px -12px rgba(42,101,243,.28);
+        }
+        .stat-cell {
+            transition: background-color .3s ease;
+        }
+        .stat-cell:hover {
+            background-color: rgba(42,101,243,.04);
+        }
+        .modal-backdrop, .modal-panel {
+            transition: opacity .25s ease, transform .25s ease;
+        }
+    </style>
+
     <!-- Pita Biru Header -->
     <div class="bg-[#2A65F3] pt-8 pb-10 px-4 sm:px-6 lg:px-8 shadow-sm">
         <div class="max-w-7xl mx-auto">
@@ -18,7 +45,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             
             <!-- Kotak Selamat Datang -->
-            <div class="bg-[#F4F7FF] rounded-2xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border border-blue-100 shadow-sm">
+            <div class="reveal bg-[#F4F7FF] rounded-2xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border border-blue-100 shadow-sm">
                 <div>
                     <h2 class="text-2xl font-bold text-gray-800">Selamat Datang Kembali</h2>
                     <p class="text-gray-500 mt-1 text-sm">Kelola pengajuan cuti pegawai Kantor Otoritas Bandar Udara Wilayah III Juanda secara real-time.</p>
@@ -39,7 +66,13 @@
                  }" 
                  x-init="setInterval(() => updateTime(), 1000)">
                 
-                    <p class="text-xs font-bold text-[#2A65F3] uppercase tracking-wider mb-1">Waktu Saat Ini</p>
+                    <p class="text-xs font-bold text-[#2A65F3] uppercase tracking-wider mb-1 flex items-center justify-end gap-1.5">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        </span>
+                        Waktu Saat Ini
+                    </p>
                     <div class="flex items-baseline justify-end gap-1">
                         <div class="text-xl font-bold text-gray-800">
                             <span x-text="jam"></span><span class="mx-0.5">:</span><span x-text="menit"></span>
@@ -53,33 +86,33 @@
             </div>
 
             <!-- SECTION 1: STATISTIK 4 KARTU (Sleek Enterprise Style) -->
-            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm mb-8 overflow-hidden">
+            <div class="reveal bg-white rounded-2xl border border-gray-200 shadow-sm mb-8 overflow-hidden" style="animation-delay: .08s">
                 <!-- Grid khusus untuk 4 kartu pembatas garis -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 lg:divide-x divide-gray-200">
                     
-                    <div onclick="openDrillDownModal()" class="p-6 cursor-pointer hover:bg-gray-50 transition-colors">
+                    <div onclick="openDrillDownModal()" class="stat-cell p-6 cursor-pointer">
                         <h3 class="text-gray-500 text-sm font-medium">Pengajuan Menunggu</h3>
-                        <p class="text-3xl font-bold text-blue-600 mt-2">{{ $countMenunggu }}</p>
+                        <p class="text-3xl font-bold text-blue-600 mt-2" data-count-up="{{ $countMenunggu }}">0</p>
                         <p class="text-xs text-gray-400 mt-1">Klik untuk melihat sebaran divisi</p>
                     </div>
 
-                    <div class="p-6">
+                    <div class="stat-cell p-6">
                         <h3 class="text-gray-500 text-sm font-medium uppercase tracking-wider">Disetujui Bulan Ini</h3>
                         <div class="flex items-end gap-2 mt-2">
-                            <p class="text-3xl font-bold text-gray-800">{{ $countDisetujui }}</p>
+                            <p class="text-3xl font-bold text-gray-800" data-count-up="{{ $countDisetujui }}">0</p>
                             <p class="text-sm text-green-500 font-medium mb-1">✓ Tuntas</p>
                         </div>
                     </div>
 
-                    <div class="p-6">
+                    <div class="stat-cell p-6">
                         <h3 class="text-gray-500 text-sm font-medium uppercase tracking-wider">Ditolak / Revisi</h3>
                         <div class="flex items-end gap-2 mt-2">
-                            <p class="text-3xl font-bold text-gray-800">{{ $countDitolak }}</p>
+                            <p class="text-3xl font-bold text-gray-800" data-count-up="{{ $countDitolak }}">0</p>
                             <p class="text-sm text-gray-400 font-medium mb-1">Berkas</p>
                         </div>
                     </div>
 
-                    <div class="p-6">
+                    <div class="stat-cell p-6">
                         <h3 class="text-blue-500 text-sm font-medium uppercase tracking-wider">
                             {{ match($levelKepala) {
                                 'kantor' => 'Total Pegawai Aktif',
@@ -89,7 +122,7 @@
                             } }}
                         </h3>
                         <div class="flex items-end gap-2 mt-2">
-                            <p class="text-3xl font-bold text-blue-600">{{ $totalPegawai }}</p>
+                            <p class="text-3xl font-bold text-blue-600" data-count-up="{{ $totalPegawai }}">0</p>
                             <p class="text-sm text-blue-400 font-medium mb-1">Personel</p>
                         </div>
                     </div>
@@ -99,10 +132,10 @@
 
             <!-- SECTION 2: EXECUTIVE ANALYTICS -->
             <div class="mb-8">
-                <h2 class="text-lg font-semibold text-gray-800 mb-4">Analisis Strategis & Tren</h2>
+                <h2 class="reveal text-lg font-semibold text-gray-800 mb-4" style="animation-delay: .14s">Analisis Strategis & Tren</h2>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <div class="reveal card-lift bg-white p-6 rounded-2xl shadow-sm border border-gray-200" style="animation-delay: .18s">
                         <h3 class="text-md font-medium text-gray-700 mb-2">Tren Pengajuan Cuti Bulanan</h3>
                         <p class="text-xs text-gray-500 mb-4">Visualisasi peak season cuti pegawai</p>
                         <div class="relative h-72 w-full">
@@ -112,11 +145,11 @@
 
                     @if($levelKepala === 'seksi' && $risikoRingkas)
                     <!-- MODE KEPALA SEKSI/SUB-BAGIAN: satu angka ringkasan + bisa klik lihat nama pegawainya -->
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col">
+                    <div class="reveal card-lift bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col" style="animation-delay: .22s">
                         <h3 class="text-md font-medium text-gray-700 mb-1">Risiko Kekosongan Seksi/Sub-Bagian Anda</h3>
                         <p class="text-xs text-gray-500 mb-6">Deteksi dini staf cuti &gt; 50%</p>
                         <div class="flex-grow flex flex-col items-center justify-center gap-2 py-6">
-                            <p class="text-5xl font-bold {{ $risikoRingkas['status_bahaya'] ? 'text-red-600' : 'text-blue-600' }}">{{ $risikoRingkas['persentase'] }}%</p>
+                            <p class="text-5xl font-bold {{ $risikoRingkas['status_bahaya'] ? 'text-red-600' : 'text-blue-600' }}" data-count-up="{{ $risikoRingkas['persentase'] }}" data-suffix="%">0%</p>
                             <p class="text-sm text-gray-500">{{ $risikoRingkas['sedang_cuti'] }} pegawai sedang cuti</p>
                             <span class="mt-2 px-3 py-1 text-xs font-bold rounded-full {{ $risikoRingkas['status_bahaya'] ? 'bg-red-100 text-red-700 animate-pulse' : 'bg-green-100 text-green-700' }}">
                                 {{ $risikoRingkas['status_bahaya'] ? 'Bahaya!' : 'Aman' }}
@@ -132,7 +165,7 @@
                     </div>
                     @else
                     <!-- MODE KEPALA KANTOR (rincian sub-unit) & KEPALA BIDANG/BAGIAN (rincian nama pegawai) -->
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col">
+                    <div class="reveal card-lift bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col" style="animation-delay: .22s">
                         <h3 class="text-md font-medium text-gray-700 mb-2">Risiko Kekosongan per Divisi</h3>
                         <p class="text-xs text-gray-500 mb-4">
                             Deteksi dini divisi dengan staf cuti &gt; 50%
@@ -180,7 +213,7 @@
             </div>
 
             <!-- SECTION 3: TABEL PERSETUJUAN TERKINI (Desain Dummy Diubah Dinamis) -->
-            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="reveal bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden" style="animation-delay: .28s">
                 <div class="flex justify-between items-center p-6 border-b border-gray-100">
                     <h3 class="text-lg font-bold text-gray-800">Persetujuan Terkini Menunggu Tindakan</h3>
                    <a href="{{ route('kepala.approval.index') }}" class="text-sm font-semibold text-[#2A65F3] hover:text-blue-800 flex items-center gap-1">
@@ -203,7 +236,7 @@
                         <tbody class="divide-y divide-gray-100">
                             
                             @forelse($pengajuanTerbaru as $pengajuan)
-                            <tr class="hover:bg-gray-50/50 transition">
+                            <tr class="reveal hover:bg-gray-50/50 transition" style="animation-delay: {{ .32 + ($loop->index * .06) }}s">
                                 <td class="px-6 py-4">
                                     <p class="font-bold text-gray-800">{{ $pengajuan->user->name }}</p>
                                     <p class="text-xs text-gray-400">{{ $pengajuan->user->bagianBidang->nama ?? $pengajuan->user->bagianBidang->nama_bagian ?? 'Divisi Tidak Diketahui' }}</p>
@@ -242,8 +275,9 @@
     </footer>
 
     <!-- MODAL DRILL-DOWN SEBARAN DIVISI -->
-    <div id="drillDownModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
-        <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
+    <div id="drillDownModal" class="fixed inset-0 z-50 hidden items-center justify-center">
+        <div class="modal-backdrop absolute inset-0 bg-gray-900/50 opacity-0" onclick="closeDrillDownModal()"></div>
+        <div class="modal-panel relative bg-white rounded-xl shadow-lg w-full max-w-md p-6 mx-4 opacity-0 scale-95">
             <button onclick="closeDrillDownModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
@@ -268,8 +302,9 @@
     </div>
 
     <!-- MODAL RINCIAN RISIKO (klik slice/baris di chart Risiko Kekosongan, khusus Kepala Kantor) -->
-    <div id="rincianDivisiModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
-        <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
+    <div id="rincianDivisiModal" class="fixed inset-0 z-50 hidden items-center justify-center">
+        <div class="modal-backdrop absolute inset-0 bg-gray-900/50 opacity-0" onclick="closeRincianModal()"></div>
+        <div class="modal-panel relative bg-white rounded-xl shadow-lg w-full max-w-md p-6 mx-4 opacity-0 scale-95">
             <button onclick="closeRincianModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
@@ -286,13 +321,33 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        // --- HELPER TRANSISI MODAL (fade + scale, dipakai semua modal di halaman ini) ---
+        function bukaModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            requestAnimationFrame(() => {
+                modal.querySelector('.modal-backdrop').classList.remove('opacity-0');
+                modal.querySelector('.modal-panel').classList.remove('opacity-0', 'scale-95');
+            });
+        }
+        function tutupModal(id) {
+            const modal = document.getElementById(id);
+            modal.querySelector('.modal-backdrop').classList.add('opacity-0');
+            modal.querySelector('.modal-panel').classList.add('opacity-0', 'scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 250);
+        }
+
         // --- FUNGSI MODAL DRILL-DOWN ---
         function openDrillDownModal() {
-            document.getElementById('drillDownModal').classList.remove('hidden');
+            bukaModal('drillDownModal');
         }
 
         function closeDrillDownModal() {
-            document.getElementById('drillDownModal').classList.add('hidden');
+            tutupModal('drillDownModal');
         }
 
         // --- FUNGSI MODAL RINCIAN RISIKO (klik slice chart Risiko Kekosongan) ---
@@ -330,15 +385,34 @@
                 `).join('');
             }
 
-            document.getElementById('rincianDivisiModal').classList.remove('hidden');
+            bukaModal('rincianDivisiModal');
         }
 
         function closeRincianModal() {
-            document.getElementById('rincianDivisiModal').classList.add('hidden');
+            tutupModal('rincianDivisiModal');
+        }
+
+        // --- ANIMASI ANGKA "MENGHITUNG NAIK" UNTUK KARTU STATISTIK ---
+        function animateCountUp(el, target, duration = 900) {
+            const suffix = el.dataset.suffix || '';
+            const startTime = performance.now();
+            function step(now) {
+                const progress = Math.min((now - startTime) / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+                el.textContent = Math.round(target * eased) + suffix;
+                if (progress < 1) requestAnimationFrame(step);
+                else el.textContent = target + suffix;
+            }
+            requestAnimationFrame(step);
         }
 
         // --- INISIALISASI GRAFIK CHART.JS ---
         document.addEventListener("DOMContentLoaded", function() {
+
+            document.querySelectorAll('[data-count-up]').forEach((el) => {
+                const target = parseFloat(el.dataset.countUp) || 0;
+                animateCountUp(el, target);
+            });
             
             // 1. GRAFIK TREN BULANAN (Sisi Kiri)
             const trendCtx = document.getElementById('trendChart');
@@ -405,6 +479,11 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        animation: {
+                            duration: 900,
+                            easing: 'easeOutQuart',
+                            delay: (context) => context.type === 'data' ? context.dataIndex * 90 : 0
+                        },
                         plugins: {
                             legend: { position: 'right' },
                             tooltip: {

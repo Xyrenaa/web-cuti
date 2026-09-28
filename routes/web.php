@@ -29,6 +29,10 @@ Route::get('/dashboard', function () {
         return app(\App\Http\Controllers\DashboardKepalaController::class)->index();
     }
 
+    Route::get('/admin/dashboard', function () {
+    return view('admin.dashboard');
+})->middleware(['auth', 'verified'])->name('admin.dashboard');
+
     // Jika bukan Kepala (Pegawai biasa)
     return view('pegawai.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
