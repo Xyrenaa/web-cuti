@@ -2,6 +2,7 @@
 
 namespace App\Imports;
 
+use App\Models\PengajuanCuti;
 use App\Models\User;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -10,6 +11,9 @@ use Maatwebsite\Excel\Concerns\WithChunkReading;
 
 class JatahCutiSheetImport implements ToModel, WithHeadingRow, WithBatchInserts, WithChunkReading
 {
+    // Sheet JATAH CUTI adalah potret tahun ini. Ubah saat kamu memakai sheet tahun berikutnya.
+    private const TAHUN_SHEET = 2026;
+
     public function model(array $row)
     {
         if (empty($row['nip'])) {
@@ -21,14 +25,21 @@ class JatahCutiSheetImport implements ToModel, WithHeadingRow, WithBatchInserts,
             return null;
         }
 
-        $asliSisaLalu = (float) ($row['asli_sisa_tahun_2025'] ?? 0);
-        $asliSisaIni  = (float) ($row['asli_sisa_tahun_2026'] ?? 12);
+        // Semua angka diambil apa adanya dari sheet (tanpa dihitung ulang / dipotong 6).
+        $sisaLalu = max(0, (int) round((float) ($row['hitung_sisa_tahun_2025'] ?? 0)));
+        $jatahIni = (int) round((float) ($row['asli_sisa_tahun_2026'] ?? 12));
+        $ctSheet  = (int) round((float) ($row['total_ct_tahun_2026'] ?? 0));
 
-        // Sama dengan kolom "Hitung Sisa 2025" di Excel: dibawa maks. 6 hari, tidak boleh negatif.
-        $saldoLalu = (int) min(6, max(0, round($asliSisaLalu)));
+        // Pemakaian yang sudah tercatat dari sheet DATA CUTI (diimport lebih dulu).
+        $tercatat = (int) PengajuanCuti::where('user_id', $user->id)
+            ->where('approval_step', 8)
+            ->whereYear('tanggal_mulai', self::TAHUN_SHEET)
+            ->whereHas('jenisCuti', fn ($q) => $q->where('mengurangi_kuota', true))
+            ->sum('durasi_hari');
 
-        $user->saldo_tahun_lalu = $saldoLalu;
-        $user->jatah_cuti       = $saldoLalu + (int) round($asliSisaIni); // pemakaian dihitung sistem
+        $user->saldo_tahun_lalu = $sisaLalu;
+        $user->jatah_cuti       = $sisaLalu + $jatahIni;
+        $user->koreksi_terpakai = $ctSheet - $tercatat;
         $user->save();
 
         return null;

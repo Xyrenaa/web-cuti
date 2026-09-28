@@ -76,6 +76,11 @@ class RekapCutiExport implements FromCollection, WithHeadings, WithMapping
 
         $query->withCount(['pengajuanCutis as jumlah_ajuan' => $this->constraintPengajuan()]);
 
+            $query->withExists(['pengajuanCutis as punya_cuti_besar' => function ($q) use ($tahun) {
+            $q->where('approval_step', 8)->whereYear('tanggal_mulai', $tahun)
+              ->whereHas('jenisCuti', fn ($j) => $j->where('nama_cuti', 'Cuti Besar'));
+        }]);
+
         return $query->orderBy('name')->get();
     }
 
@@ -91,8 +96,7 @@ class RekapCutiExport implements FromCollection, WithHeadings, WithMapping
 
     public function map($user): array
     {
-        $terpakai = (int) ($user->terpakai_tahun ?? 0);
-        $s = User::hitungSaldo((int) ($user->jatah_cuti ?? 12), (int) $user->saldo_tahun_lalu, $terpakai);
+        $s = User::saldoDari($user, (int) ($user->terpakai_tahun ?? 0), (bool) $user->punya_cuti_besar);
 
         return [
             ++$this->no,
@@ -101,7 +105,7 @@ class RekapCutiExport implements FromCollection, WithHeadings, WithMapping
             $user->subBagianSeksi->nama ?? $user->bagianBidang->nama ?? '-',
             $s['saldo_lalu'], $s['dipakai_lalu'], $s['sisa_lalu'],
             $s['jatah_berjalan'], $s['dipakai_berjalan'], $s['sisa_berjalan'],
-            (int) $user->jumlah_ajuan, $terpakai, $s['total_sisa'],
+            (int) $user->jumlah_ajuan, $s['terpakai'], $s['total_sisa'],
         ];
     }
 }

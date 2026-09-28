@@ -24,10 +24,11 @@
         <div class="relative z-10 flex-grow flex flex-col">
             
             <!-- Navbar Admin -->
-            <nav x-data="{ open: false, scrolled: false }" 
-                 @scroll.window="scrolled = (window.pageYOffset > 20)"
-                 :class="{'bg-white/90 backdrop-blur-md shadow-md': scrolled, 'bg-white shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)]': !scrolled}"
-                 class="sticky top-0 z-50 w-full transition-all duration-300">
+            <nav x-data="{ open: false, scrolled: false }"
+                @scroll.window="scrolled = (window.pageYOffset > 20)"
+                            :class="{'bg-white/90 backdrop-blur-md shadow-md': scrolled, 'bg-white shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)]': !scrolled}"@scroll.window.passive="scrolled = (window.pageYOffset > 20)"
+                :class="scrolled ? 'shadow-md' : 'shadow-sm'"
+                class="sticky top-0 z-50 border-b border-gray-100 bg-white transition-shadow duration-300">
                 
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="flex justify-between items-center transition-all duration-300" :class="{'h-16': scrolled, 'h-20': !scrolled}">
@@ -35,16 +36,9 @@
                         <!-- Kiri: DUA LOGO BERDAMPINGAN -->
                         <div class="shrink-0 flex items-center">
                             <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3">
-                                <img src="{{ asset('img/Logo Otban.png') }}" alt="Logo Otban" 
-                                     class="w-auto transition-all duration-300" 
-                                     :class="{'h-12': scrolled, 'h-16': !scrolled}">
-                                
-                                <div class="w-px bg-gray-200 transition-all duration-300" 
-                                     :class="{'h-8': scrolled, 'h-10': !scrolled}"></div>
-                                
-                                <img src="{{ asset('img/logo-pelita.png') }}" alt="Logo Pelita" 
-                                     class="w-auto mt-1 transition-all duration-300" 
-                                     :class="{'h-9': scrolled, 'h-12': !scrolled}">
+                            <img src="{{ asset('img/Logo Otban.png') }}" class="block h-[50px] w-auto" alt="Logo Instansi" width="50" height="50" />
+                            <div class="w-px h-8 bg-gray-300"></div>
+                            <img src="{{ asset('img/logo-pelita.png') }}" class="block h-14 w-auto" alt="Logo PELITA" width="186" height="56" />
                             </a>
                         </div>
 
