@@ -100,7 +100,7 @@
                             @php
                                 // Logika cerdas untuk menimpa teks status yang "nyangkut" di database
                                 // Khusus untuk antrean di meja Admin (Step 3 dan 7)
-                                $teksStatus = $pengajuan->status_pengajuan;
+                                $teksStatus = $pengajuan->status_label;
                                 if ($pengajuan->approval_step == 3) {
                                     $teksStatus = 'Menunggu Verifikasi Admin';
                                 } elseif ($pengajuan->approval_step == 7) {
