@@ -69,7 +69,7 @@
                                 Rekap Cuti
                             </a>
                             
-                                                        <!-- Menu Notifikasi (Lonceng + Badge Belum Dibaca) -->
+                         <!-- Menu Notifikasi (Lonceng + Badge Belum Dibaca) -->
                             @php $jumlahNotif = $jumlahNotifBelumDibaca ?? 0; @endphp
                             <a href="{{ route('admin.notifikasi') }}"
                                class="group px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center gap-1.5
@@ -95,7 +95,7 @@
                             <!-- Garis Pemisah Menu -->
                             <div class="w-px h-5 bg-gray-200"></div>
                             
-                            <!-- Logout -->
+                                                        <!-- Logout -->
                             <form method="POST" action="{{ route('logout') }}" class="inline">
                                 @csrf
                                 <button type="submit" class="text-gray-400 hover:text-red-500 transition px-2">
@@ -103,6 +103,54 @@
                                 </button>
                             </form>
                         </div>
+
+                        <!-- Hamburger Menu (Mobile) -->
+                        <div class="-me-2 flex items-center sm:hidden">
+                            <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 transition duration-150 ease-in-out">
+                                <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                                    <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                                    <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dropdown Menu Mobile -->
+                <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden bg-white/90 backdrop-blur-md border-t border-gray-100">
+                    <div class="pt-2 pb-3 space-y-1">
+                        <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
+                            Beranda
+                        </x-responsive-nav-link>
+
+                        <x-responsive-nav-link :href="route('admin.approval.index')" :active="request()->routeIs('admin.approval*')">
+                            Approval Cuti
+                        </x-responsive-nav-link>
+
+                        <x-responsive-nav-link :href="route('admin.rekap.index')" :active="request()->routeIs('admin.rekap.*')">
+                            Rekap Cuti
+                        </x-responsive-nav-link>
+
+                        @php $jumlahNotifMobile = $jumlahNotifBelumDibaca ?? 0; @endphp
+                        <x-responsive-nav-link :href="route('admin.notifikasi')" :active="request()->routeIs('admin.notifikasi')">
+                            Notifikasi
+                            @if($jumlahNotifMobile > 0)
+                                <span class="ml-2 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                                    {{ $jumlahNotifMobile > 9 ? '9+' : $jumlahNotifMobile }}
+                                </span>
+                            @endif
+                        </x-responsive-nav-link>
+
+                        <x-responsive-nav-link :href="route('admin.profile.show')" :active="request()->routeIs('admin.profile.*')">
+                            Profil
+                        </x-responsive-nav-link>
+
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="block w-full ps-3 pe-4 py-2 border-l-4 border-transparent text-start text-base font-medium text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-300 focus:outline-none focus:text-red-700 focus:bg-red-50 focus:border-red-300 transition duration-150 ease-in-out">
+                                Keluar
+                            </button>
+                        </form>
                     </div>
                 </div>
             </nav>

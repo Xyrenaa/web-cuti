@@ -58,14 +58,14 @@
                                     <button @click="openEditModal = false" class="text-gray-400 hover:text-gray-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
                                 </div>
                                 
-                                <form action="#" method="POST">
+                                <form id="form-edit-jatah" action="{{ route('admin.rekap.update-jatah-individu', $pegawai->id) }}" method="POST" onsubmit="return konfirmasiEditJatah(event, '{{ $pegawai->nama }}')">
                                     @csrf
                                     <div class="mb-4">
-                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Sisa Hari Cuti</label>
-                                        <input type="number" name="sisa_cuti" value="{{ $pegawai->sisa_cuti }}" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                        <p class="text-xs text-gray-500 mt-2">Catatan: Pastikan penyesuaian ini sesuai dengan regulasi kepegawaian yang berlaku.</p>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Jatah Cuti Tahun Ini</label>
+                                        <input type="number" name="jatah_cuti" min="0" max="365" required value="{{ $pegawai->total_kuota }}" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <p class="text-xs text-gray-500 mt-2">Sisa cuti akan otomatis dihitung ulang sistem: jatah baru dikurangi pemakaian yang sudah tercatat.</p>
                                     </div>
-                                    <button type="button" @click="openEditModal = false" class="w-full bg-[#2a64f5] text-white py-2.5 rounded-lg font-bold text-sm hover:bg-blue-700 transition">
+                                    <button type="submit" class="w-full bg-[#2a64f5] text-white py-2.5 rounded-lg font-bold text-sm hover:bg-blue-700 transition">
                                         Simpan Perubahan
                                     </button>
                                 </form>
@@ -96,12 +96,12 @@
                                     </div>
                                     <div class="flex items-center gap-3">
                                         <!-- Logika Warna Status Dinamis -->
-                                        @if($riwayat->status == 'Disetujui')
+                                        @if($riwayat->status == 8)
                                             <span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs font-bold border border-emerald-100">Disetujui</span>
-                                        @elseif($riwayat->status == 'Ditolak' || $riwayat->status == 'Dibatalkan')
-                                            <span class="bg-red-50 text-red-600 px-3 py-1 rounded-full text-xs font-bold border border-red-100">{{ $riwayat->status }}</span>
+                                        @elseif(in_array($riwayat->status, [0, 10]))
+                                            <span class="bg-red-50 text-red-600 px-3 py-1 rounded-full text-xs font-bold border border-red-100">{{ $riwayat->status == 0 ? 'Ditolak' : 'Dibatalkan' }}</span>
                                         @else
-                                            <span class="bg-amber-50 text-amber-600 px-3 py-1 rounded-full text-xs font-bold border border-amber-100">{{ $riwayat->status }}</span>
+                                            <span class="bg-amber-50 text-amber-600 px-3 py-1 rounded-full text-xs font-bold border border-amber-100">Menunggu</span>
                                         @endif
                                         
                                         <!-- Tambahan Icon Panah agar terlihat bisa diklik -->
@@ -123,4 +123,29 @@
 
         </div>
     </div>
+     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        @if(session('success'))
+            Swal.fire({
+                icon: 'success', title: 'Berhasil', text: @json(session('success')),
+                confirmButtonColor: '#2a64f5',
+                customClass: { popup: 'rounded-2xl shadow-xl border border-gray-100' }
+            });
+        @endif
+
+        function konfirmasiEditJatah(e, nama) {
+            e.preventDefault();
+            const form = document.getElementById('form-edit-jatah');
+            const jumlah = form.jatah_cuti.value;
+            Swal.fire({
+                title: 'Ubah Jatah Cuti?',
+                html: `Jatah cuti <b>${nama}</b> akan diubah menjadi <b>${jumlah} hari</b>.`,
+                icon: 'warning', showCancelButton: true,
+                confirmButtonText: 'Ya, Ubah', confirmButtonColor: '#2a64f5',
+                cancelButtonText: 'Batal', reverseButtons: true,
+                customClass: { popup: 'rounded-2xl shadow-xl border border-gray-100' }
+            }).then((result) => { if (result.isConfirmed) form.submit(); });
+            return false;
+        }
+    </script>
 </x-admin-layout>

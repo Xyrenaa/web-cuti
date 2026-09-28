@@ -9,5 +9,5 @@ class JenisCuti extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['nama_cuti', 'mengurangi_kuota', 'wajib_lampiran'];
+    protected $fillable = ['nama_cuti', 'mengurangi_kuota', 'wajib_lampiran', 'untuk_pppk', 'khusus_perempuan'];
 }
