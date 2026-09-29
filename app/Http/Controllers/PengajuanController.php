@@ -350,8 +350,14 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
             ->when($step === 2, function ($q) use ($user) {
                 $q->whereHas('user', fn ($u) => $u->where('bagian_bidang_id', $user->bagian_bidang_id));
             })
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $search = $request->search;
+                $q->whereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")->orWhere('nip', 'like', "%{$search}%"));
+            })
+            ->when($request->filled('date'), fn ($q) => $q->whereDate('created_at', $request->date))
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('kepala.approval.index', compact('pengajuans'));
     }
@@ -445,6 +451,16 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
                 'Dibatalkan' => $query->where('approval_step', 10),
                 default      => null,
             };
+       if ($request->filled('status') && $request->status !== 'Semua Status') {
+    if ($request->status == 'Menunggu') {
+        $query->whereNotIn('approval_step', [0, 8, 9, 10]);
+    } elseif ($request->status == 'Disetujui') {
+        $query->where('approval_step', 8);
+    } elseif ($request->status == 'Ditolak') {
+        $query->where('approval_step', 0);
+    } elseif ($request->status == 'Dibatalkan') {
+        $query->where('approval_step', 10);
+    }
 }
 
         // 5. FILTER TANGGAL
@@ -453,7 +469,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         }
 
         // 6. EKSEKUSI AKHIR (Sangat Penting: Harus paginate, BUKAN get)
-        $pengajuans = $query->latest()->paginate(10)->withQueryString();
+        $pengajuans = $query->latest()->paginate(10)->onEachSide(1)->withQueryString();
 
         return view('admin.approval.index', compact('pengajuans'));
     }

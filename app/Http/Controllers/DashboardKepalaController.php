@@ -190,7 +190,7 @@ class DashboardKepalaController extends Controller
                         'total_pegawai' => $totalSub,
                         'sedang_cuti' => $cutiSub,
                         'persentase' => $persentaseSub,
-                        'status_bahaya' => $persentaseSub > 20,
+                        'status_bahaya' => $persentaseSub > 50,
                     ];
                 }
 
@@ -199,7 +199,7 @@ class DashboardKepalaController extends Controller
                     'total_pegawai' => $totalBagian,
                     'sedang_cuti' => $cutiBagian,
                     'persentase' => $persentaseBagian,
-                    'status_bahaya' => $persentaseBagian > 20,
+                    'status_bahaya' => $persentaseBagian > 50,
                     'rincian' => $rincianSub,
                 ];
             }
@@ -222,7 +222,7 @@ class DashboardKepalaController extends Controller
                     'total_pegawai' => $totalSub,
                     'sedang_cuti' => $cutiSub,
                     'persentase' => $persentaseSub,
-                    'status_bahaya' => $persentaseSub > 20,
+                    'status_bahaya' => $persentaseSub > 50,
                     'rincian' => $daftarSedangCuti($idsSub),
                 ];
             }
@@ -237,7 +237,7 @@ class DashboardKepalaController extends Controller
                 'total_pegawai' => $totalSeksi,
                 'sedang_cuti' => $cutiSeksi,
                 'persentase' => $persentaseSeksi,
-                'status_bahaya' => $persentaseSeksi > 20,
+                'status_bahaya' => $persentaseSeksi > 50,
                 'daftar_pegawai' => $daftarSedangCuti($idsValid),
             ];
         }

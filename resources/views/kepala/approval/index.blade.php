@@ -36,10 +36,10 @@
             
             <!-- Filter Section -->
             <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 w-full">
-                <form action="#" method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <form action="{{ route('kepala.approval.index') }}" method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div>
                         <label class="block text-xs font-bold text-gray-600 mb-2">Cari Pengajuan</label>
-                        <input type="text" placeholder="Masukkan nama atau NIP..." class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2.5">
+                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Masukkan nama atau NIP..." class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2.5">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-600 mb-2">Filter Status</label>
@@ -52,7 +52,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-600 mb-2">Rentang Tanggal</label>
-                        <input type="date" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2.5 text-gray-400">
+                        <input type="date" name="date" value="{{ request('date') }}" class="w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2.5 text-gray-400">
                     </div>
                         <div class="flex items-center gap-2">
                             <button type="submit" class="bg-[#2A65F3] hover:bg-blue-700 text-white text-sm font-medium py-2.5 px-5 rounded-xl transition-colors flex items-center gap-2 shadow-sm">
