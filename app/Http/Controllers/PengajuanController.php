@@ -1036,6 +1036,8 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
     // Catatan: Jika di tabel users belum ada kolom ini, kamu bisa menggunakan angka statis dulu
     // atau nanti kita buatkan file migrasinya.
     $totalJatah = $user->jatah_cuti ?? 12;
+    $jatahTahunIni  = 12; // jatah dasar tahun berjalan
+    $jatahTahunLalu = max(0, $totalJatah - $jatahTahunIni);
 
     $statistik = [
         'total_diajukan' => \App\Models\PengajuanCuti::where('user_id', $user->id)->count(),

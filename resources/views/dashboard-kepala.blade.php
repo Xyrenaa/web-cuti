@@ -24,6 +24,29 @@
         .modal-backdrop, .modal-panel {
             transition: opacity .25s ease, transform .25s ease;
         }
+        /* ===== Grafik Tren Cuti Bulanan (batang interaktif) ===== */
+        .trend-bars { display:flex; align-items:flex-end; gap:6px; height:200px; margin-top:8px; }
+        .trend-col { flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; height:100%; gap:4px; font-size:13px; color:#6b7280; cursor:pointer; border-radius:8px; }
+        .trend-col:focus-visible { outline:3px solid #2A65F3; outline-offset:2px; }
+        .trend-col.is-now { color:#1f2937; font-weight:700; }
+        .trend-col b { color:#1f2937; font-size:14px; opacity:0; transition:opacity .4s ease; }
+        .trend-col.is-go b { opacity:1; transition-delay:calc(var(--i) * 50ms + .5s); }
+        .trend-bar { width:100%; background:#BFD3FF; border-radius:6px 6px 0 0; height:var(--h); min-height:3px; transform:scaleY(0); transform-origin:bottom; transition:background-color .2s ease, box-shadow .2s ease; }
+        .trend-col.is-go .trend-bar { animation:trendGrow .7s cubic-bezier(.16,1,.3,1) forwards; animation-delay:calc(var(--i) * 50ms); }
+        .trend-col:hover .trend-bar { background:#1E4FCC; }
+        .trend-col.is-on .trend-bar { background:#2A65F3; box-shadow:0 -8px 18px -8px rgba(42,101,243,.65); }
+        @keyframes trendGrow { to { transform:scaleY(1); } }
+        @media (prefers-reduced-motion: reduce) {
+            .trend-col.is-go .trend-bar { animation-duration:.01ms; }
+            .trend-col b { transition:none; }
+        }
+
+        /* ===== Kartu Risiko Seksi/Sub-Bagian (meteran busur) ===== */
+        .gauge-chip { opacity:0; transform:translateY(6px); animation:gaugeChipIn .35s ease forwards; }
+        @keyframes gaugeChipIn { to { opacity:1; transform:none; } }
+        @media (prefers-reduced-motion: reduce) {
+            .gauge-chip { animation-duration:.01ms; }
+        }
     </style>
 
     <!-- Pita Biru Header -->
@@ -137,31 +160,88 @@
                     
                     <div class="reveal card-lift bg-white p-6 rounded-2xl shadow-sm border border-gray-200" style="animation-delay: .18s">
                         <h3 class="text-md font-medium text-gray-700 mb-2">Tren Pengajuan Cuti Bulanan</h3>
-                        <p class="text-xs text-gray-500 mb-4">Visualisasi peak season cuti pegawai</p>
-                        <div class="relative h-72 w-full">
-                            <canvas id="trendChart"></canvas>
+                        @php
+                            $namaBulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+                            $namaBulanPenuh = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                            $maxTren = max($trenBulanan) ?: 1;
+                            $adaDataTren = array_sum($trenBulanan) > 0;
+                            $bulanIni = now()->month;
+                            $puncakTren = array_search(max($trenBulanan), $trenBulanan);
+                        @endphp
+
+                        @if($adaDataTren)
+                        <div data-trend data-bulan-ini="{{ $bulanIni }}" data-puncak="{{ $puncakTren }}">
+                            <p class="text-sm text-gray-500">
+                                Puncak cuti tahun ini di bulan <span class="font-semibold text-gray-700">{{ $namaBulanPenuh[$puncakTren] }}</span>
+                                ({{ $trenBulanan[$puncakTren] }} cuti disetujui). Arahkan kursor atau ketuk batang untuk melihat angkanya.
+                            </p>
+                            <p class="trend-readout text-lg text-gray-800 min-h-[28px] mt-2" aria-live="polite"></p>
+
+                            <div class="trend-bars">
+                                @foreach($trenBulanan as $i => $jumlah)
+                                    <div class="trend-col {{ ($i + 1) === $bulanIni ? 'is-now' : '' }}" tabindex="0"
+                                         data-i="{{ $i }}" data-nama="{{ $namaBulanPenuh[$i] }}" data-jumlah="{{ $jumlah }}"
+                                         style="--i: {{ $i }}"
+                                         aria-label="{{ $namaBulanPenuh[$i] }}: {{ $jumlah }} cuti disetujui">
+                                        <b>{{ $jumlah }}</b>
+                                        <div class="trend-bar" style="--h: {{ round($jumlah / $maxTren * 130) }}px"></div>
+                                        <span>{{ $namaBulan[$i] }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <button type="button" data-trend-replay
+                                    class="mt-3 px-3 py-2 text-sm font-semibold text-[#2A65F3] border border-gray-200 rounded-lg hover:bg-[#F4F7FF] transition-colors">
+                            </button>
                         </div>
+                        @else
+                        <div class="h-48 flex items-center justify-center text-sm text-gray-500 text-center">
+                            Belum ada cuti yang disetujui tahun ini.
+                        </div>
+                        @endif
                     </div>
 
                     @if($levelKepala === 'seksi' && $risikoRingkas)
-                    <!-- MODE KEPALA SEKSI/SUB-BAGIAN: satu angka ringkasan + bisa klik lihat nama pegawainya -->
+                    <!-- MODE KEPALA SEKSI/SUB-BAGIAN: meteran busur + daftar pegawai yang cuti sebagai chip -->
                     <div class="reveal card-lift bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col" style="animation-delay: .22s">
-                        <h3 class="text-md font-medium text-gray-700 mb-1">Risiko Kekosongan Seksi/Sub-Bagian Anda</h3>
-                        <p class="text-xs text-gray-500 mb-6">Deteksi dini staf cuti &gt; 50%</p>
-                        <div class="flex-grow flex flex-col items-center justify-center gap-2 py-6">
-                            <p class="text-5xl font-bold {{ $risikoRingkas['status_bahaya'] ? 'text-red-600' : 'text-blue-600' }}" data-count-up="{{ $risikoRingkas['persentase'] }}" data-suffix="%">0%</p>
-                            <p class="text-sm text-gray-500">{{ $risikoRingkas['sedang_cuti'] }} pegawai sedang cuti</p>
+                        <h3 class="text-md font-medium text-gray-700 mb-1">Risiko Kekosongan</h3>
+                        <p class="text-xs text-gray-500 mb-2">Deteksi dini staf cuti &gt; 50%</p>
+
+                        <div class="flex flex-col items-center gap-1 py-4">
+                            <svg viewBox="0 0 220 130" class="w-full max-w-[220px]">
+                                <path d="M20 110 A90 90 0 0 1 200 110" fill="none" stroke="#E5E7EB" stroke-width="16" stroke-linecap="round" />
+                                <path id="gaugeArcSeksi" d="M20 110 A90 90 0 0 1 200 110" fill="none"
+                                    stroke="{{ $risikoRingkas['status_bahaya'] ? '#DC2626' : '#2563EB' }}"
+                                    stroke-width="16" stroke-linecap="round"
+                                    style="stroke-dasharray:282.74; stroke-dashoffset:282.74; transition: stroke-dashoffset 1s cubic-bezier(.2,.8,.2,1);" />
+                                <text x="110" y="95" text-anchor="middle" font-weight="800" font-size="30"
+                                    class="{{ $risikoRingkas['status_bahaya'] ? 'text-red-600' : 'text-blue-600' }}"
+                                    fill="currentColor" data-count-up="{{ $risikoRingkas['persentase'] }}" data-suffix="%">0%</text>
+                            </svg>
+                            <p class="text-sm text-gray-500 -mt-1">{{ $risikoRingkas['sedang_cuti'] }} dari {{ $risikoRingkas['total_pegawai'] }} pegawai sedang cuti</p>
                             <span class="mt-2 px-3 py-1 text-xs font-bold rounded-full {{ $risikoRingkas['status_bahaya'] ? 'bg-red-100 text-red-700 animate-pulse' : 'bg-green-100 text-green-700' }}">
                                 {{ $risikoRingkas['status_bahaya'] ? 'Bahaya!' : 'Aman' }}
                             </span>
-                            @if($risikoRingkas['sedang_cuti'] > 0)
+                        </div>
+
+                        @if($risikoRingkas['sedang_cuti'] > 0)
+                            <div class="flex flex-wrap gap-2 justify-center mt-2">
+                                @foreach($risikoRingkas['daftar_pegawai'] as $i => $p)
+                                    <span class="gauge-chip {{ $risikoRingkas['status_bahaya'] ? 'bg-red-100 border-red-200' : 'bg-gray-50 border-gray-200' }} border rounded-full px-3 py-1.5 text-xs flex items-center gap-1"
+                                        style="animation-delay: {{ .5 + $i * .09 }}s">
+                                        <b class="font-bold {{ $risikoRingkas['status_bahaya'] ? 'text-red-700' : 'text-gray-800' }}">{{ $p['nama'] }}</b>
+                                        <span class="{{ $risikoRingkas['status_bahaya'] ? 'text-red-700/75' : 'text-gray-400' }}">&middot; s.d. {{ $p['tanggal_selesai'] }}</span>
+                                    </span>
+                                @endforeach
+                            </div>
                             <button type="button"
                                 onclick='openRincianModal("Seksi/Sub-Bagian Anda", @json($risikoRingkas["daftar_pegawai"]), "pegawai")'
-                                class="mt-3 text-sm font-semibold text-[#2A65F3] hover:text-blue-800">
-                                Lihat nama pegawai yang cuti
+                                class="mt-3 text-sm font-semibold text-[#2A65F3] hover:text-blue-800 text-center">
+                                Lihat rincian semua pegawai yang cuti
                             </button>
-                            @endif
-                        </div>
+                        @else
+                            <p class="text-center text-sm text-gray-500 mt-2">tidak ada yang sedang cuti.</p>
+                        @endif
                     </div>
                     @else
                     <!-- MODE KEPALA KANTOR (rincian sub-unit) & KEPALA BIDANG/BAGIAN (rincian nama pegawai) -->
@@ -413,34 +493,59 @@
                 const target = parseFloat(el.dataset.countUp) || 0;
                 animateCountUp(el, target);
             });
-            
-            // 1. GRAFIK TREN BULANAN (Sisi Kiri)
-            const trendCtx = document.getElementById('trendChart');
-            if(trendCtx) {
-                const trenData = @json($trenBulanan); 
-                
-                new Chart(trendCtx, {
-                    type: 'line',
-                    data: {
-                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'],
-                        datasets: [{
-                            label: 'Total Disetujui',
-                            data: trenData,
-                            borderColor: 'rgb(59, 130, 246)',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            borderWidth: 2,
-                            fill: true,
-                            tension: 0.3
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-                    }
-                });
+
+            // Meteran busur risiko Seksi/Sub-Bagian: gerakkan dari 0 ke persentase saat ini
+            const gaugeArcSeksi = document.getElementById('gaugeArcSeksi');
+            if (gaugeArcSeksi) {
+                const target = {{ $risikoRingkas['persentase'] ?? 0 }};
+                const offset = 282.74 * (1 - Math.min(target, 100) / 100);
+                requestAnimationFrame(() => { gaugeArcSeksi.style.strokeDashoffset = offset; });
             }
+            
+            // 1. GRAFIK TREN BULANAN (Sisi Kiri) - batang interaktif, bergerak saat terlihat di layar
+            document.querySelectorAll('[data-trend]').forEach((w) => {
+                const cols = [...w.querySelectorAll('.trend-col')];
+                const readout = w.querySelector('.trend-readout');
+                const bulanIni = parseInt(w.dataset.bulanIni, 10) - 1;
+                const puncak = parseInt(w.dataset.puncak, 10);
+                let timer;
+
+                const pilih = (i) => {
+                    cols.forEach((c, j) => c.classList.toggle('is-on', j === i));
+                    const c = cols[i];
+                    const paling = (i === puncak && parseInt(c.dataset.jumlah, 10) > 0) ? ' (paling banyak tahun ini)' : '';
+                    readout.innerHTML = `${c.dataset.nama}: <b>${c.dataset.jumlah}</b> cuti disetujui${paling}`;
+                };
+
+                // Batang naik satu per satu, lalu penanda menyapu dari Januari sampai bulan ini
+                const putar = () => {
+                    clearTimeout(timer);
+                    cols.forEach((c) => { c.classList.remove('is-go'); void c.offsetWidth; c.classList.add('is-go'); });
+                    let i = 0;
+                    const langkah = () => {
+                        pilih(i);
+                        if (i++ < bulanIni) timer = setTimeout(langkah, 110);
+                    };
+                    timer = setTimeout(langkah, 500);
+                };
+
+                cols.forEach((c) => {
+                    const f = () => { clearTimeout(timer); pilih(parseInt(c.dataset.i, 10)); };
+                    c.addEventListener('pointerenter', f);
+                    c.addEventListener('focus', f);
+                    c.addEventListener('click', f);
+                });
+                w.querySelector('[data-trend-replay]').addEventListener('click', putar);
+
+                pilih(bulanIni);
+                if ('IntersectionObserver' in window) {
+                    new IntersectionObserver((es, ob) => {
+                        if (es[0].isIntersecting) { putar(); ob.disconnect(); }
+                    }, { threshold: 0.4 }).observe(w);
+                } else {
+                    putar();
+                }
+            });
 
             // 2. GRAFIK RISIKO KEKOSONGAN (Sisi Kanan)
             const riskCtx = document.getElementById('riskChart');
