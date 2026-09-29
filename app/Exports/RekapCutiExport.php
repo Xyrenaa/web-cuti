@@ -3,7 +3,6 @@
 namespace App\Exports;
 
 use App\Models\User;
-use App\Models\PengajuanCuti;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -16,6 +15,7 @@ class RekapCutiExport implements FromCollection, WithHeadings, WithMapping
     protected ?int $jenisCutiId;
     protected int $tahun;
     protected ?int $bulan;
+    protected int $no = 0;
 
     public function __construct(
         ?string $search = null,
@@ -33,16 +33,13 @@ class RekapCutiExport implements FromCollection, WithHeadings, WithMapping
         $this->bulan = $bulan;
     }
 
-    /**
-     * Constraint pengajuan yang sama persis dengan yang dipakai halaman Rekap,
-     * supaya angka di Excel selalu konsisten dengan yang tampil di layar.
-     */
+    // Definisi yang sama dengan halaman Rekap: disetujui + berdasarkan TANGGAL MULAI
     protected function constraintPengajuan()
     {
         return function ($q) {
-            $q->where('approval_step', 8)->whereYear('created_at', $this->tahun);
+            $q->where('approval_step', 8)->whereYear('tanggal_mulai', $this->tahun);
             if ($this->bulan) {
-                $q->whereMonth('created_at', $this->bulan);
+                $q->whereMonth('tanggal_mulai', $this->bulan);
             }
             if ($this->jenisCutiId) {
                 $q->where('jenis_cuti_id', $this->jenisCutiId);
@@ -52,6 +49,7 @@ class RekapCutiExport implements FromCollection, WithHeadings, WithMapping
 
     public function collection()
     {
+        $tahun = $this->tahun;
         $query = User::with(['bagianBidang', 'subBagianSeksi']);
 
         if (!empty($this->search)) {
@@ -61,67 +59,53 @@ class RekapCutiExport implements FromCollection, WithHeadings, WithMapping
                   ->orWhere('nip', 'like', "%{$search}%");
             });
         }
-
         if ($this->divisiId) {
             $query->where('bagian_bidang_id', $this->divisiId);
         }
-
         if ($this->subBagianId) {
             $query->where('sub_bagian_seksi_id', $this->subBagianId);
         }
-
-        if ($this->jenisCutiId) {
+        if ($this->jenisCutiId || $this->bulan) {
             $query->whereHas('pengajuanCutis', $this->constraintPengajuan());
         }
+
+        $query->withSum(['pengajuanCutis as terpakai_tahun' => function ($q) use ($tahun) {
+            $q->where('approval_step', 8)->whereYear('tanggal_mulai', $tahun)
+              ->whereHas('jenisCuti', fn ($j) => $j->where('mengurangi_kuota', true));
+        }], 'durasi_hari');
+
+        $query->withCount(['pengajuanCutis as jumlah_ajuan' => $this->constraintPengajuan()]);
+
+        $query->withExists(['pengajuanCutis as punya_cuti_besar' => function ($q) use ($tahun) {
+            $q->where('approval_step', 8)->whereYear('tanggal_mulai', $tahun)
+              ->whereHas('jenisCuti', fn ($j) => $j->where('nama_cuti', 'Cuti Besar'));
+        }]);
 
         return $query->orderBy('name')->get();
     }
 
-    // Fungsi ini untuk membuat Judul Kolom (Header) di Excel
     public function headings(): array
     {
         return [
-            'NO',
-            'NAMA PEGAWAI',
-            'NIP',
-            'DIVISI / SUBBAGIAN',
-            'KUOTA TAHUNAN',
-            'JUMLAH AJUAN',
-            'CUTI TERPAKAI',
-            'SISA KUOTA',
+            'NO', 'NAMA PEGAWAI', 'NIP', 'UNIT',
+            'SISA THN LALU DIBAWA', 'TERPAKAI DARI THN LALU', 'SISA THN LALU (FINAL)',
+            'JATAH THN INI', 'TERPAKAI THN INI', 'SISA THN INI (FINAL)',
+            'JUMLAH AJUAN', 'TOTAL TERPAKAI', 'TOTAL SISA',
         ];
     }
 
-    // Fungsi ini untuk mengisi baris data ke dalam Excel
     public function map($user): array
     {
-        // Bikin nomor urut otomatis
-        static $no = 0;
-        $no++;
-
-        $constraint = $this->constraintPengajuan();
-
-        $jumlahAjuan = PengajuanCuti::where('user_id', $user->id)->where($constraint)->count();
-
-        $terpakai = PengajuanCuti::where('user_id', $user->id)
-            ->where($constraint)
-            ->whereHas('jenisCuti', function ($query) {
-                $query->where('mengurangi_kuota', true);
-            })
-            ->sum('durasi_hari');
-
-        $kuota = $user->jatah_cuti ?? 12;
-        $divisi = $user->subBagianSeksi->nama ?? $user->bagianBidang->nama ?? '-';
+        $s = User::saldoDari($user, (int) ($user->terpakai_tahun ?? 0), (bool) $user->punya_cuti_besar);
 
         return [
-            $no,
+            ++$this->no,
             $user->name,
             $user->nip,
-            $divisi,
-            $kuota . ' Hari',
-            $jumlahAjuan,
-            $terpakai . ' Hari',
-            ($kuota - $terpakai) . ' Hari',
+            $user->subBagianSeksi->nama ?? $user->bagianBidang->nama ?? '-',
+            $s['saldo_lalu'], $s['dipakai_lalu'], $s['sisa_lalu'],
+            $s['jatah_berjalan'], $s['dipakai_berjalan'], $s['sisa_berjalan'],
+            (int) $user->jumlah_ajuan, $s['terpakai'], $s['total_sisa'],
         ];
     }
 }

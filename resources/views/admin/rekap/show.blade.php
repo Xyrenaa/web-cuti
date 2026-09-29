@@ -3,148 +3,190 @@
         <div class="text-blue-100 text-sm mb-1 opacity-80">
             <a href="{{ route('admin.rekap.index') }}" class="hover:underline">Beranda / Rekap Cuti</a> / Detail Pegawai
         </div>
-        <h2 class="font-bold text-3xl text-white leading-tight">
-            Detail Rekap: {{ $pegawai->nama }}
-        </h2>
+        <h2 class="font-bold text-3xl text-white leading-tight">Detail Rekap: {{ $pegawai->nama }}</h2>
     </x-slot>
 
-    <div class="pt-8 pb-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- KIRI: Profil & Informasi Kuota -->
-                <div class="lg:col-span-1 space-y-6">
-                    
-                    <!-- Card: Profil Pegawai -->
-                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center">
-                        <div class="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center text-gray-500 font-bold text-2xl uppercase">
-                            {{ substr($pegawai->nama, 0, 1) }}
-                        </div>
-                        <h3 class="font-bold text-xl text-gray-900">{{ $pegawai->nama }}</h3>
-                        <p class="text-sm font-mono text-gray-500 mt-1">{{ $pegawai->nip }}</p>
-                        <div class="mt-4 pt-4 border-t border-gray-100">
-                            <span class="inline-block bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">
-                                {{ $pegawai->divisi }}
-                            </span>
-                        </div>
-                    </div>
+    <div class="pt-8 pb-12" x-data="{ openEditModal: false }">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-                    <!-- Card: Kuota Cuti & Tombol Edit Modal -->
-                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100" x-data="{ openEditModal: false }">
-                        <h3 class="font-bold text-gray-900 mb-4 flex items-center">
-                            <svg class="w-5 h-5 mr-2 text-[#2a64f5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                            Sisa Cuti Tahunan
-                        </h3>
-                        
-                        <div class="flex items-baseline space-x-2 mb-6">
-                            <!-- Data Sisa Cuti Dinamis -->
-                            <span class="text-2xl font-black text-[#2a64f5] leading-none">{{ $pegawai->sisa_cuti }}</span>
-                            <span class="text-gray-500 font-medium">/ {{ $pegawai->total_kuota }} Hari</span>
-                        </div>
-
-                        <!-- Tombol Pemicu Modal -->
-                        <button @click="openEditModal = true" class="w-full py-2.5 border-2 border-[#2a64f5] text-[#2a64f5] rounded-xl font-bold text-sm hover:bg-blue-50 transition">
-                            Edit Sisa Kuota
-                        </button>
-
-                        <!-- Modal Edit Kuota -->
-                        <div x-show="openEditModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center">
-                            <div x-show="openEditModal" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="openEditModal = false"></div>
-                            
-                            <div x-show="openEditModal" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 mx-4 z-10">
-                                
-                                <div class="flex justify-between items-center mb-4">
-                                    <h3 class="text-lg font-bold text-gray-900">Sesuaikan Kuota</h3>
-                                    <button @click="openEditModal = false" class="text-gray-400 hover:text-gray-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-                                </div>
-                                
-                                <form id="form-edit-jatah" action="{{ route('admin.rekap.update-jatah-individu', $pegawai->id) }}" method="POST" onsubmit="return konfirmasiEditJatah(event, '{{ $pegawai->nama }}')">
-                                    @csrf
-                                    <div class="mb-4">
-                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Jatah Cuti Tahun Ini</label>
-                                        <input type="number" name="jatah_cuti" min="0" max="365" required value="{{ $pegawai->total_kuota }}" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                        <p class="text-xs text-gray-500 mt-2">Sisa cuti akan otomatis dihitung ulang sistem: jatah baru dikurangi pemakaian yang sudah tercatat.</p>
-                                    </div>
-                                    <button type="submit" class="w-full bg-[#2a64f5] text-white py-2.5 rounded-lg font-bold text-sm hover:bg-blue-700 transition">
-                                        Simpan Perubahan
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold text-xl uppercase">{{ substr($pegawai->nama, 0, 1) }}</div>
+                    <div>
+                        <h3 class="font-bold text-lg text-gray-900">{{ $pegawai->nama }}</h3>
+                        <p class="text-sm font-mono text-gray-500">{{ $pegawai->nip }}</p>
+                        <span class="inline-block mt-1 bg-blue-50 text-blue-700 px-3 py-0.5 rounded-full text-xs font-bold">{{ $pegawai->divisi }}</span>
                     </div>
                 </div>
-
-                <!-- KANAN: Riwayat Cuti Pegawai -->
-                <div class="lg:col-span-2">
-                    <div class="bg-white rounded-2xl p-7 shadow-sm border border-gray-100 h-full">
-                        <h3 class="font-bold text-lg text-gray-900 mb-6">Riwayat Pengambilan Cuti</h3>
-                        
-                        @if(count($riwayats) > 0)
-                            <div class="space-y-4">
-                               <!-- Looping Data Riwayat Asli dari Database -->
-                                @foreach($riwayats as $riwayat)
-                                <!-- Ubah div menjadi tag <a> dan tambahkan hover border biru -->
-                                <a href="{{ route('admin.approval.show', $riwayat->id) }}" class="block p-4 border border-gray-100 rounded-xl hover:bg-gray-50 hover:border-blue-300 hover:shadow-sm transition flex justify-between items-center group">
-                                    <div>
-                                        <h4 class="font-bold text-gray-900 group-hover:text-[#2a64f5] transition">{{ $riwayat->jenis }}</h4>
-                                        <div class="flex items-center text-sm text-gray-500 mt-1">
-                                            <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                            Mulai: {{ $riwayat->tanggal_mulai }}
-                                            <span class="mx-2">•</span>
-                                            <span class="font-semibold text-gray-700">{{ $riwayat->durasi }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-3">
-                                        <!-- Logika Warna Status Dinamis -->
-                                        @if($riwayat->status == 8)
-                                            <span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs font-bold border border-emerald-100">Disetujui</span>
-                                        @elseif(in_array($riwayat->status, [0, 10]))
-                                            <span class="bg-red-50 text-red-600 px-3 py-1 rounded-full text-xs font-bold border border-red-100">{{ $riwayat->status == 0 ? 'Ditolak' : 'Dibatalkan' }}</span>
-                                        @else
-                                            <span class="bg-amber-50 text-amber-600 px-3 py-1 rounded-full text-xs font-bold border border-amber-100">Menunggu</span>
-                                        @endif
-                                        
-                                        <!-- Tambahan Icon Panah agar terlihat bisa diklik -->
-                                        <svg class="w-5 h-5 text-gray-400 group-hover:text-[#2a64f5] transition group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                                    </div>
-                                </a>
-                                @endforeach
-                            </div>
-                        @else
-                            <div class="text-center py-10">
-                                <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                <p class="text-gray-500 font-medium">Belum ada riwayat cuti.</p>
-                            </div>
-                        @endif
-
-                    </div>
-                </div>
+                <form method="GET" class="flex items-center gap-2">
+                    <label class="text-xs font-bold text-gray-600">Tahun</label>
+                    <select name="tahun" onchange="this.form.submit()" class="rounded-xl border-gray-200 text-sm py-2 pr-8">
+                        @foreach($daftarTahun as $t)
+                            <option value="{{ $t }}" @selected($t == $tahun)>{{ $t }}</option>
+                        @endforeach
+                    </select>
+                </form>
             </div>
 
+            @if($tahun == date('Y'))
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 pt-5 flex items-center justify-between">
+                    <h3 class="font-bold text-gray-900">Saldo Cuti Tahunan {{ $tahun }}</h3>
+                    <button type="button" @click="openEditModal = true" class="px-4 py-2 border-2 border-[#2a64f5] text-[#2a64f5] rounded-xl font-bold text-sm hover:bg-blue-50 transition">Koreksi Kuota</button>
+                </div>
+                <div class="overflow-x-auto p-6">
+                    <table class="w-full text-center text-sm border border-gray-200">
+                        <thead>
+                            <tr class="text-[11px] font-bold uppercase text-gray-700">
+                                <th colspan="3" class="bg-yellow-100 border border-gray-200 py-2">Sisa Tahun {{ $tahun - 1 }}</th>
+                                <th colspan="3" class="bg-amber-50 border border-gray-200 py-2">Jatah Tahun {{ $tahun }}</th>
+                                <th colspan="2" class="bg-yellow-200 border border-gray-200 py-2">Ringkasan</th>
+                            </tr>
+                            <tr class="text-[11px] font-bold uppercase text-gray-600 bg-gray-50">
+                                <th class="border border-gray-200 py-2">Dibawa</th><th class="border border-gray-200">Terpakai</th><th class="border border-gray-200">Sisa</th>
+                                <th class="border border-gray-200">Jatah</th><th class="border border-gray-200">Terpakai</th><th class="border border-gray-200">Sisa</th>
+                                <th class="border border-gray-200">Total Terpakai</th><th class="border border-gray-200">Total Sisa</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="text-base font-semibold text-gray-800">
+                                <td class="border border-gray-200 py-3">{{ $saldo['saldo_lalu'] }}</td>
+                                <td class="border border-gray-200 text-red-600">{{ $saldo['dipakai_lalu'] ?: '-' }}</td>
+                                <td class="border border-gray-200 text-blue-600 font-bold">{{ $saldo['sisa_lalu'] }}</td>
+                                <td class="border border-gray-200">{{ $saldo['jatah_berjalan'] }}</td>
+                                <td class="border border-gray-200 text-red-600">{{ $saldo['dipakai_berjalan'] ?: '-' }}</td>
+                                <td class="border border-gray-200 text-green-600 font-bold">{{ $saldo['sisa_berjalan'] }}</td>
+                                <td class="border border-gray-200 text-red-600">{{ $saldo['terpakai'] }}</td>
+                                <td class="border border-gray-200 text-green-700 font-black bg-green-50">{{ $saldo['total_sisa'] }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    @if($user->koreksi_terpakai != 0)
+                        <p class="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                            Termasuk penyesuaian {{ $user->koreksi_terpakai > 0 ? '+' : '' }}{{ $user->koreksi_terpakai }} hari dari sheet JATAH CUTI.
+                            Riwayat yang tercatat di sistem: {{ $tercatat }} hari.
+                        </p>
+                    @endif
+                    @if($saldo['cuti_besar'])
+                        <p class="mt-3 text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+                            Pegawai ini menjalani Cuti Besar pada {{ $tahun }}: hak cuti tahunan tahun berjalan hangus, yang tersedia hanya sisa tahun lalu.
+                        </p>
+                    @endif
+                </div>
+            </div>
+            @endif
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 pt-5 pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <h3 class="font-bold text-gray-900">Riwayat Cuti {{ $tahun }} <span class="text-gray-400 font-normal text-sm">({{ $riwayats->count() }} pengajuan)</span></h3>
+                    <div class="flex flex-wrap gap-2">
+                        @foreach($ringkasJenis as $nama => $r)
+                            <span class="bg-gray-50 border border-gray-200 text-gray-600 rounded-full px-3 py-1 text-xs font-semibold">{{ $nama }} · {{ $r['kali'] }}× · {{ $r['hari'] }} hari</span>
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
+                            <tr>
+                                <th class="px-6 py-3 text-left font-bold">Kode</th>
+                                <th class="px-4 py-3 text-left font-bold">Jenis</th>
+                                <th class="px-4 py-3 text-left font-bold">Tanggal Cuti</th>
+                                <th class="px-4 py-3 text-center font-bold">Durasi</th>
+                                <th class="px-4 py-3 text-left font-bold">Diajukan</th>
+                                <th class="px-4 py-3 text-left font-bold">Status</th>
+                                <th class="px-6 py-3"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50">
+                            @forelse($riwayats as $c)
+                                @php
+                                    $badge = match($c->approval_step) {
+                                        8       => ['Disetujui',    'bg-emerald-50 text-emerald-700 border-emerald-200'],
+                                        0       => ['Ditolak',      'bg-red-50 text-red-700 border-red-200'],
+                                        10      => ['Dibatalkan',   'bg-gray-100 text-gray-500 border-gray-200'],
+                                        9       => ['Perlu Revisi', 'bg-orange-50 text-orange-700 border-orange-200'],
+                                        default => ['Menunggu',     'bg-amber-50 text-amber-700 border-amber-200'],
+                                    };
+                                    $mulai   = \Carbon\Carbon::parse($c->tanggal_mulai);
+                                    $selesai = \Carbon\Carbon::parse($c->tanggal_selesai);
+                                @endphp
+                                <tr class="hover:bg-gray-50/60 transition {{ $c->approval_step == 10 ? 'opacity-60' : '' }}">
+                                    <td class="px-6 py-3 font-mono text-xs text-gray-600">{{ $c->kode_pengajuan }}</td>
+                                    <td class="px-4 py-3 font-semibold text-gray-800">{{ $c->jenisCuti->nama_cuti ?? '-' }}</td>
+                                    <td class="px-4 py-3 text-gray-600 whitespace-nowrap">
+                                        {{ $mulai->translatedFormat('d M Y') }}@if(!$mulai->isSameDay($selesai)) – {{ $selesai->translatedFormat('d M Y') }}@endif
+                                    </td>
+                                    <td class="px-4 py-3 text-center font-bold text-gray-800">{{ $c->durasi_hari }}</td>
+                                    <td class="px-4 py-3 text-gray-500 whitespace-nowrap">{{ optional($c->created_at)->translatedFormat('d M Y') }}</td>
+                                    <td class="px-4 py-3"><span class="px-2.5 py-1 rounded-full text-[11px] font-bold border {{ $badge[1] }}">{{ $badge[0] }}</span></td>
+                                    <td class="px-6 py-3 text-right"><a href="{{ route('admin.approval.show', $c->id) }}" class="text-[#2a64f5] hover:text-blue-800 font-bold text-xs">Detail</a></td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="7" class="px-6 py-10 text-center text-gray-500">Belum ada riwayat cuti pada {{ $tahun }}.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="openEditModal" x-cloak style="display:none" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="openEditModal = false"></div>
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 z-10">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-900">Koreksi Kuota Cuti</h3>
+                    <button type="button" @click="openEditModal = false" class="text-gray-400 hover:text-gray-600">✕</button>
+                </div>
+                <form id="form-edit-jatah" action="{{ route('admin.rekap.update-jatah-individu', $pegawai->id) }}" method="POST" onsubmit="return konfirmasiEditJatah(event, '{{ addslashes($pegawai->nama) }}')">
+                    @csrf
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Jatah total tahun ini (termasuk sisa tahun lalu)</label>
+                            <input type="number" name="jatah_cuti" min="0" max="365" required value="{{ $user->jatah_cuti ?? 12 }}" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Sisa tahun lalu yang dibawa</label>
+                            <input type="number" name="saldo_tahun_lalu" min="0" max="12" required value="{{ $user->saldo_tahun_lalu }}" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <p class="text-xs text-gray-500 mt-1">Normal maksimal 6. Isi sampai 12 hanya kalau ada SK penangguhan cuti dari PPK.</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Penyesuaian pemakaian (hari, boleh negatif)</label>
+                            <input type="number" name="koreksi_terpakai" min="-60" max="60" required value="{{ $user->koreksi_terpakai }}" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <p class="text-xs text-gray-500 mt-1">Riwayat tercatat {{ $tercatat }} hari. Angka ini ditambahkan ke pemakaian tercatat.</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Alasan koreksi <span class="text-red-500">*</span></label>
+                            <input type="text" name="alasan" maxlength="255" required placeholder="Contoh: menyesuaikan data sheet kepegawaian" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <p class="text-xs text-gray-500 mt-1">Tercatat bersama nama admin di log sistem.</p>
+                        </div>
+                    </div>
+                    <button type="submit" class="mt-5 w-full bg-[#2a64f5] text-white py-2.5 rounded-lg font-bold text-sm hover:bg-blue-700 transition">Simpan Koreksi</button>
+                </form>
+            </div>
         </div>
     </div>
-     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         @if(session('success'))
-            Swal.fire({
-                icon: 'success', title: 'Berhasil', text: @json(session('success')),
-                confirmButtonColor: '#2a64f5',
-                customClass: { popup: 'rounded-2xl shadow-xl border border-gray-100' }
-            });
+            Swal.fire({ icon: 'success', title: 'Berhasil', text: @json(session('success')), confirmButtonColor: '#2a64f5',
+                customClass: { popup: 'rounded-2xl shadow-xl border border-gray-100' } });
         @endif
 
         function konfirmasiEditJatah(e, nama) {
             e.preventDefault();
             const form = document.getElementById('form-edit-jatah');
-            const jumlah = form.jatah_cuti.value;
             Swal.fire({
-                title: 'Ubah Jatah Cuti?',
-                html: `Jatah cuti <b>${nama}</b> akan diubah menjadi <b>${jumlah} hari</b>.`,
+                title: 'Simpan koreksi kuota?',
+                html: `Kuota <b>${nama}</b> akan diubah: jatah <b>${form.jatah_cuti.value}</b>, dibawa <b>${form.saldo_tahun_lalu.value}</b>, penyesuaian <b>${form.koreksi_terpakai.value}</b>.`,
                 icon: 'warning', showCancelButton: true,
-                confirmButtonText: 'Ya, Ubah', confirmButtonColor: '#2a64f5',
+                confirmButtonText: 'Ya, Simpan', confirmButtonColor: '#2a64f5',
                 cancelButtonText: 'Batal', reverseButtons: true,
                 customClass: { popup: 'rounded-2xl shadow-xl border border-gray-100' }
-            }).then((result) => { if (result.isConfirmed) form.submit(); });
+            }).then((r) => { if (r.isConfirmed) form.submit(); });
             return false;
         }
     </script>

@@ -1,7 +1,8 @@
-<nav x-data="{ open: false, scrolled: false }" 
-     @scroll.window="scrolled = (window.pageYOffset > 20)"
-     :class="{'bg-white/70 backdrop-blur-lg shadow-md': scrolled, 'bg-white shadow-sm': !scrolled}"
-     class="sticky top-0 z-50 border-b border-gray-100 transition-all duration-300">
+<nav x-data="{ open: false, scrolled: false }"
+      @scroll.window="scrolled = (window.pageYOffset > 20)"
+                 :class="{'bg-white/90 backdrop-blur-md shadow-md': scrolled, 'bg-white shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)]': !scrolled}"@scroll.window.passive="scrolled = (window.pageYOffset > 20)"
+     :class="scrolled ? 'shadow-md' : 'shadow-sm'"
+     class="sticky top-0 z-50 border-b border-gray-100 bg-white transition-shadow duration-300">
     
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Tambahkan sedikit transisi di tinggi navbar agar agak mengecil saat discroll (opsional tapi keren) -->
@@ -11,17 +12,9 @@
             <div class="shrink-0 flex items-center">
                 <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
                     <!-- Logo Instansi (Otban) -->
-                    <img src="{{ asset('img/Logo Otban.png') }}" 
-                         class="block w-auto drop-shadow-sm transition-all duration-300" 
-                         :class="{'h-[45px]': scrolled, 'h-[50px]': !scrolled}" 
-                         alt="Logo Instansi" />
-                    <!-- Garis Pemisah -->
-                    <div class="w-px bg-gray-300 transition-all duration-300" :class="{'h-6': scrolled, 'h-8': !scrolled}"></div>
-                    <!-- Logo Web (PELITA) -->
-                    <img src="{{ asset('img/logo-pelita.png') }}" 
-                         class="block w-auto drop-shadow-sm transition-all duration-300" 
-                         :class="{'h-10': scrolled, 'h-14': !scrolled}" 
-                         alt="Logo PELITA" />
+                                        <img src="{{ asset('img/Logo Otban.png') }}" class="block h-[50px] w-auto" alt="Logo Instansi" width="50" height="50" />
+                    <div class="w-px h-8 bg-gray-300"></div>
+                    <img src="{{ asset('img/logo-pelita.png') }}" class="block h-14 w-auto" alt="Logo PELITA" width="186" height="56" />
                 </a>
             </div>
 

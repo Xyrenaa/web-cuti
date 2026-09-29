@@ -55,7 +55,20 @@ class PengajuanController extends Controller
 
         return view('pegawai.pengajuan', compact('riwayat', 'jenisCutis'));
     }
+private function hitungHariKerja(\Carbon\Carbon $mulai, \Carbon\Carbon $selesai): int
+{
+    $libur = \App\Models\HariLibur::whereBetween('tanggal', [$mulai->toDateString(), $selesai->toDateString()])
+        ->get()->map(fn ($h) => $h->tanggal->toDateString())->all();
 
+    $n = 0;
+    foreach (\Carbon\CarbonPeriod::create($mulai, $selesai) as $hari) {
+        if ($hari->isWeekend() || in_array($hari->toDateString(), $libur, true)) {
+            continue;
+        }
+        $n++;
+    }
+    return $n;
+}
     public function store(Request $request)
 {
     $request->validate([
@@ -76,6 +89,9 @@ class PengajuanController extends Controller
     if (Auth::user()->jenis_kelamin === 'L' && $jenisCutiDipilih && $jenisCutiDipilih->khusus_perempuan) {
         return redirect()->back()->withInput()->with('error', 'Jenis cuti "' . $jenisCutiDipilih->nama_cuti . '" khusus untuk pegawai perempuan.');
     }
+    if ($jenisCutiDipilih && $jenisCutiDipilih->wajib_lampiran && !$request->hasFile('bukti_pendukung')) {
+    return redirect()->back()->withInput()->with('error', 'Jenis cuti "' . $jenisCutiDipilih->nama_cuti . '" wajib melampirkan bukti pendukung (surat dokter / surat keterangan / surat rawat inap).');
+    }
 
     $tanggal_mulai = \Carbon\Carbon::parse($request->tanggal_mulai);
     $tanggal_selesai = \Carbon\Carbon::parse($request->tanggal_selesai);
@@ -87,13 +103,13 @@ class PengajuanController extends Controller
     if ($durasi_hari < 1) {
         return redirect()->back()->withInput()->with('error', 'Tanggal tidak valid. Pengajuan cuti tidak bisa dilakukan di hari libur akhir pekan.');
     }
+    $batasBulan = ['Cuti Alasan Penting' => 1, 'Cuti Melahirkan' => 3, 'Cuti Besar' => 3];
+    $namaJenisDipilih = $jenisCutiDipilih->nama_cuti ?? '';
+        if (isset($batasBulan[$namaJenisDipilih])
+        && $tanggal_selesai->gt($tanggal_mulai->copy()->addMonths($batasBulan[$namaJenisDipilih]))) {
+        return redirect()->back()->withInput()->with('error', $namaJenisDipilih . ' paling lama ' . $batasBulan[$namaJenisDipilih] . ' bulan.');
+    }
 
-    // Validasi bentrok tanggal: pegawai tidak boleh mengajukan cuti baru yang
-    // tanggalnya tumpang tindih dengan pengajuan cuti lain miliknya yang masih
-    // aktif. "Aktif" di sini berarti semua status KECUALI Ditolak (0) & Dibatalkan
-    // (10) — termasuk yang masih menunggu approval (1-7) & Perlu Direvisi (9),
-    // bukan cuma yang sudah Disetujui (8), karena mengajukan dua cuti yang
-    // tanggalnya bentrok tetap tidak masuk akal walau yang lama belum final.
     $user = Auth::user();
 
     $adaBentrok = PengajuanCuti::where('user_id', $user->id)
@@ -104,6 +120,29 @@ class PengajuanController extends Controller
 
     if ($adaBentrok) {
         return redirect()->back()->withInput()->with('error', 'Anda masih memiliki pengajuan cuti aktif yang tanggalnya bertumpuk dengan rentang tanggal ini. Selesaikan atau batalkan pengajuan sebelumnya terlebih dahulu.');
+    }
+    if ($jenisCutiDipilih && $jenisCutiDipilih->mengurangi_kuota) {
+    $tahunCuti = $tanggal_mulai->year;
+
+    $tercatat = (int) PengajuanCuti::where('user_id', $user->id)
+        ->where('approval_step', 8)
+        ->whereYear('tanggal_mulai', $tahunCuti)
+        ->whereHas('jenisCuti', fn ($q) => $q->where('mengurangi_kuota', true))
+        ->sum('durasi_hari');
+
+    $menunggu = (int) PengajuanCuti::where('user_id', $user->id)
+        ->whereNotIn('approval_step', [0, 8, 10])
+        ->whereYear('tanggal_mulai', $tahunCuti)
+        ->whereHas('jenisCuti', fn ($q) => $q->where('mengurangi_kuota', true))
+        ->sum('durasi_hari');
+
+    $saldoCek  = \App\Models\User::saldoDari($user, $tercatat, $user->punyaCutiBesar($tahunCuti));
+    $sisaBebas = $saldoCek['total_sisa'] - $menunggu;
+
+    if ($tahunCuti === now()->year && $durasi_hari > $sisaBebas) {
+        return redirect()->back()->withInput()->with('error',
+            "Sisa cuti Anda {$sisaBebas} hari (sudah dikurangi pengajuan yang masih diproses), sedangkan pengajuan ini {$durasi_hari} hari.");
+    }
     }
 
     // 1. Upload Berkas Surat Pengajuan
@@ -215,9 +254,8 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
 
     public function riwayat(Request $request)
     {
-        // Fungsi dasar tetap: Ambil data milik user yang sedang login
-        // (Ditambah with('jenisCuti') agar loading database lebih ringan/cepat)
-        $query = PengajuanCuti::where('user_id', Auth::id())->with('jenisCuti')->latest();
+
+       $query = PengajuanCuti::where('user_id', Auth::id())->with('jenisCuti')->orderByDesc('tanggal_mulai');
 
         // 1. Filter Pencarian Kata Kunci (Alasan) - Asli buatanmu
         if ($request->has('cari') && $request->cari != '') {
@@ -240,7 +278,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         }
 
         // Gunakan variabel aslimu ($riwayat) dan limit 5
-        $riwayat = $query->paginate(5);
+        $riwayat = $query->paginate(10)->withQueryString();
         
         // Ambil data jenis cuti untuk mengisi pilihan di dropdown HTML nanti
         $jenis_cutis = \App\Models\JenisCuti::all();
@@ -249,7 +287,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
     }
     public function batal($id)
     {
-    $pengajuan = \App\Models\PengajuanCuti::find($id);
+        $pengajuan = \App\Models\PengajuanCuti::findOrFail($id);
 
     if (auth()->id() !== $pengajuan->user_id) {
         abort(403, 'Anda hanya dapat membatalkan pengajuan cuti Anda sendiri.');
@@ -405,6 +443,14 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         }
 
         // 4. Filter Status Dropdown
+               if ($request->filled('status') && $request->status !== 'Semua Status') {
+            match ($request->status) {
+                'Menunggu'   => $query->whereNotIn('approval_step', [0, 8, 10]), // termasuk step 9, sama seperti badge
+                'Disetujui'  => $query->where('approval_step', 8),
+                'Ditolak'    => $query->where('approval_step', 0),
+                'Dibatalkan' => $query->where('approval_step', 10),
+                default      => null,
+            };
        if ($request->filled('status') && $request->status !== 'Semua Status') {
     if ($request->status == 'Menunggu') {
         $query->whereNotIn('approval_step', [0, 8, 9, 10]);
@@ -658,7 +704,9 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         }
         // target === 'semua' -> tidak difilter, kena seluruh pegawai
 
-        $jumlahDiubah = $query->update(['jatah_cuti' => $request->jumlah_hari]);
+        $jumlahDiubah = $query->update([
+            'jatah_cuti' => $request->jumlah_hari, 'saldo_tahun_lalu' => 0, 'koreksi_terpakai' => 0,
+        ]);
 
         return redirect()->route('admin.rekap.index')
             ->with('success', "Jatah cuti berhasil diubah menjadi {$request->jumlah_hari} hari untuk {$jumlahDiubah} pegawai.");
@@ -679,12 +727,12 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
      * Dipusatkan di sini supaya kartu statistik, tabel, dan ekspor Excel
      * selalu menghitung dengan definisi yang sama persis.
      */
-    private function constraintPengajuanRekap($tahun, $bulan, $jenisCutiId)
+        private function constraintPengajuanRekap($tahun, $bulan, $jenisCutiId)
     {
         return function ($q) use ($tahun, $bulan, $jenisCutiId) {
-            $q->where('approval_step', 8)->whereYear('created_at', $tahun);
+            $q->where('approval_step', 8)->whereYear('tanggal_mulai', $tahun);
             if ($bulan) {
-                $q->whereMonth('created_at', $bulan);
+                $q->whereMonth('tanggal_mulai', $bulan);
             }
             if ($jenisCutiId) {
                 $q->where('jenis_cuti_id', $jenisCutiId);
@@ -692,50 +740,40 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         };
     }
 
-    public function rekapAdmin(Request $request)
+        public function rekapAdmin(Request $request)
     {
         [$tahun, $bulan] = $this->periodeRekapDariRequest($request);
         $jenisCutiId = ($request->filled('jenis_cuti') && $request->jenis_cuti !== 'Semua Jenis')
             ? (int) $request->jenis_cuti
             : null;
 
-        $constraintPeriode = $this->constraintPengajuanRekap($tahun, $bulan, $jenisCutiId);
+        $constraintPeriode = $this->constraintPengajuanRekap($tahun, $bulan, $jenisCutiId); // ikut filter bulan/jenis
+        $constraintTahun   = $this->constraintPengajuanRekap($tahun, null, null);           // setahun penuh
 
-        // 1. Ambil query dasar
         $query = \App\Models\User::with(['bagianBidang', 'subBagianSeksi']);
 
-        // 2. SEARCH: Logika Pencarian Nama/NIP
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('nip', 'like', "%{$search}%");
             });
         }
-
-        // 3. FILTER: Berdasarkan Divisi (Bagian/Bidang)
         if ($request->filled('divisi') && $request->divisi !== 'Semua Divisi') {
             $query->where('bagian_bidang_id', $request->divisi);
         }
-
-        // 3b. FILTER: Berdasarkan Sub-Bagian/Seksi
         if ($request->filled('sub_bagian') && $request->sub_bagian !== 'Semua Sub-Bagian') {
             $query->where('sub_bagian_seksi_id', $request->sub_bagian);
         }
-
-        // 3c. FILTER: Berdasarkan Jenis Cuti -> hanya tampilkan pegawai yang
-        // punya minimal 1 pengajuan disetujui dari jenis & periode tsb.
-        if ($jenisCutiId) {
+        // Filter jenis/bulan: hanya pegawai yang punya cuti disetujui pada periode itu
+        if ($jenisCutiId || $bulan) {
             $query->whereHas('pengajuanCutis', $constraintPeriode);
         }
 
-        // 4. METRIK: dihitung di level SQL (bukan PHP setelah paginate) supaya
-        // bisa dipakai untuk SORTING yang akurat lintas halaman.
-        $query->withSum(['pengajuanCutis as metrik_terpakai' => function ($q) use ($constraintPeriode) {
-            $constraintPeriode($q);
-            $q->whereHas('jenisCuti', function ($jq) {
-                $jq->where('mengurangi_kuota', true);
-            });
+        // Saldo dihitung setahun penuh (bukan per bulan), supaya sisa cuti selalu benar
+        $query->withSum(['pengajuanCutis as metrik_terpakai_tahun' => function ($q) use ($constraintTahun) {
+            $constraintTahun($q);
+            $q->whereHas('jenisCuti', fn ($jq) => $jq->where('mengurangi_kuota', true));
         }], 'durasi_hari');
 
         $query->withCount(['pengajuanCutis as metrik_jumlah_ajuan' => function ($q) use ($constraintPeriode) {
@@ -745,8 +783,12 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         $query->withMax(['pengajuanCutis as metrik_pengajuan_terakhir' => function ($q) use ($constraintPeriode) {
             $constraintPeriode($q);
         }], 'created_at');
+        $query->withExists(['pengajuanCutis as punya_cuti_besar' => function ($q) use ($tahun) {
+            $q->where('approval_step', 8)
+              ->whereYear('tanggal_mulai', $tahun)
+              ->whereHas('jenisCuti', fn ($j) => $j->where('nama_cuti', 'Cuti Besar'));
+        }]);
 
-        // 5. SORTING: field + arah (asc/desc), menggantikan dropdown "Analisis" lama
         $sortBy  = $request->input('sort_by', 'nama');
         $sortDir = $request->input('sort_dir') === 'desc' ? 'desc' : 'asc';
 
@@ -758,79 +800,75 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
                 $query->orderBy('metrik_jumlah_ajuan', $sortDir);
                 break;
             case 'jumlah_terpakai':
-                $query->orderByRaw('COALESCE(metrik_terpakai, 0) ' . $sortDir);
+                $query->orderByRaw('COALESCE(metrik_terpakai_tahun, 0) ' . $sortDir);
                 break;
             case 'sisa_jatah':
-                $query->orderByRaw('(COALESCE(jatah_cuti, 12) - COALESCE(metrik_terpakai, 0)) ' . $sortDir);
+                $query->orderByRaw('(CASE WHEN punya_cuti_besar = 1 THEN LEAST(COALESCE(jatah_cuti, 12), saldo_tahun_lalu) ELSE COALESCE(jatah_cuti, 12) END - COALESCE(metrik_terpakai_tahun, 0) - COALESCE(koreksi_terpakai, 0)) ' . $sortDir);
                 break;
             case 'nama':
             default:
                 $query->orderBy('name', $sortDir);
                 break;
         }
-        // Tie-breaker biar urutan stabil antar-halaman
         $query->orderBy('id', 'asc');
 
-        // 6. Sulap data ke format View (KOLOM SUDAH DISESUAIKAN DENGAN DATABASE)
         $rekaps = $query->paginate(10)->onEachSide(1)->through(function ($user) {
-            $terpakai = (int) ($user->metrik_terpakai ?? 0);
-            $jumlahAjuan = (int) ($user->metrik_jumlah_ajuan ?? 0);
-            $kuota = $user->jatah_cuti ?? 12;
-            $divisi = $user->subBagianSeksi->nama ?? $user->bagianBidang->nama ?? '-';
+            $saldo = \App\Models\User::saldoDari(
+                $user,
+                (int) ($user->metrik_terpakai_tahun ?? 0),
+                (bool) $user->punya_cuti_besar
+            );
 
-            return (object)[
+            return (object) array_merge($saldo, [
                 'id'                 => $user->id,
                 'nama'               => $user->name,
                 'nip'                => $user->nip,
-                'divisi'             => $divisi,
-                'kuota'              => $kuota,
-                'jumlah_ajuan'       => $jumlahAjuan,
-                'terpakai'           => $terpakai,
-                'sisa'               => $kuota - $terpakai,
+                'divisi'             => $user->subBagianSeksi->nama ?? $user->bagianBidang->nama ?? '-',
+                'jumlah_ajuan'       => (int) ($user->metrik_jumlah_ajuan ?? 0),
+                'sisa'               => $saldo['total_sisa'],
                 'pengajuan_terakhir' => $user->metrik_pengajuan_terakhir,
-            ];
+            ]);
         });
 
         $rekaps->appends(request()->query());
 
-        // 7. Data untuk Dropdown Filter & Kartu Statistik
-        $daftarDivisi = \App\Models\BagianBidang::withCount('users')->orderBy('nama')->get();
+        $daftarDivisi    = \App\Models\BagianBidang::withCount('users')->orderBy('nama')->get();
         $daftarSubBagian = \App\Models\SubBagianSeksi::with('bagianBidang')->withCount('users')->orderBy('nama')->get();
         $daftarJenisCuti = \App\Models\JenisCuti::orderBy('nama_cuti')->get();
 
-        // Daftar tahun untuk dropdown: tahun-tahun yang punya data pengajuan,
-        // ditambah tahun berjalan supaya tidak pernah kosong walau data kosong.
-        $daftarTahun = \App\Models\PengajuanCuti::selectRaw('DISTINCT YEAR(created_at) as tahun')
-            ->whereNotNull('created_at')
+        $daftarTahun = \App\Models\PengajuanCuti::selectRaw('DISTINCT YEAR(tanggal_mulai) as tahun')
+            ->where('tanggal_mulai', '>=', '2000-01-01')
             ->pluck('tahun')
             ->push((int) date('Y'))
-            ->unique()
-            ->sortDesc()
-            ->values();
+            ->unique()->sortDesc()->values();
 
         $totalPegawai = \App\Models\User::count();
-        $pengajuanBulanIni = \App\Models\PengajuanCuti::where('approval_step',8)
-                                ->whereMonth('created_at', date('m'))
-                                ->whereYear('created_at', date('Y'))
-                                ->count();
+        $pengajuanBulanIni = \App\Models\PengajuanCuti::where('approval_step', 8)
+            ->whereMonth('created_at', date('m'))
+            ->whereYear('created_at', date('Y'))
+            ->count();
 
-        // Logika Rata-rata Sisa Cuti (mengikuti periode tahun yang sedang difilter)
-        $totalSisaKeseluruhan = 0;
-        $semuaUser = \App\Models\User::all();
-        foreach ($semuaUser as $u) {
-            $terpakaiUser = \App\Models\PengajuanCuti::where('user_id', $u->id)
-                ->where('approval_step',8)
-                ->whereYear('created_at', $tahun)
-                ->whereHas('jenisCuti', function($query){
-                    $query->where('mengurangi_kuota', true);
-                })
-                ->sum('durasi_hari');
+        // Rata-rata sisa: 1 query (sebelumnya 1 query per pegawai)
+        $terpakaiTahun = \App\Models\PengajuanCuti::where('approval_step', 8)
+            ->whereYear('tanggal_mulai', $tahun)
+            ->whereHas('jenisCuti', fn ($q) => $q->where('mengurangi_kuota', true))
+            ->selectRaw('user_id, SUM(durasi_hari) as total')
+            ->groupBy('user_id')
+            ->pluck('total', 'user_id');
 
-            $kuotaUser = $u->jatah_cuti ?? 12;
-            $totalSisaKeseluruhan += ($kuotaUser - $terpakaiUser);
-        }
+        $idCutiBesar = \App\Models\PengajuanCuti::where('approval_step', 8)
+            ->whereYear('tanggal_mulai', $tahun)
+            ->whereHas('jenisCuti', fn ($q) => $q->where('nama_cuti', 'Cuti Besar'))
+            ->pluck('user_id')->flip();
 
-        $rataSisa = $totalPegawai > 0 ? round($totalSisaKeseluruhan / $totalPegawai, 1) : 0;
+        $rataSisa = round(
+            \App\Models\User::get(['id', 'jatah_cuti', 'saldo_tahun_lalu', 'koreksi_terpakai'])
+                ->map(fn ($u) => \App\Models\User::saldoDari(
+                    $u, (int) ($terpakaiTahun[$u->id] ?? 0), $idCutiBesar->has($u->id)
+                )['total_sisa'])
+                ->avg() ?? 0,
+            1
+        );
 
         return view('admin.rekap.index', compact(
             'rekaps', 'totalPegawai', 'pengajuanBulanIni', 'rataSisa',
@@ -839,46 +877,44 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         ));
     }
 
-    public function showRekap($id)
+        public function showRekap(Request $request, $id)
     {
-        $user = \App\Models\User::with(['bagianBidang', 'subBagianSeksi'])->findOrFail($id);
+        $user  = \App\Models\User::with(['bagianBidang', 'subBagianSeksi'])->findOrFail($id);
+        $tahun = $request->filled('tahun') ? (int) $request->tahun : (int) date('Y');
 
-        $terpakai = \App\Models\PengajuanCuti::where('user_id', $user->id)
-            ->where('approval_step',8)
-            ->whereYear('created_at', date('Y'))
-            ->whereHas('jenisCuti', function($query){
-                    $query->where('mengurangi_kuota', true);
-                })
+        $tercatat = (int) \App\Models\PengajuanCuti::where('user_id', $user->id)
+            ->where('approval_step', 8)
+            ->whereYear('tanggal_mulai', $tahun)
+            ->whereHas('jenisCuti', fn ($q) => $q->where('mengurangi_kuota', true))
             ->sum('durasi_hari');
 
-        // Menggunakan kolom jatah_cuti dari database
-        $kuota = $user->jatah_cuti ?? 12;
-        $divisi = $user->subBagianSeksi->nama ?? $user->bagianBidang->nama ?? '-';
+        $saldo = \App\Models\User::saldoDari($user, $tercatat, $user->punyaCutiBesar($tahun));
 
-        $pegawai = (object)[
-            'id'          => $user->id,
-            'nama'        => $user->name,
-            'nip'         => $user->nip,
-            'divisi'      => $divisi,
-            'sisa_cuti'   => $kuota - $terpakai,
-            'total_kuota' => $kuota
+        $pegawai = (object) [
+            'id'     => $user->id,
+            'nama'   => $user->name,
+            'nip'    => $user->nip,
+            'divisi' => $user->subBagianSeksi->nama ?? $user->bagianBidang->nama ?? '-',
         ];
-        
-        $riwayats = \App\Models\PengajuanCuti::with('jenisCuti')
-            ->where('user_id', $id)
-            ->latest()
-            ->get()
-            ->map(function ($cuti) {
-                return (object)[
-                    'id'            => $cuti->id,
-                    'jenis'         => $cuti->jenisCuti->nama_cuti ?? 'Cuti Tahunan',
-                    'tanggal_mulai' => \Carbon\Carbon::parse($cuti->tanggal_mulai)->translatedFormat('d M Y'),
-                    'durasi'        => $cuti->durasi_hari . ' Hari',
-                    'status'        => $cuti->approval_step
-                ];
-            });
 
-        return view('admin.rekap.show', compact('pegawai', 'riwayats'));
+        $riwayats = \App\Models\PengajuanCuti::with('jenisCuti')
+            ->where('user_id', $user->id)
+            ->whereYear('tanggal_mulai', $tahun)
+            ->orderByDesc('tanggal_mulai')
+            ->get();
+
+        $ringkasJenis = $riwayats->where('approval_step', 8)
+            ->groupBy(fn ($c) => $c->jenisCuti->nama_cuti ?? '-')
+            ->map(fn ($g) => ['kali' => $g->count(), 'hari' => $g->sum('durasi_hari')]);
+
+        $daftarTahun = \App\Models\PengajuanCuti::where('user_id', $user->id)
+            ->where('tanggal_mulai', '>=', '2000-01-01')
+            ->selectRaw('DISTINCT YEAR(tanggal_mulai) as t')->pluck('t')
+            ->push((int) date('Y'))->unique()->sortDesc()->values();
+
+        return view('admin.rekap.show', compact(
+            'user', 'pegawai', 'saldo', 'riwayats', 'ringkasJenis', 'tahun', 'daftarTahun', 'tercatat'
+        ));
     }
 
         public function exportRekap(Request $request)
@@ -906,19 +942,33 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
     }
         public function updateJatahIndividu(Request $request, $id)
     {
-        $request->validate([
-            'jatah_cuti' => 'required|integer|min:0|max:365',
-        ]);
+        $data = $request->validate([
+            'jatah_cuti'       => 'required|integer|min:0|max:365',
+            'saldo_tahun_lalu' => 'required|integer|min:0|max:12',
+            'koreksi_terpakai' => 'required|integer|min:-60|max:60',
+            'alasan'           => 'required|string|max:255',
+        ], ['alasan.required' => 'Alasan koreksi wajib diisi.']);
 
         $user = \App\Models\User::findOrFail($id);
-        $lamaJatah = $user->jatah_cuti ?? 12;
-        $user->jatah_cuti = $request->jatah_cuti;
+        $lama = $user->only(['jatah_cuti', 'saldo_tahun_lalu', 'koreksi_terpakai']);
+
+        $user->jatah_cuti       = $data['jatah_cuti'];
+        $user->saldo_tahun_lalu = $data['saldo_tahun_lalu'];
+        $user->koreksi_terpakai = $data['koreksi_terpakai'];
         $user->save();
 
+        \Illuminate\Support\Facades\Log::info('[Koreksi kuota]', [
+            'oleh'    => auth()->user()->name,
+            'pegawai' => $user->name,
+            'lama'    => $lama,
+            'baru'    => collect($data)->only(['jatah_cuti', 'saldo_tahun_lalu', 'koreksi_terpakai'])->all(),
+            'alasan'  => $data['alasan'],
+        ]);
+
         return redirect()->route('admin.rekap.show', $id)
-            ->with('success', "Jatah cuti {$user->name} diubah dari {$lamaJatah} menjadi {$request->jatah_cuti} hari.");
+            ->with('success', "Kuota cuti {$user->name} berhasil dikoreksi.");
     }
-    private function hitungRolloverTahun(int $tahunDitutup)
+        private function hitungRolloverTahun(int $tahunDitutup)
     {
         $constraint = $this->constraintPengajuanRekap($tahunDitutup, null, null);
 
@@ -927,24 +977,27 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
                 $constraint($q);
                 $q->whereHas('jenisCuti', fn ($jq) => $jq->where('mengurangi_kuota', true));
             }], 'durasi_hari')
+            ->withExists(['pengajuanCutis as punya_cuti_besar' => function ($q) use ($tahunDitutup) {
+                $q->where('approval_step', 8)
+                  ->whereYear('tanggal_mulai', $tahunDitutup)
+                  ->whereHas('jenisCuti', fn ($j) => $j->where('nama_cuti', 'Cuti Besar'));
+            }])
             ->orderBy('name')
             ->get()
             ->map(function ($user) {
-                $jatahSaatIni = $user->jatah_cuti ?? 12;
-                $terpakai = (int) ($user->terpakai_tahun_ini ?? 0);
-                $sisaMentah = max(0, $jatahSaatIni - $terpakai);
+                $s          = \App\Models\User::saldoDari($user, (int) ($user->terpakai_tahun_ini ?? 0), (bool) $user->punya_cuti_besar);
+                $sisaMentah = max(0, $s['total_sisa']);
                 $sisaDibawa = min(6, $sisaMentah);
-                $jatahBaru = $sisaDibawa + 12;
 
                 return (object) [
                     'id'             => $user->id,
                     'nama'           => $user->name,
                     'nip'            => $user->nip,
-                    'jatah_saat_ini' => $jatahSaatIni,
-                    'terpakai'       => $terpakai,
+                    'jatah_saat_ini' => $s['kuota'],
+                    'terpakai'       => $s['terpakai'],
                     'sisa_mentah'    => $sisaMentah,
                     'sisa_dibawa'    => $sisaDibawa,
-                    'jatah_baru'     => $jatahBaru,
+                    'jatah_baru'     => $sisaDibawa + 12,
                 ];
             });
     }
@@ -978,14 +1031,18 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($hasil, $tahunDitutup) {
             foreach ($hasil as $baris) {
-                \App\Models\User::whereKey($baris->id)->update(['jatah_cuti' => $baris->jatah_baru]);
+                // SESUDAH
+        \App\Models\User::whereKey($baris->id)->update([
+                'jatah_cuti'       => $baris->jatah_baru,
+                'saldo_tahun_lalu' => $baris->sisa_dibawa,
+            ]);
             }
 
-            \App\Models\TutupTahunLog::create([
-                'tahun_ditutup'   => $tahunDitutup,
-                'jumlah_pegawai'  => $hasil->count(),
-                'dilakukan_oleh'  => auth()->id(),
-            ]);
+                \App\Models\User::whereKey($baris->id)->update([
+                    'jatah_cuti'       => $baris->jatah_baru,
+                    'saldo_tahun_lalu' => $baris->sisa_dibawa,
+                    'koreksi_terpakai' => 0,   // tahun baru mulai dari nol
+                ]);
         });
 
         return redirect()->route('admin.rekap.index')
@@ -1031,13 +1088,24 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
     }
     public function informasi()
 {
-    $user = auth()->user();
+            $user = auth()->user();
 
     // Catatan: Jika di tabel users belum ada kolom ini, kamu bisa menggunakan angka statis dulu
     // atau nanti kita buatkan file migrasinya.
     $totalJatah = $user->jatah_cuti ?? 12;
     $jatahTahunIni  = 12; // jatah dasar tahun berjalan
     $jatahTahunLalu = max(0, $totalJatah - $jatahTahunIni);
+        $terpakai = \App\Models\PengajuanCuti::where('user_id', $user->id)
+            ->where('approval_step', 8)
+            ->whereYear('tanggal_mulai', now()->year)
+            ->whereHas('jenisCuti', fn ($q) => $q->where('mengurangi_kuota', true))
+            ->sum('durasi_hari');
+
+        $saldo = \App\Models\User::saldoDari($user, (int) $terpakai, $user->punyaCutiBesar(now()->year));
+
+        $totalJatah     = $saldo['total_sisa'];
+        $jatahTahunIni  = $saldo['sisa_berjalan'];
+        $jatahTahunLalu = $saldo['sisa_lalu'];
 
     $statistik = [
         'total_diajukan' => \App\Models\PengajuanCuti::where('user_id', $user->id)->count(),
