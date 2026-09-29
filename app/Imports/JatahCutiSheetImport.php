@@ -11,7 +11,6 @@ use Maatwebsite\Excel\Concerns\WithChunkReading;
 
 class JatahCutiSheetImport implements ToModel, WithHeadingRow, WithBatchInserts, WithChunkReading
 {
-    // Sheet JATAH CUTI adalah potret tahun ini. Ubah saat kamu memakai sheet tahun berikutnya.
     private const TAHUN_SHEET = 2026;
 
     public function model(array $row)
@@ -25,12 +24,13 @@ class JatahCutiSheetImport implements ToModel, WithHeadingRow, WithBatchInserts,
             return null;
         }
 
-        // Semua angka diambil apa adanya dari sheet (tanpa dihitung ulang / dipotong 6).
-        $sisaLalu = max(0, (int) round((float) ($row['hitung_sisa_tahun_2025'] ?? 0)));
+        $hitung25  = (int) round((float) ($row['hitung_sisa_tahun_2025'] ?? 0));
+        $sisaLalu  = max(0, $hitung25);
+        $utangLalu = max(0, -$hitung25);
+
         $jatahIni = (int) round((float) ($row['asli_sisa_tahun_2026'] ?? 12));
         $ctSheet  = (int) round((float) ($row['total_ct_tahun_2026'] ?? 0));
 
-        // Pemakaian yang sudah tercatat dari sheet DATA CUTI (diimport lebih dulu).
         $tercatat = (int) PengajuanCuti::where('user_id', $user->id)
             ->where('approval_step', 8)
             ->whereYear('tanggal_mulai', self::TAHUN_SHEET)
@@ -39,7 +39,7 @@ class JatahCutiSheetImport implements ToModel, WithHeadingRow, WithBatchInserts,
 
         $user->saldo_tahun_lalu = $sisaLalu;
         $user->jatah_cuti       = $sisaLalu + $jatahIni;
-        $user->koreksi_terpakai = $ctSheet - $tercatat;
+        $user->koreksi_terpakai = ($ctSheet - $tercatat) + $utangLalu;
         $user->save();
 
         return null;

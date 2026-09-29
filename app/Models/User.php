@@ -55,6 +55,7 @@ class User extends Authenticatable
             'total_sisa'       => $jatah - $terpakai,
         ];
     }
+    
         /**
      * Satu pintu untuk semua perhitungan saldo (rekap, detail, ekspor, tutup tahun, informasi).
      * - koreksi_terpakai = selisih antara angka sheet JATAH CUTI dan riwayat yang tercatat.

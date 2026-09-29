@@ -76,7 +76,7 @@ class RekapCutiExport implements FromCollection, WithHeadings, WithMapping
 
         $query->withCount(['pengajuanCutis as jumlah_ajuan' => $this->constraintPengajuan()]);
 
-            $query->withExists(['pengajuanCutis as punya_cuti_besar' => function ($q) use ($tahun) {
+        $query->withExists(['pengajuanCutis as punya_cuti_besar' => function ($q) use ($tahun) {
             $q->where('approval_step', 8)->whereYear('tanggal_mulai', $tahun)
               ->whereHas('jenisCuti', fn ($j) => $j->where('nama_cuti', 'Cuti Besar'));
         }]);

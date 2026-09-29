@@ -9,7 +9,6 @@
     <div class="pt-8 pb-12" x-data="{ openEditModal: false }">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            {{-- Identitas + pilih tahun --}}
             <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div class="flex items-center gap-4">
                     <div class="w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold text-xl uppercase">{{ substr($pegawai->nama, 0, 1) }}</div>
@@ -29,7 +28,6 @@
                 </form>
             </div>
 
-            {{-- Saldo ala Excel (hanya tahun berjalan, karena jatah disimpan per tahun berjalan) --}}
             @if($tahun == date('Y'))
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="px-6 pt-5 flex items-center justify-between">
@@ -79,7 +77,6 @@
             </div>
             @endif
 
-            {{-- Riwayat --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="px-6 pt-5 pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <h3 class="font-bold text-gray-900">Riwayat Cuti {{ $tahun }} <span class="text-gray-400 font-normal text-sm">({{ $riwayats->count() }} pengajuan)</span></h3>
@@ -136,7 +133,6 @@
             </div>
         </div>
 
-        {{-- Modal koreksi kuota --}}
         <div x-show="openEditModal" x-cloak style="display:none" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="openEditModal = false"></div>
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 z-10">
@@ -153,7 +149,8 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Sisa tahun lalu yang dibawa</label>
-                            <input type="number" name="saldo_tahun_lalu" min="0" max="24" required value="{{ $user->saldo_tahun_lalu }}" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <input type="number" name="saldo_tahun_lalu" min="0" max="12" required value="{{ $user->saldo_tahun_lalu }}" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <p class="text-xs text-gray-500 mt-1">Normal maksimal 6. Isi sampai 12 hanya kalau ada SK penangguhan cuti dari PPK.</p>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Penyesuaian pemakaian (hari, boleh negatif)</label>
