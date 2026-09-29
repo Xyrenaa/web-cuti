@@ -6,7 +6,6 @@
     </div>
 
     <div class="bg-[#F8FAFC] min-h-screen py-10 px-4 sm:px-6 lg:px-24">
-        <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">Riwayat Pengajuan Cuti</h2>
 
         <!-- Box Filter Pencarian -->
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
@@ -76,58 +75,53 @@
             </form>
         </div>
 
-        <!-- LIST CARD PENGAJUAN (LEBIH COMPACT/KECIL) -->
-        <div class="space-y-4">
-            <!-- Menggunakan variabel $riwayat as $item -->
-            @forelse ($riwayat as $item)
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
-                                <!-- Tambahkan Kode Pengajuan di sini dengan warna biru agar menonjol -->
-                                <span class="text-blue-600">#{{ $item->kode_pengajuan }}</span> - 
-                                {{ $item->jenisCuti->nama_cuti ?? 'Cuti Tahunan' }}
-                                <span class="text-gray-400 font-normal text-sm">— {{ $item->durasi_hari }} Hari</span>
-                            </h3>
-                            <p class="text-sm text-gray-500 mt-1">
-                                <svg class="w-4 h-4 inline mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                {{ \Carbon\Carbon::parse($item->tanggal_mulai)->translatedFormat('d M Y') }} - {{ \Carbon\Carbon::parse($item->tanggal_selesai)->translatedFormat('d M Y') }}
-                            </p>
-                        </div>
-
-                        <div class="flex flex-col md:items-end gap-3">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
+                        <tr>
+                            <th class="px-4 py-3 text-left font-bold">Kode</th>
+                            <th class="px-4 py-3 text-left font-bold">Jenis</th>
+                            <th class="px-4 py-3 text-left font-bold">Tanggal Cuti</th>
+                            <th class="px-4 py-3 text-center font-bold">Hari</th>
+                            <th class="px-4 py-3 text-left font-bold">Status</th>
+                            <th class="px-4 py-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @forelse ($riwayat as $item)
                             @php
-                                $statusColor = 'bg-yellow-100 text-yellow-800 border-yellow-200';
-                                if ($item->status_group === 'Disetujui') $statusColor = 'bg-green-100 text-green-800 border-green-200';
-                                if (in_array($item->status_group, ['Ditolak', 'Dibatalkan'])) $statusColor = 'bg-red-100 text-red-800 border-red-200';
+                                $warna = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                                if ($item->status_group === 'Disetujui') $warna = 'bg-green-100 text-green-800 border-green-200';
+                                if ($item->status_group === 'Ditolak')   $warna = 'bg-red-100 text-red-800 border-red-200';
+                                if ($item->status_group === 'Dibatalkan') $warna = 'bg-gray-100 text-gray-500 border-gray-200';
+                                $mulai   = \Carbon\Carbon::parse($item->tanggal_mulai);
+                                $selesai = \Carbon\Carbon::parse($item->tanggal_selesai);
                             @endphp
-                            <span class="px-3 py-1 text-xs font-semibold rounded-full border {{ $statusColor }}">
-                                {{ $item->status_label }}
-                            </span>
-                            
-                            <!-- Sesuaikan nama routenya dengan route detail milikmu, misalnya 'pengajuan.show' atau 'pegawai.detail' -->
-                            <a href="{{ route('pegawai.detail', $item->id) }}" class="text-blue-600 hover:text-blue-800 text-sm font-semibold flex items-center gap-1 group">
-                                Lihat detail lengkap
-                                <svg class="w-4 h-4 transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            @empty
-                <div class="text-center py-10 bg-white rounded-xl border border-gray-200">
-                    <p class="text-gray-500">Belum ada riwayat pengajuan cuti yang sesuai dengan filter.</p>
-                </div>
-            @endforelse
+                            <tr class="hover:bg-gray-50 transition {{ $item->approval_step == 10 ? 'opacity-60' : '' }}">
+                                <td class="px-4 py-3 font-semibold text-blue-600 whitespace-nowrap">#{{ $item->kode_pengajuan }}</td>
+                                <td class="px-4 py-3 text-gray-800">{{ $item->jenisCuti->nama_cuti ?? 'Cuti Tahunan' }}</td>
+                                <td class="px-4 py-3 text-gray-600 whitespace-nowrap">
+                                    {{ $mulai->translatedFormat('d M Y') }}@if(!$mulai->isSameDay($selesai)) – {{ $selesai->translatedFormat('d M Y') }}@endif
+                                </td>
+                                <td class="px-4 py-3 text-center font-bold text-gray-800">{{ $item->durasi_hari }}</td>
+                                <td class="px-4 py-3">
+                                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full border whitespace-nowrap {{ $warna }}">{{ $item->status_label }}</span>
+                                </td>
+                                <td class="px-4 py-3 text-right whitespace-nowrap">
+                                    <a href="{{ route('pegawai.detail', $item->id) }}" class="text-blue-600 hover:text-blue-800 font-semibold">Detail →</a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="6" class="px-4 py-10 text-center text-gray-500">Belum ada riwayat pengajuan cuti yang sesuai dengan filter.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <!-- Pagination -->
         <div class="mt-6">
-            {{ $riwayat->withQueryString()->links() }}
-        </div>
-            <div class="mt-6">
-                {{ $riwayat->links() }}
-            </div>
+            {{ $riwayat->links() }}
         </div>
     </div>
 </x-app-layout>

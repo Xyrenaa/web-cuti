@@ -35,6 +35,58 @@ class User extends Authenticatable
 
         return ($kodeTmt >= 1 && $kodeTmt <= 12) ? 'PNS' : 'PPPK';
     }
+        /**
+     * Pecah saldo cuti ala Excel. Sisa tahun lalu dipakai lebih dulu.
+     */
+    public static function hitungSaldo(int $jatah, int $saldoLalu, int $terpakai): array
+    {
+        $saldoLalu     = max(0, min($saldoLalu, $jatah));
+        $jatahBerjalan = $jatah - $saldoLalu;
+        $dariLalu      = min($terpakai, $saldoLalu);
+        $dariBerjalan  = $terpakai - $dariLalu;
+
+        return [
+            'saldo_lalu'       => $saldoLalu,
+            'dipakai_lalu'     => $dariLalu,
+            'sisa_lalu'        => $saldoLalu - $dariLalu,
+            'jatah_berjalan'   => $jatahBerjalan,
+            'dipakai_berjalan' => $dariBerjalan,
+            'sisa_berjalan'    => $jatahBerjalan - $dariBerjalan,
+            'total_sisa'       => $jatah - $terpakai,
+        ];
+    }
+    
+        /**
+     * Satu pintu untuk semua perhitungan saldo (rekap, detail, ekspor, tutup tahun, informasi).
+     * - koreksi_terpakai = selisih antara angka sheet JATAH CUTI dan riwayat yang tercatat.
+     * - Cuti Besar: hak cuti tahunan tahun berjalan hangus, sisa tahun lalu tetap ada.
+     */
+    public static function saldoDari(self $user, int $terpakaiTercatat, bool $cutiBesar = false): array
+    {
+        $saldoLalu = (int) $user->saldo_tahun_lalu;
+        $jatah     = (int) ($user->jatah_cuti ?? 12);
+
+        if ($cutiBesar) {
+            $jatah = min($jatah, $saldoLalu);
+        }
+
+        $terpakai = max(0, $terpakaiTercatat + (int) $user->koreksi_terpakai);
+
+        return array_merge(self::hitungSaldo($jatah, $saldoLalu, $terpakai), [
+            'kuota'      => $jatah,
+            'terpakai'   => $terpakai,
+            'cuti_besar' => $cutiBesar,
+        ]);
+    }
+
+    public function punyaCutiBesar(int $tahun): bool
+    {
+        return $this->pengajuanCutis()
+            ->where('approval_step', 8)
+            ->whereYear('tanggal_mulai', $tahun)
+            ->whereHas('jenisCuti', fn ($q) => $q->where('nama_cuti', 'Cuti Besar'))
+            ->exists();
+    }
 
     /**
      * The attributes that are mass assignable.
