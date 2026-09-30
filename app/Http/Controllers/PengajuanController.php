@@ -451,6 +451,8 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
                 'Dibatalkan' => $query->where('approval_step', 10),
                 default      => null,
             };
+               }
+               
        if ($request->filled('status') && $request->status !== 'Semua Status') {
     if ($request->status == 'Menunggu') {
         $query->whereNotIn('approval_step', [0, 8, 9, 10]);

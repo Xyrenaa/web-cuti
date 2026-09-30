@@ -1,8 +1,7 @@
-<nav x-data="{ open: false, scrolled: false }"
-      @scroll.window="scrolled = (window.pageYOffset > 20)"
-                 :class="{'bg-white/90 backdrop-blur-md shadow-md': scrolled, 'bg-white shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)]': !scrolled}"@scroll.window.passive="scrolled = (window.pageYOffset > 20)"
-     :class="scrolled ? 'shadow-md' : 'shadow-sm'"
-     class="sticky top-0 z-50 border-b border-gray-100 bg-white transition-shadow duration-300">
+<nav x-data="{ open: false, scrolled: false }" 
+     @scroll.window="scrolled = (window.pageYOffset > 20)"
+     :class="{'bg-white/70 backdrop-blur-lg shadow-md': scrolled, 'bg-white shadow-sm': !scrolled}"
+     class="sticky top-0 z-50 border-b border-gray-100 transition-all duration-300">
     
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Tambahkan sedikit transisi di tinggi navbar agar agak mengecil saat discroll (opsional tapi keren) -->
@@ -12,9 +11,17 @@
             <div class="shrink-0 flex items-center">
                 <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
                     <!-- Logo Instansi (Otban) -->
-                                        <img src="{{ asset('img/Logo Otban.png') }}" class="block h-[50px] w-auto" alt="Logo Instansi" width="50" height="50" />
-                    <div class="w-px h-8 bg-gray-300"></div>
-                    <img src="{{ asset('img/logo-pelita.png') }}" class="block h-14 w-auto" alt="Logo PELITA" width="186" height="56" />
+                    <img src="{{ asset('img/Logo Otban.png') }}" 
+                         class="block w-auto drop-shadow-sm transition-all duration-300" 
+                         :class="{'h-[45px]': scrolled, 'h-[50px]': !scrolled}" 
+                         alt="Logo Instansi" />
+                    <!-- Garis Pemisah -->
+                    <div class="w-px bg-gray-300 transition-all duration-300" :class="{'h-6': scrolled, 'h-8': !scrolled}"></div>
+                    <!-- Logo Web (PELITA) -->
+                    <img src="{{ asset('img/logo-pelita.png') }}" 
+                         class="block w-auto drop-shadow-sm transition-all duration-300" 
+                         :class="{'h-10': scrolled, 'h-14': !scrolled}" 
+                         alt="Logo PELITA" />
                 </a>
             </div>
 
@@ -35,17 +42,19 @@
                     </a>
                 @endhasanyrole
                 
-                <!-- Menu Pengajuan Cuti -->
-                <a href="{{ route('pengajuan.index') }}" 
-                class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center {{ request()->is('pengajuan') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
-                    Pengajuan Cuti
-                </a>
+                @unlessrole('Kepala Kantor')
+                    <!-- Menu Pengajuan Cuti -->
+                    <a href="{{ route('pengajuan.index') }}" 
+                    class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center {{ request()->is('pengajuan') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
+                        Pengajuan Cuti
+                    </a>
 
-                <!-- Menu Riwayat Pengajuan -->
-                <a href="{{ route('pengajuan.riwayat') }}" 
-                class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center {{ request()->is('riwayat-pengajuan') || request()->is('pengajuan/*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
-                    Riwayat Pengajuan
-                </a>
+                    <!-- Menu Riwayat Pengajuan -->
+                    <a href="{{ route('pengajuan.riwayat') }}" 
+                    class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center {{ request()->is('riwayat-pengajuan') || request()->is('pengajuan/*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
+                        Riwayat Pengajuan
+                    </a>
+                @endunlessrole
 
                                <!-- Menu Notifikasi (Lonceng + Badge Belum Dibaca) -->
                 @php $jumlahNotif = $jumlahNotifBelumDibaca ?? 0; @endphp
@@ -136,13 +145,15 @@
                 </x-responsive-nav-link>
             @endhasanyrole
 
-            <x-responsive-nav-link :href="route('pengajuan.index')" :active="request()->is('pengajuan')">
-                Pengajuan Cuti
-            </x-responsive-nav-link>
+            @unlessrole('Kepala Kantor')
+                <x-responsive-nav-link :href="route('pengajuan.index')" :active="request()->is('pengajuan')">
+                    Pengajuan Cuti
+                </x-responsive-nav-link>
 
-            <x-responsive-nav-link :href="route('pengajuan.riwayat')" :active="request()->routeIs('pengajuan.riwayat', 'pengajuan.show')">
-                Riwayat Pengajuan
-            </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('pengajuan.riwayat')" :active="request()->routeIs('pengajuan.riwayat', 'pengajuan.show')">
+                    Riwayat Pengajuan
+                </x-responsive-nav-link>
+            @endunlessrole
             <x-responsive-nav-link :href="route('notifikasi')" :active="request()->routeIs('notifikasi')">
                 Notifikasi
                 @if(($jumlahNotifBelumDibaca ?? 0) > 0)

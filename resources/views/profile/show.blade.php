@@ -38,7 +38,20 @@
                         </div>
                         <div>
                             <h3 class="text-xl font-bold text-gray-900">{{ $user->name }}</h3>
-                            <p class="text-sm text-gray-500 mt-1">{{ $user->subBagianSeksi->nama ?? 'Pegawai' }} — {{ $user->bagianBidang->nama ?? 'Instansi' }}</p>
+                            <p class="text-sm text-gray-500 mt-1">
+                                @if($user->subBagianSeksi && $user->bagianBidang)
+                                    {{-- Pegawai biasa: tetap tampilkan unit kerjanya seperti sebelumnya --}}
+                                    {{ $user->subBagianSeksi->nama }} — {{ $user->bagianBidang->nama }}
+                                @elseif($user->bagianBidang)
+                                    {{-- Kepala Bidang/Bagian/TU: tidak punya sub-unit sendiri, jadi tampilkan jabatannya --}}
+                                    {{ $user->level_jabatan ?? 'Pegawai' }} — {{ $user->bagianBidang->nama }}
+                                @elseif($user->subBagianSeksi)
+                                    {{ $user->level_jabatan ?? 'Pegawai' }} — {{ $user->subBagianSeksi->nama }}
+                                @else
+                                    {{-- Kepala Kantor (atau akun lain tanpa unit spesifik): jangan tampilkan "Pegawai — Instansi" --}}
+                                    {{ $user->level_jabatan ?? 'Pegawai' }}
+                                @endif
+                            </p>
                         </div>
                     </div>
                     <a href="{{ route('profile.edit') }}" class="px-5 py-2.5 bg-[#2A65F3] text-white text-sm font-semibold rounded-md hover:bg-blue-700 transition flex items-center gap-2 shadow-sm">

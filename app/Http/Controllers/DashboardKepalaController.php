@@ -18,6 +18,11 @@ class DashboardKepalaController extends Controller
     private $stepDisetujui = 8;
     private $stepDitolakRevisi = [0, 9];
 
+    // Jendela "deteksi dini" untuk kartu Risiko Kekosongan: selain yang SEDANG cuti hari ini,
+    // ikut hitung yang cutinya mulai dalam N hari ke depan (approved tapi belum berjalan),
+    // supaya kartu ini benar-benar early warning, bukan cuma laporan hari ini. Ubah angkanya di sini kalau mau beda.
+    private $hariDeteksiDini = 7;
+
     private $kolomNamaDivisi = 'nama';
     private $fkDivisi = 'bagian_bidang_id';
 
@@ -132,23 +137,26 @@ class DashboardKepalaController extends Controller
         // ==========================================
         // 4. RISIKO KEKOSONGAN — bentuk & cakupan data beda per level jabatan
         // ==========================================
-        $hitungSedangCuti = function (array $userIds) use ($now) {
+        // Batas atas "akan mulai cuti" untuk jendela deteksi dini (mis. hari ini + 7 hari).
+        $batasDeteksiDini = $now->copy()->addDays($this->hariDeteksiDini)->toDateString();
+
+        $hitungSedangCuti = function (array $userIds) use ($now, $batasDeteksiDini) {
             if (empty($userIds)) return 0;
             return PengajuanCuti::whereIn('user_id', $userIds)
                 ->where('approval_step', $this->stepDisetujui)
-                ->where('tanggal_mulai', '<=', $now->toDateString())
-                ->where('tanggal_selesai', '>=', $now->toDateString())
+                ->where('tanggal_selesai', '>=', $now->toDateString())   // belum berakhir (sedang jalan ATAU akan datang)
+                ->where('tanggal_mulai', '<=', $batasDeteksiDini)        // sudah mulai, atau mulai dalam N hari ke depan
                 ->count();
         };
 
         // Sama seperti $hitungSedangCuti, tapi mengembalikan daftar nama pegawainya
         // (dipakai untuk modal rincian di level Bidang & Seksi, yang sudah di titik terkecil).
-        $daftarSedangCuti = function (array $userIds) use ($now) {
+        $daftarSedangCuti = function (array $userIds) use ($now, $batasDeteksiDini) {
             if (empty($userIds)) return [];
             return PengajuanCuti::whereIn('user_id', $userIds)
                 ->where('approval_step', $this->stepDisetujui)
-                ->where('tanggal_mulai', '<=', $now->toDateString())
                 ->where('tanggal_selesai', '>=', $now->toDateString())
+                ->where('tanggal_mulai', '<=', $batasDeteksiDini)
                 ->with('user')
                 ->get()
                 ->map(fn ($p) => [

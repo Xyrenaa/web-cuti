@@ -120,7 +120,7 @@
                     </div>
 
                     <div class="stat-cell p-6">
-                        <h3 class="text-gray-500 text-sm font-medium uppercase tracking-wider">Disetujui Bulan Ini</h3>
+                        <h3 class="text-gray-500 text-sm font-medium uppercase tracking-wider">Disetujui</h3>
                         <div class="flex items-end gap-2 mt-2">
                             <p class="text-3xl font-bold text-gray-800" data-count-up="{{ $countDisetujui }}">0</p>
                             <p class="text-sm text-green-500 font-medium mb-1">✓ Tuntas</p>
