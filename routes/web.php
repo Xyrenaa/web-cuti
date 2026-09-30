@@ -23,17 +23,19 @@ Route::get('/dashboard', function () {
         'Kepala Kantor'
     ];
 
+    // Jika role adalah Admin Kepegawaian, arahkan ke dashboard admin yang asli
+    // (yang route-nya terdaftar di grup middleware role:Admin Kepegawaian di bawah).
+    if (auth()->user()->hasRole('Admin Kepegawaian')) {
+        return redirect()->route('admin.dashboard');
+    }
+
     // Jika role adalah salah satu dari Kepala
     if (auth()->user()->hasAnyRole($parakepala)){
         // Alihkan eksekusinya ke DashboardKepalaController untuk mengambil semua data EIS
         return app(\App\Http\Controllers\DashboardKepalaController::class)->index();
     }
 
-    Route::get('/admin/dashboard', function () {
-    return view('admin.dashboard');
-})->middleware(['auth', 'verified'])->name('admin.dashboard');
-
-    // Jika bukan Kepala (Pegawai biasa)
+    // Jika bukan Kepala maupun Admin (Pegawai biasa)
     return view('pegawai.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 

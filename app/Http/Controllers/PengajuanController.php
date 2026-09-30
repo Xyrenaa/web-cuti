@@ -464,6 +464,17 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         $query->where('approval_step', 10);
     }
 }
+        if ($request->filled('status') && $request->status !== 'Semua Status') {
+            if ($request->status == 'Menunggu') {
+                $query->whereNotIn('approval_step', [0, 8, 9, 10]);
+            } elseif ($request->status == 'Disetujui') {
+                $query->where('approval_step', 8);
+            } elseif ($request->status == 'Ditolak') {
+                $query->where('approval_step', 0);
+            } elseif ($request->status == 'Dibatalkan') {
+                $query->where('approval_step', 10);
+            }
+        }
 
         // 5. FILTER TANGGAL
         if ($request->filled('date')) {
