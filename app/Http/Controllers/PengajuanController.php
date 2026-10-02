@@ -285,6 +285,8 @@ $namaCuti = $jenisCuti ? $jenisCuti->nama_cuti : '';
     $prefix = 'CT';
 if (str_contains($namaCuti, 'Sakit')) {
     $prefix = 'CS';
+} elseif (str_contains($namaCuti, 'Pengganti')) {
+    $prefix = 'CPB';
 } elseif (str_contains($namaCuti, 'Tahunan')) {
     $prefix = 'CT';
 } elseif (str_contains($namaCuti, 'Alasan Penting')) {
