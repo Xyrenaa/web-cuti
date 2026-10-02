@@ -88,6 +88,23 @@ class User extends Authenticatable
             ->exists();
     }
 
+        /** Pengajuan cuti milik Kepala lain di mana user ini ditunjuk sebagai PLH-nya. */
+    public function pengajuanPlh()
+    {
+        return $this->hasMany(PengajuanCuti::class, 'plh_user_id');
+    }
+
+    /** Penugasan PLH yang SEDANG berlaku hari ini. */
+    public function penugasanPlhAktif()
+    {
+        return $this->pengajuanPlh()->plhAktifPada()->with('user');
+    }
+
+    public function sedangMenjadiPlh(): bool
+    {
+        return $this->penugasanPlhAktif()->exists();
+    }
+    
     /**
      * The attributes that are mass assignable.
      *

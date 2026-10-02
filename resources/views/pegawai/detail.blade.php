@@ -8,6 +8,15 @@
     </div>
 
     <div class="bg-[#F8FAFC] min-h-screen py-10 px-4 sm:px-6 lg:px-24">
+        @if(session('success'))
+            <div class="max-w-6xl mx-auto mb-6 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-sm" role="alert">{{ session('success') }}</div>
+        @endif
+        @if(session('error'))
+            <div class="max-w-6xl mx-auto mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-sm" role="alert">{{ session('error') }}</div>
+        @endif
+        @error('plh_user_id')
+            <div class="max-w-6xl mx-auto mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-sm" role="alert">{{ $message }}</div>
+        @enderror
         <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             <!-- KOLOM KIRI: Rincian & Lampiran -->
@@ -110,6 +119,51 @@
                             </p>
                         </div>
                     </div>
+
+                    {{-- ===== PLH (Pelaksana Harian) ===== --}}
+                    @if($pengajuan->butuhPlh())
+                        @if($step === 7)
+                            <div class="mt-6 p-4 rounded-lg border bg-blue-50 border-blue-200">
+                                <p class="text-xs font-bold uppercase tracking-wide text-blue-700 mb-1">Tunjuk PLH</p>
+                                <p class="text-xs text-blue-800 mb-3">
+                                    Pengajuan Anda sudah melewati semua persetujuan. Pilih PLH (Pelaksana Harian) yang menggantikan tugas Anda
+                                    selama cuti agar Admin dapat memfinalisasi.
+                                </p>
+
+                                @if($kandidatPlh->isEmpty())
+                                    <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded p-3">
+                                        Tidak ada pegawai yang dapat dipilih (belum ada pegawai di unit Anda, atau semuanya sedang cuti pada tanggal yang sama).
+                                        Hubungi Admin Kepegawaian.
+                                    </p>
+                                @else
+                                    <form action="{{ route('pengajuan.plh.store', $pengajuan->id) }}" method="POST">
+                                        @csrf
+                                        <select name="plh_user_id" required
+                                            class="w-full mb-3 text-sm border-gray-300 rounded-lg focus:border-blue-500 focus:ring-blue-500">
+                                            <option value="">-- Pilih PLH --</option>
+                                            @foreach($kandidatPlh as $kandidat)
+                                                <option value="{{ $kandidat->id }}" @selected((int) $pengajuan->plh_user_id === $kandidat->id)>
+                                                    {{ $kandidat->name }}{{ $kandidat->subBagianSeksi ? ' - ' . $kandidat->subBagianSeksi->nama : '' }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <button type="submit" class="w-full px-4 py-2 text-sm font-semibold text-white transition bg-[#2A65F3] rounded-lg hover:bg-blue-700">
+                                            {{ $pengajuan->plh_user_id ? 'Ganti PLH' : 'Tunjuk PLH' }}
+                                        </button>
+                                    </form>
+                                @endif
+
+                                @if($pengajuan->plh)
+                                    <p class="mt-3 text-xs text-gray-600">PLH saat ini: <span class="font-semibold">{{ $pengajuan->plh->name }}</span></p>
+                                @endif
+                            </div>
+                        @elseif($pengajuan->plh)
+                            <div class="mt-6 p-4 rounded-lg border bg-gray-50 border-gray-200">
+                                <p class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">PLH Selama Cuti</p>
+                                <p class="text-sm font-semibold text-gray-800">{{ $pengajuan->plh->name }}</p>
+                            </div>
+                        @endif
+                    @endif
 
                     @if($pengajuan->catatan_penolakan)
                     <div class="mt-6 p-4 rounded-lg border {{ $step === 0 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200' }}">

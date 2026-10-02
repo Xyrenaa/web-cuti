@@ -28,7 +28,8 @@ class PengajuanCuti extends Model
     'surat_pengajuan',  
     'bukti_pendukung',
     'dokumen_ttd',
-    'approval_step',     
+    'approval_step',
+    'plh_user_id',     
     'status_pengajuan',
     'catatan_penolakan'  
 ];
@@ -41,6 +42,70 @@ class PengajuanCuti extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+        // =====================================================================
+    // FITUR PLH (Pelaksana Harian)
+    // =====================================================================
+    public const ROLE_WAJIB_PLH = ['Kepala Seksi', 'Kepala Sub-Bagian', 'Kepala Bidang', 'Kepala TU'];
+
+    public function plh()
+    {
+        return $this->belongsTo(User::class, 'plh_user_id');
+    }
+
+    public function butuhPlh(): bool
+    {
+        $pemohon = $this->user;
+
+        return $pemohon
+            && ! $pemohon->hasRole('Kepala Kantor')
+            && $pemohon->hasAnyRole(self::ROLE_WAJIB_PLH);
+    }
+
+    public function scopePlhAktifPada($query, $tanggal = null)
+    {
+        $tgl = \Carbon\Carbon::parse($tanggal ?? today())->toDateString();
+
+        return $query->where('approval_step', 8)
+            ->whereNotNull('plh_user_id')
+            ->whereDate('tanggal_mulai', '<=', $tgl)
+            ->whereDate('tanggal_selesai', '>=', $tgl);
+    }
+
+    public function kandidatPlh()
+    {
+        $pemohon = $this->user;
+        $query   = User::query()->where('id', '!=', $pemohon->id);
+
+        if ($pemohon->hasAnyRole(['Kepala Bidang', 'Kepala TU'])) {
+            if (! $pemohon->bagian_bidang_id) {
+                return $query->whereRaw('1 = 0');
+            }
+            $query->role(['Kepala Seksi', 'Kepala Sub-Bagian'])
+                ->where('bagian_bidang_id', $pemohon->bagian_bidang_id);
+        } elseif ($pemohon->hasAnyRole(['Kepala Seksi', 'Kepala Sub-Bagian'])) {
+            if (! $pemohon->sub_bagian_seksi_id) {
+                return $query->whereRaw('1 = 0');
+            }
+            $query->role('Pegawai')
+                ->where('sub_bagian_seksi_id', $pemohon->sub_bagian_seksi_id);
+        } else {
+            return $query->whereRaw('1 = 0');
+        }
+
+        $query->withoutRole('Admin Kepegawaian');
+
+        $mulai   = \Carbon\Carbon::parse($this->tanggal_mulai)->toDateString();
+        $selesai = \Carbon\Carbon::parse($this->tanggal_selesai)->toDateString();
+        $bentrok = fn ($q) => $q->whereNotIn('approval_step', [0, 9, 10])
+            ->whereDate('tanggal_mulai', '<=', $selesai)
+            ->whereDate('tanggal_selesai', '>=', $mulai);
+
+        return $query
+            ->whereDoesntHave('pengajuanCutis', $bentrok)
+            ->whereDoesntHave('pengajuanPlh', fn ($q) => $bentrok($q->where('id', '!=', $this->id)));
+    }
+
     public function getStatusLabelAttribute()
     {
         // Sesuaikan angka step di bawah ini dengan alur bisnismu (1-6 dan jalur TU 3/7/8)

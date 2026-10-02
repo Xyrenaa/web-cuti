@@ -67,6 +67,12 @@
             </div>
         </div>
 
+        {{-- ===== ANTREAN APPROVAL MILIK SENDIRI (disembunyikan untuk Pegawai biasa yang cuma jadi PLH) ===== --}}
+        @if($peranSendiri)
+        @if($antreanPlh->isNotEmpty())
+            <h3 class="mt-6 text-lg font-bold text-gray-900">Antrean Approval Saya</h3>
+        @endif
+
         <!-- Table Section -->
         <div class="bg-white rounded-b-xl shadow-sm border border-gray-100 overflow-hidden mt-4">
             <div class="overflow-x-auto">
@@ -153,6 +159,58 @@
                 @endif
             </div>
         </div>
+        @endif
+        {{-- ===== SECTION TERPISAH: SEDANG MENJADI PLH UNTUK... ===== --}}
+        @foreach($antreanPlh as $plh)
+            <div class="mt-10">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                    <h3 class="text-lg font-bold text-gray-900">Sedang Menjadi PLH Untuk {{ $plh['kepala']->name }}</h3>
+                    <span class="text-[11px] font-bold px-3 py-1.5 rounded-full bg-purple-100 text-purple-700">PLH {{ $plh['peran'] }}</span>
+                </div>
+                <p class="mb-3 text-xs text-gray-500">
+                    Berlaku sampai {{ \Carbon\Carbon::parse($plh['sampai'])->translatedFormat('d F Y') }}.
+                    Pengajuan di bawah ini seharusnya masuk ke meja beliau dan kini menjadi wewenang Anda selama masa PLH.
+                </p>
 
+                <div class="overflow-hidden bg-white border border-purple-100 shadow-sm rounded-xl">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-[11px] font-bold tracking-wider text-gray-500 uppercase border-b border-gray-100 bg-purple-50/50">
+                                <tr>
+                                    <th class="px-6 py-4">KODE</th>
+                                    <th class="px-6 py-4">NAMA PEGAWAI</th>
+                                    <th class="px-6 py-4">JENIS CUTI</th>
+                                    <th class="px-6 py-4">TANGGAL PENGAJUAN</th>
+                                    <th class="px-6 py-4">DURASI</th>
+                                    <th class="px-6 py-4 text-right">AKSI</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50">
+                                @forelse($plh['pengajuans'] as $item)
+                                    <tr class="transition hover:bg-gray-50/50">
+                                        <td class="px-6 py-4 font-bold text-gray-900">{{ $item->kode_pengajuan ?? '-' }}</td>
+                                        <td class="px-6 py-4 font-bold text-gray-900">{{ $item->user->name ?? '-' }}</td>
+                                        <td class="px-6 py-4 text-gray-600">{{ $item->jenisCuti->nama_cuti ?? '-' }}</td>
+                                        <td class="px-6 py-4 text-gray-500">{{ \Carbon\Carbon::parse($item->created_at)->translatedFormat('d F Y') }}</td>
+                                        <td class="px-6 py-4 font-bold text-gray-800">{{ $item->durasi_hari ?? 0 }} Hari</td>
+                                        <td class="px-6 py-4 text-right">
+                                            <a href="{{ route('kepala.approval.show', $item->id) }}" class="text-[#2a64f5] hover:text-blue-800 font-bold text-sm inline-flex items-center">
+                                                Lihat Detail <span class="ml-1 text-lg leading-none">&rarr;</span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                                            Belum ada pengajuan yang perlu diproses atas nama {{ $plh['kepala']->name }}.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        @endforeach
     </div>
 </x-app-layout>

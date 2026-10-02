@@ -48,6 +48,16 @@ class PengajuanCutiObserver
             $this->kabariSuratDitandatangani($pengajuan);
         }
 
+         // PLH baru ditunjuk / diganti -> kabari PLH-nya.
+        if ($pengajuan->wasChanged('plh_user_id') && $pengajuan->plh_user_id) {
+            $this->kabariPlhDitunjuk($pengajuan);
+
+            // PLH pertama kali dipilih saat step 7: gerbang Admin terbuka, baru Admin dikabari.
+            if ((int) $pengajuan->approval_step === 7 && ! $pengajuan->getOriginal('plh_user_id')) {
+                $this->kabariMejaTujuan($pengajuan);
+            }
+        }
+
         if (! $pengajuan->wasChanged('approval_step')) {
             return;
         }
@@ -57,8 +67,51 @@ class PengajuanCutiObserver
 
         $this->kabariPemohon($pengajuan, $stepLama, $stepBaru);
         $this->kabariMejaTujuan($pengajuan);
+        $this->kabariTunjukPlh($pengajuan, $stepBaru);       
     }
 
+        /** Begitu pengajuan Kepala (bukan Kakan) sampai step 7, minta dia menunjuk PLH. */
+    protected function kabariTunjukPlh(PengajuanCuti $pengajuan, int $stepBaru): void
+    {
+        if ($stepBaru !== 7 || $pengajuan->plh_user_id || ! $pengajuan->butuhPlh()) {
+            return;
+        }
+
+        $pengajuan->user->notify(new StatusCutiNotification(
+            'Silakan Tunjuk PLH',
+            "Pengajuan cuti {$pengajuan->kode_pengajuan} sudah melewati seluruh persetujuan. Silakan tunjuk PLH (Pelaksana Harian) selama Anda cuti agar Admin dapat memfinalisasi pengajuan Anda.",
+            [
+                'tipe'           => 'aksi',
+                'kode_pengajuan' => $pengajuan->kode_pengajuan,
+                'pengajuan_id'   => $pengajuan->id,
+                'url'            => route('pegawai.detail', $pengajuan->id),
+            ]
+        ));
+    }
+    /** Notifikasi ke pegawai yang ditunjuk menjadi PLH. */
+    protected function kabariPlhDitunjuk(PengajuanCuti $pengajuan): void
+    {
+        $plh    = $pengajuan->plh;
+        $kepala = $pengajuan->user;
+
+        if (! $plh || ! $kepala) {
+            return;
+        }
+
+        $mulai   = \Carbon\Carbon::parse($pengajuan->tanggal_mulai)->translatedFormat('d F Y');
+        $selesai = \Carbon\Carbon::parse($pengajuan->tanggal_selesai)->translatedFormat('d F Y');
+
+        $plh->notify(new StatusCutiNotification(
+            'Anda Ditunjuk Sebagai PLH',
+            "{$kepala->name} menunjuk Anda sebagai PLH (Pelaksana Harian) pada {$mulai} s.d. {$selesai}. Penunjukan baru berlaku setelah pengajuan cuti beliau disetujui final.",
+            [
+                'tipe'           => 'status',
+                'kode_pengajuan' => $pengajuan->kode_pengajuan,
+                'pengajuan_id'   => $pengajuan->id,
+                'url'            => route('dashboard'),
+            ]
+        ));
+    }
     /** Notifikasi ke pegawai pemilik pengajuan. */
     protected function kabariPemohon(PengajuanCuti $pengajuan, int $stepLama, int $stepBaru): void
     {
@@ -151,6 +204,11 @@ class PengajuanCutiObserver
             return;
         }
 
+                // Step 7 milik Kepala yang wajib PLH tapi belum menunjuk: jangan dulu kabari Admin
+                // (finalisasi diblokir sampai PLH dipilih). Admin dikabari setelah PLH ditunjuk.
+        if ($step === 7 && $pengajuan->butuhPlh() && ! $pengajuan->plh_user_id) {
+            return;
+        }
         $penerima = $this->penerima($pengajuan, $step);
 
         if ($penerima->isEmpty()) {
