@@ -60,6 +60,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/pengajuan/{id}', [PengajuanController::class, 'show'])->name('pengajuan.show');
     Route::get('/pengajuan/detail/{id}', [PengajuanController::class, 'show'])->name('pegawai.detail');
     Route::post('/pengajuan/{id}/batal', [PengajuanController::class, 'batal'])->name('pengajuan.batal');
+    Route::post('/pengajuan/{id}/plh', [PengajuanController::class, 'simpanPlh'])->whereNumber('id')->name('pengajuan.plh.store');
 
     Route::get('/notifikasi', [PengajuanController::class, 'notifikasi'])->name('notifikasi');
     Route::post('/notifikasi/{id}/read', [NotifikasiController::class, 'markAsRead'])->name('notifikasi.read');
@@ -126,7 +127,7 @@ Route::middleware(['auth', 'verified', 'role:Superadmin'])->prefix('superadmin')
 // ==========================================
 // ROUTE KEPALA (Prefix: /kepala, Name: kepala.)
 // ==========================================
-Route::middleware(['auth', 'verified', 'role:Kepala Seksi|Kepala Bidang|Kepala Sub-Bagian|Kepala TU|Kepala Kantor'])->prefix('kepala')->name('kepala.')->group(function () {
+Route::middleware(['auth', 'verified', 'kepala.atau.plh'])->prefix('kepala')->name('kepala.')->group(function () {    
     Route::get('/approval', [PengajuanController::class, 'indexKepala'])->name('approval.index');
     Route::get('/approval/{id}', [PengajuanController::class, 'showKepala'])->name('approval.show');
     Route::put('/approval/{id}/approve', [PengajuanController::class, 'approveKepala'])->name('approval.approve');

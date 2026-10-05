@@ -17,28 +17,104 @@ class PengajuanController extends Controller
         'Kepala TU'         => ['step' => 5, 'lanjut' => 6],
         'Kepala Kantor'     => ['step' => 6, 'lanjut' => 7],
     ];
+        /**
+     * Peran meja yang sedang dipegang $user atas $pengajuan (null = bukan mejanya).
+     */
     protected function mejaSaya(PengajuanCuti $pengajuan, $user): ?string
     {
+        return $this->mejaSayaDetail($pengajuan, $user)['peran'] ?? null;
+    }
+
+    /**
+     * Versi lengkap: selain peran, juga apakah hak datang dari meja sendiri atau dari PLH.
+     *
+     * @return array{peran:string, via_plh:bool, kepala:?\App\Models\User}|null
+     */
+    protected function mejaSayaDetail(PengajuanCuti $pengajuan, $user): ?array
+    {
+        $step = (int) $pengajuan->approval_step;
+
+        // 1) Meja milik sendiri
         foreach ($this->alurKepala as $peran => $info) {
-            if (! $user->hasRole($peran) || (int) $pengajuan->approval_step !== $info['step']) {
+            if (! $user->hasRole($peran) || $step !== $info['step']) {
                 continue;
             }
 
-            if ($peran === 'Kepala Seksi'
-                && $pengajuan->user?->sub_bagian_seksi_id !== $user->sub_bagian_seksi_id) {
-                return null;
+            if (! $this->unitCocok($pengajuan, $peran, $user)) {
+                continue;
             }
 
-            if ($peran === 'Kepala Bidang'
-                && $pengajuan->user?->bagian_bidang_id !== $user->bagian_bidang_id) {
-                return null;
+            return ['peran' => $peran, 'via_plh' => false, 'kepala' => null];
+        }
+
+        // 2) Meja Kepala yang sedang cuti dan menunjuk $user sebagai PLH-nya.
+        foreach ($user->penugasanPlhAktif()->get() as $tugas) {
+            $kepala = $tugas->user;
+
+            if (! $kepala) {
+                continue;
             }
 
-            return $peran;
+            $peran = $this->peranMejaKepala($kepala);
+
+            if ($peran === null
+                || $step !== $this->alurKepala[$peran]['step']
+                || ! $this->unitCocok($pengajuan, $peran, $kepala)) {
+                continue;
+            }
+
+            return ['peran' => $peran, 'via_plh' => true, 'kepala' => $kepala];
         }
 
         return null;
     }
+
+    /** Pemohon ada di unit yang dikelola pemegang meja? (Kasi = seksi, Kabid = bidang) */
+    protected function unitCocok(PengajuanCuti $pengajuan, string $peran, $pemegangMeja): bool
+    {
+        return match ($peran) {
+            'Kepala Seksi'  => $pengajuan->user?->sub_bagian_seksi_id === $pemegangMeja->sub_bagian_seksi_id,
+            'Kepala Bidang' => $pengajuan->user?->bagian_bidang_id === $pemegangMeja->bagian_bidang_id,
+            default         => true,
+        };
+    }
+
+    /** Peran meja milik seorang Kepala. Kepala Kantor dikecualikan (jalur PLT). */
+    protected function peranMejaKepala($kepala): ?string
+    {
+        foreach (array_keys($this->alurKepala) as $peran) {
+            if ($peran !== 'Kepala Kantor' && $kepala->hasRole($peran)) {
+                return $peran;
+            }
+        }
+
+        return null;
+    }
+
+    /** Peran meja milik user sendiri (urutan prioritas sama seperti kode lama). */
+    protected function peranMejaSendiri($user): ?string
+    {
+        foreach (array_keys($this->alurKepala) as $peran) {
+            if ($user->hasRole($peran)) {
+                return $peran;
+            }
+        }
+
+        return null;
+    }
+
+    /** Filter query ke "meja ini": step milik peran + unit pemegang meja. */
+    protected function terapkanMeja($query, string $peran, $pemegangMeja): void
+    {
+        $query->where('approval_step', $this->alurKepala[$peran]['step']);
+
+        if ($peran === 'Kepala Seksi') {
+            $query->whereHas('user', fn ($u) => $u->where('sub_bagian_seksi_id', $pemegangMeja->sub_bagian_seksi_id));
+        } elseif ($peran === 'Kepala Bidang') {
+            $query->whereHas('user', fn ($u) => $u->where('bagian_bidang_id', $pemegangMeja->bagian_bidang_id));
+        }
+    }
+
         public function index()
     {
         $riwayat = PengajuanCuti::where('user_id', Auth::id())->latest()->paginate(5);
@@ -209,6 +285,8 @@ $namaCuti = $jenisCuti ? $jenisCuti->nama_cuti : '';
     $prefix = 'CT';
 if (str_contains($namaCuti, 'Sakit')) {
     $prefix = 'CS';
+} elseif (str_contains($namaCuti, 'Pengganti')) {
+    $prefix = 'CPB';
 } elseif (str_contains($namaCuti, 'Tahunan')) {
     $prefix = 'CT';
 } elseif (str_contains($namaCuti, 'Alasan Penting')) {
@@ -303,10 +381,54 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
 
     return redirect()->back()->with('success', 'Pengajuan cuti berhasil dibatalkan.');
     }   
-    public function show($id)
+
+       public function show($id)
     {
-        $pengajuan = PengajuanCuti::where('user_id', Auth::id())->findOrFail($id);
-        return view('pegawai.detail', compact('pengajuan'));
+        $pengajuan = PengajuanCuti::with('plh')->where('user_id', Auth::id())->findOrFail($id);
+
+        // Dropdown PLH hanya dimuat saat memang bisa dipilih (Kepala, step 7)
+        $kandidatPlh = collect();
+        if ($pengajuan->butuhPlh() && (int) $pengajuan->approval_step === 7) {
+            $kandidatPlh = $pengajuan->kandidatPlh()->with('subBagianSeksi')->orderBy('name')->get();
+        }
+
+        return view('pegawai.detail', compact('pengajuan', 'kandidatPlh'));
+    }
+
+    public function simpanPlh(Request $request, $id)
+    {
+        $pengajuan = PengajuanCuti::with('user')->findOrFail($id);
+        $user      = Auth::user();
+
+        if ((int) $pengajuan->user_id !== (int) $user->id) {
+            abort(403, 'Anda hanya dapat menunjuk PLH untuk pengajuan cuti Anda sendiri.');
+        }
+
+        if (! $pengajuan->butuhPlh()) {
+            return back()->with('error', 'Pengajuan ini tidak memerlukan penunjukan PLH.');
+        }
+
+        if ((int) $pengajuan->approval_step !== 7) {
+            return back()->with('error', 'PLH hanya dapat ditunjuk setelah pengajuan melewati seluruh persetujuan dan menunggu finalisasi Admin.');
+        }
+
+        $request->validate(
+            ['plh_user_id' => 'required|integer'],
+            ['plh_user_id.required' => 'Silakan pilih pegawai yang akan menjadi PLH.']
+        );
+
+        // Validasi ulang di server: pilihan HARUS ada di daftar kandidat valid.
+        $kandidat = $pengajuan->kandidatPlh()->whereKey($request->plh_user_id)->first();
+
+        if (! $kandidat) {
+            return back()->with('error', 'Pegawai yang dipilih tidak termasuk kandidat PLH yang valid untuk pengajuan ini.');
+        }
+
+        $pengajuan->plh_user_id = $kandidat->id;
+        $pengajuan->save();
+
+        return redirect()->route('pegawai.detail', $pengajuan->id)
+            ->with('success', "{$kandidat->name} berhasil ditunjuk sebagai PLH. Admin kini dapat memfinalisasi pengajuan Anda.");
     }
 
     public function notifikasi()
@@ -323,43 +445,66 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         return back()->with('success', 'Semua notifikasi telah ditandai dibaca.');
     } 
 
-        public function indexKepala(Request $request)
+    public function indexKepala(Request $request)
     {
         $user = Auth::user();
-        $step = 0;
 
-        // Tentukan hak akses meja (step) berdasarkan hierarki 5 level
-        if ($user->hasRole('Kepala Seksi')) {
-            $step = 1;
-        } elseif ($user->hasRole('Kepala Bidang')) {
-            $step = 2;
-        } elseif ($user->hasRole('Kepala Sub-Bagian')) {
-            $step = 4; // Berubah, karena Step 3 milik Admin
-        } elseif ($user->hasRole('Kepala TU')) {
-            $step = 5; // Berubah, langsung dari Kasubag
-        } elseif ($user->hasRole('Kepala Kantor')) {
-            $step = 6; // Berubah, langsung dari TU
-        }
-
-        $pengajuans = PengajuanCuti::with('user')
-            ->where('approval_step', $step)
-            ->where('user_id', '!=', $user->id) 
-            ->when($step === 1, function ($q) use ($user) {
-                $q->whereHas('user', fn ($u) => $u->where('sub_bagian_seksi_id', $user->sub_bagian_seksi_id));
-            })
-            ->when($step === 2, function ($q) use ($user) {
-                $q->whereHas('user', fn ($u) => $u->where('bagian_bidang_id', $user->bagian_bidang_id));
-            })
-            ->when($request->filled('search'), function ($q) use ($request) {
+        // Filter pencarian & tanggal dipakai bareng oleh antrean sendiri dan antrean PLH
+        $terapkanFilter = function ($q) use ($request) {
+            $q->when($request->filled('search'), function ($q) use ($request) {
                 $search = $request->search;
                 $q->whereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")->orWhere('nip', 'like', "%{$search}%"));
             })
-            ->when($request->filled('date'), fn ($q) => $q->whereDate('created_at', $request->date))
+            ->when($request->filled('date'), fn ($q) => $q->whereDate('created_at', $request->date));
+        };
+
+        // ---- Antrean milik sendiri ----
+        // Pegawai biasa yang cuma jadi PLH tidak punya meja sendiri -> antrean kosong.
+        $peranSendiri = $this->peranMejaSendiri($user);
+
+        $pengajuans = PengajuanCuti::with(['user', 'jenisCuti'])
+            ->where('user_id', '!=', $user->id)
+            ->where(function ($q) use ($peranSendiri, $user) {
+                if ($peranSendiri) {
+                    $this->terapkanMeja($q, $peranSendiri, $user);
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
+            })
+            ->tap($terapkanFilter)
             ->latest()
             ->paginate(10)
             ->withQueryString();
 
-        return view('kepala.approval.index', compact('pengajuans'));
+        // ---- Section terpisah: "Sedang Menjadi PLH Untuk..." ----
+        $antreanPlh = $user->penugasanPlhAktif()->get()
+            ->unique('user_id')
+            ->map(function ($tugas) use ($user, $terapkanFilter) {
+                $kepala = $tugas->user;
+                $peran  = $kepala ? $this->peranMejaKepala($kepala) : null;
+
+                if (! $peran) {
+                    return null;
+                }
+
+                $daftar = PengajuanCuti::with(['user', 'jenisCuti'])
+                    ->where('user_id', '!=', $user->id)
+                    ->where(fn ($q) => $this->terapkanMeja($q, $peran, $kepala))
+                    ->tap($terapkanFilter)
+                    ->latest()
+                    ->get();
+
+                return [
+                    'kepala'     => $kepala,
+                    'peran'      => $peran,
+                    'sampai'     => $tugas->tanggal_selesai,
+                    'pengajuans' => $daftar,
+                ];
+            })
+            ->filter()
+            ->values();
+
+        return view('kepala.approval.index', compact('pengajuans', 'antreanPlh', 'peranSendiri'));
     }
 
         public function showKepala($id)
@@ -392,11 +537,13 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
             abort(403, 'Anda tidak dapat membuka pengajuan cuti Anda sendiri melalui halaman approval.');
         }
 
-        if ($this->mejaSaya($data, $user) === null) {
+        $meja = $this->mejaSayaDetail($data, $user);
+
+        if ($meja === null) {
             abort(403, 'Pengajuan ini bukan/belum berada di meja Anda.');
         }
 
-        return view('kepala.approval.show', compact('data'));
+        return view('kepala.approval.show', compact('data', 'meja'));
     }
 
     // =================================================================
@@ -547,7 +694,13 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
 
                 $pengajuan->approval_step = 4;
                 $pengajuan->save();
-            } elseif ($pengajuan->approval_step == 7) {
+              } elseif ($pengajuan->approval_step == 7) {
+                // GERBANG PLH: Kepala (selain Kepala Kantor) wajib sudah menunjuk PLH
+                if ($pengajuan->butuhPlh() && ! $pengajuan->plh_user_id) {
+                    return redirect()->route('admin.approval.show', $pengajuan->id)
+                        ->with('error', "Tidak bisa difinalisasi: {$pengajuan->user->name} belum menunjuk PLH (Pelaksana Harian). Minta yang bersangkutan menunjuk PLH dari halaman detail pengajuannya, lalu coba lagi.");
+                }
+
                 // Admin finalisasi dan selesai (tidak perlu dokumen ttd di tahap ini)
                 $pengajuan->update(['approval_step' => 8,]);
             }
@@ -596,12 +749,14 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
                 ->with('error', 'Anda tidak dapat menyetujui pengajuan cuti Anda sendiri.');
         }
 
-        $peranAktif = $this->mejaSaya($pengajuan, $user);
+       $meja = $this->mejaSayaDetail($pengajuan, $user);
 
-        if ($peranAktif === null) {
+        if ($meja === null) {
             return redirect()->route('kepala.approval.index')
                 ->with('error', 'Pengajuan ini bukan lagi di meja Anda, atau sudah diproses pihak lain.');
         }
+
+        $peranAktif = $meja['peran'];
 
         $stepBerikutnya = $this->alurKepala[$peranAktif]['lanjut'];
 

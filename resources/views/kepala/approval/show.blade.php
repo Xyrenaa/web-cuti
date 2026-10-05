@@ -26,10 +26,16 @@
         ];
         $bisaAksi = false;
         $user = auth()->user();
-        foreach ($mapPeran as $peran => $stepPeran) {
-            if ($user && $user->hasRole($peran) && $step == $stepPeran) {
-                $bisaAksi = true;
-                break;
+        if (isset($meja)) {
+            // Sumber kebenaran = controller (mejaSayaDetail): sudah memperhitungkan unit dan PLH
+            $bisaAksi = $meja !== null;
+        } else {
+            // Fallback mode dummy (data tidak ditemukan di DB)
+            foreach ($mapPeran as $peran => $stepPeran) {
+                if ($user && $user->hasRole($peran) && $step == $stepPeran) {
+                    $bisaAksi = true;
+                    break;
+                }
             }
         }
 
@@ -39,6 +45,12 @@
     @endphp
 
     <div class="py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
+        @if(isset($meja) && $meja && $meja['via_plh'])
+            <div class="p-4 mb-6 text-sm text-purple-800 bg-purple-50 border-l-4 border-purple-500 rounded shadow-sm" role="status">
+                Anda memproses pengajuan ini sebagai <strong>PLH {{ $meja['peran'] }}</strong>
+                menggantikan <strong>{{ $meja['kepala']->name }}</strong> yang sedang cuti.
+            </div>
+        @endif
         <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
 
             <!-- KIRI: Informasi Detail -->

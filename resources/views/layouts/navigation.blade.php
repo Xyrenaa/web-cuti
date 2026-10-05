@@ -41,6 +41,13 @@
                        Approval Cuti
                     </a>
                 @endhasanyrole
+
+                @if(! auth()->user()->hasAnyRole(['Kepala Seksi','Kepala Bagian', 'Kepala Bidang', 'Kepala Sub-Bagian', 'Kepala TU', 'Kepala Kantor']) && auth()->user()->sedangMenjadiPlh())
+                    <a href="{{ route('kepala.approval.index') }}"
+                       class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center {{ request()->routeIs('kepala.approval.*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
+                       Approval Cuti (PLH)
+                    </a>
+                @endif
                 
                 @unlessrole('Kepala Kantor')
                     <!-- Menu Pengajuan Cuti -->
@@ -144,6 +151,12 @@
                     Approval Cuti
                 </x-responsive-nav-link>
             @endhasanyrole
+
+            @if(! auth()->user()->hasAnyRole(['Kepala Seksi','Kepala Bagian', 'Kepala Bidang', 'Kepala Sub-Bagian', 'Kepala TU', 'Kepala Kantor']) && auth()->user()->sedangMenjadiPlh())
+                <x-responsive-nav-link :href="route('kepala.approval.index')" :active="request()->routeIs('kepala.approval.*')">
+                    Approval Cuti (PLH)
+                </x-responsive-nav-link>
+            @endif
 
             @unlessrole('Kepala Kantor')
                 <x-responsive-nav-link :href="route('pengajuan.index')" :active="request()->is('pengajuan')">

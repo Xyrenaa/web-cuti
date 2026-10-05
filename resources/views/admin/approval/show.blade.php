@@ -213,6 +213,23 @@
 
                         </div>
                     </div>
+                    @if(session('error'))
+                        <div class="p-4 mb-4 text-sm text-red-700 bg-red-100 border-l-4 border-red-500 rounded shadow-sm" role="alert">{{ session('error') }}</div>
+                    @endif
+
+                    {{-- Gerbang PLH: Kepala (non-Kakan) wajib punya PLH sebelum difinalisasi --}}
+                    @php
+                        $plhKurang = $step == 7 && $data->butuhPlh() && ! $data->plh_user_id;
+                    @endphp
+                    @if($step == 7 && $data->butuhPlh())
+                        <div class="p-4 mb-4 text-sm rounded-xl border {{ $plhKurang ? 'bg-amber-50 border-amber-300 text-amber-800' : 'bg-green-50 border-green-200 text-green-800' }}">
+                            @if($plhKurang)
+                                <strong>PLH belum ditunjuk.</strong> {{ $data->user->name }} perlu menunjuk PLH dulu dari halaman detail pengajuannya. Finalisasi baru bisa dilakukan setelah itu.
+                            @else
+                                <strong>PLH:</strong> {{ $data->plh->name ?? '-' }}
+                            @endif
+                        </div>
+                    @endif
 
                     <!-- HANYA TAMPIL JIKA BERKAS ADA DI TANGAN ADMIN (Step 3 atau 7) -->
                     @if(in_array($step, [3, 7]))
@@ -239,7 +256,9 @@
                             @endif
 
                             <!-- Tombol Setujui (Memicu Modal) -->
-                            <button type="button" @click="openModal = true; modalAction = 'setujui'" class="w-full bg-[#2a64f5] text-white rounded-lg py-3 font-bold text-sm hover:bg-blue-700 transition">
+                            <button type="button" @click="openModal = true; modalAction = 'setujui'"
+                                    @if($plhKurang) disabled title="Menunggu Kepala menunjuk PLH" @endif
+                                    class="w-full bg-[#2a64f5] text-white rounded-lg py-3 font-bold text-sm hover:bg-blue-700 transition {{ $plhKurang ? 'opacity-50 cursor-not-allowed' : '' }}">
                                 {{ $btnText }}
                             </button>
                             
