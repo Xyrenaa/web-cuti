@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
-                <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+                <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
         <script>
             window.escHtml = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -87,10 +87,12 @@
                                 </a>
                             @endforeach
 
+                            {{-- PROFIL SUPERADMIN DINONAKTIFKAN (sementara). Hapus tanda komentar ini untuk mengaktifkan lagi.
                             <a href="{{ route('profile.show') }}"
                                class="px-5 py-2 rounded-full font-bold text-sm transition {{ request()->routeIs('profile.*') ? 'bg-[#eef2ff] text-blue-600' : 'text-gray-500 hover:text-gray-800' }}">
                                 Profil
                             </a>
+                            --}}
 
                             <div class="w-px h-5 bg-gray-200"></div>
 
@@ -121,9 +123,11 @@
                             </x-responsive-nav-link>
                         @endforeach
 
+                        {{-- PROFIL SUPERADMIN DINONAKTIFKAN (sementara).
                         <x-responsive-nav-link :href="route('profile.show')" :active="request()->routeIs('profile.*')">
                             Profil
                         </x-responsive-nav-link>
+                        --}}
 
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf

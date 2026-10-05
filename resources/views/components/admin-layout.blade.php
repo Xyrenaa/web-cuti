@@ -25,13 +25,12 @@
             
             <!-- Navbar Admin -->
             <nav x-data="{ open: false, scrolled: false }"
-                @scroll.window="scrolled = (window.pageYOffset > 20)"
-                            :class="{'bg-white/90 backdrop-blur-md shadow-md': scrolled, 'bg-white shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)]': !scrolled}"@scroll.window.passive="scrolled = (window.pageYOffset > 20)"
+                @scroll.window.passive="scrolled = (window.pageYOffset > 20)"
                 :class="scrolled ? 'shadow-md' : 'shadow-sm'"
                 class="sticky top-0 z-50 border-b border-gray-100 bg-white transition-shadow duration-300">
                 
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="flex justify-between items-center transition-all duration-300" :class="{'h-16': scrolled, 'h-20': !scrolled}">
+                    <div class="flex justify-between items-center h-20">
                         
                         <!-- Kiri: DUA LOGO BERDAMPINGAN -->
                         <div class="shrink-0 flex items-center">

@@ -127,10 +127,15 @@ class User extends Authenticatable
         return $this->pengajuanPlh()->plhAktifPada()->with('user');
     }
 
+    /** Cache per-request: navbar memanggil ini dua kali (desktop + mobile) di setiap halaman. */
+    private ?bool $cacheSedangMenjadiPlh = null;
+
     public function sedangMenjadiPlh(): bool
     {
-        return $this->penugasanPlhAktif()->exists()
-            || $this->penugasanSebagaiPengganti()->berlaku()->exists();
+        return $this->cacheSedangMenjadiPlh ??= (
+            $this->penugasanPlhAktif()->exists()
+            || $this->penugasanSebagaiPengganti()->berlaku()->exists()
+        );
     }
 
         /** Penugasan Plh/Plt dari Superadmin yang sedang berlaku, dengan user ini sebagai pengganti. */

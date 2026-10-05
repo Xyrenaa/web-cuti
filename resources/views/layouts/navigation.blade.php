@@ -1,26 +1,24 @@
-<nav x-data="{ open: false, scrolled: false }" 
-     @scroll.window="scrolled = (window.pageYOffset > 20)"
-     :class="{'bg-white/70 backdrop-blur-lg shadow-md': scrolled, 'bg-white shadow-sm': !scrolled}"
-     class="sticky top-0 z-50 border-b border-gray-100 transition-all duration-300">
+<nav x-data="{ open: false, scrolled: false }"
+     @scroll.window.passive="scrolled = (window.pageYOffset > 20)"
+     :class="scrolled ? 'shadow-md' : 'shadow-sm'"
+     class="sticky top-0 z-50 border-b border-gray-100 bg-white transition-shadow duration-300">
     
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Tambahkan sedikit transisi di tinggi navbar agar agak mengecil saat discroll (opsional tapi keren) -->
-        <div class="flex justify-between items-center transition-all duration-300" :class="{'h-16': scrolled, 'h-20': !scrolled}">
+        <!-- Tinggi navbar SENGAJA tetap: mengubah tinggi saat scroll membuat halaman bergetar -->
+        <div class="flex justify-between items-center h-20">
             
             <!-- Bagian Kiri: DUA LOGO BERDAMPINGAN -->
             <div class="shrink-0 flex items-center">
                 <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
                     <!-- Logo Instansi (Otban) -->
                     <img src="{{ asset('img/Logo Otban.png') }}" 
-                         class="block w-auto drop-shadow-sm transition-all duration-300" 
-                         :class="{'h-[45px]': scrolled, 'h-[50px]': !scrolled}" 
+                         class="block h-[50px] w-auto drop-shadow-sm" 
                          alt="Logo Instansi" />
                     <!-- Garis Pemisah -->
-                    <div class="w-px bg-gray-300 transition-all duration-300" :class="{'h-6': scrolled, 'h-8': !scrolled}"></div>
+                    <div class="w-px h-8 bg-gray-300"></div>
                     <!-- Logo Web (PELITA) -->
                     <img src="{{ asset('img/logo-pelita.png') }}" 
-                         class="block w-auto drop-shadow-sm transition-all duration-300" 
-                         :class="{'h-10': scrolled, 'h-14': !scrolled}" 
+                         class="block h-14 w-auto drop-shadow-sm" 
                          alt="Logo PELITA" />
                 </a>
             </div>
@@ -30,21 +28,21 @@
                 
                 <!-- Menu Beranda -->
                 <a href="{{ route('dashboard') }}" 
-                   class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center 
+                   class="px-5 py-2 rounded-full text-sm transition-colors duration-200 flex items-center 
                    {{ request()->routeIs('dashboard') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
                     Beranda
                 </a>
 
                 @hasanyrole(['Kepala Seksi','Kepala Bagian', 'Kepala Bidang', 'Kepala Sub-Bagian', 'Kepala TU', 'Kepala Kantor'])
                     <a href="{{ route('kepala.approval.index') }}" 
-                       class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center {{ request()->routeIs('kepala.approval.*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
+                       class="px-5 py-2 rounded-full text-sm transition-colors duration-200 flex items-center {{ request()->routeIs('kepala.approval.*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
                        Approval Cuti
                     </a>
                 @endhasanyrole
 
                 @if(! auth()->user()->hasAnyRole(['Kepala Seksi','Kepala Bagian', 'Kepala Bidang', 'Kepala Sub-Bagian', 'Kepala TU', 'Kepala Kantor']) && auth()->user()->sedangMenjadiPlh())
                     <a href="{{ route('kepala.approval.index') }}"
-                       class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center {{ request()->routeIs('kepala.approval.*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
+                       class="px-5 py-2 rounded-full text-sm transition-colors duration-200 flex items-center {{ request()->routeIs('kepala.approval.*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
                        Approval Cuti (PLH)
                     </a>
                 @endif
@@ -52,13 +50,13 @@
                 @unlessrole('Kepala Kantor')
                     <!-- Menu Pengajuan Cuti -->
                     <a href="{{ route('pengajuan.index') }}" 
-                    class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center {{ request()->is('pengajuan') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
+                    class="px-5 py-2 rounded-full text-sm transition-colors duration-200 flex items-center {{ request()->is('pengajuan') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
                         Pengajuan Cuti
                     </a>
 
                     <!-- Menu Riwayat Pengajuan -->
                     <a href="{{ route('pengajuan.riwayat') }}" 
-                    class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center {{ request()->is('riwayat-pengajuan') || request()->is('pengajuan/*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
+                    class="px-5 py-2 rounded-full text-sm transition-colors duration-200 flex items-center {{ request()->is('riwayat-pengajuan') || request()->is('pengajuan/*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
                         Riwayat Pengajuan
                     </a>
                 @endunlessrole
@@ -66,7 +64,7 @@
                                <!-- Menu Notifikasi (Lonceng + Badge Belum Dibaca) -->
                 @php $jumlahNotif = $jumlahNotifBelumDibaca ?? 0; @endphp
                 <a href="{{ route('notifikasi') }}"
-                class="group px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center gap-1.5
+                class="group px-5 py-2 rounded-full text-sm transition-colors duration-200 flex items-center gap-1.5
                 {{ request()->is('notifikasi') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
                     Notifikasi
                     <span class="relative inline-flex">
@@ -84,7 +82,7 @@
                 <!-- Dropdown Profil (Dengan Gaya Pill yang Sama) -->
                 <div x-data="{ dropdownOpen: false }" class="relative">
                     <button @click="dropdownOpen = !dropdownOpen" 
-                            class="px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center gap-2 focus:outline-none
+                            class="px-5 py-2 rounded-full text-sm transition-colors duration-200 flex items-center gap-2 focus:outline-none
                             {{ request()->routeIs('profile.*') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
                         Profil
                         <svg class="w-4 h-4 transition-transform duration-200" :class="{'rotate-180': dropdownOpen}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
