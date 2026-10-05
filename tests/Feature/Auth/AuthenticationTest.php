@@ -12,7 +12,7 @@ test('users can authenticate using the login screen', function () {
     $user = User::factory()->create();
 
     $response = $this->post('/login', [
-        'email' => $user->email,
+        'nip' => $user->nip,
         'password' => 'password',
     ]);
 
@@ -24,7 +24,7 @@ test('users can not authenticate with invalid password', function () {
     $user = User::factory()->create();
 
     $this->post('/login', [
-        'email' => $user->email,
+        'nip' => $user->nip,
         'password' => 'wrong-password',
     ]);
 
@@ -38,4 +38,26 @@ test('users can logout', function () {
 
     $this->assertGuest();
     $response->assertRedirect('/');
+});
+
+test('NIP dengan spasi atau titik tetap bisa dipakai login', function () {
+    $user = User::factory()->create(['nip' => '199505052020011005']);
+
+    $this->post('/login', [
+        'nip' => '19950505 202001 1 005',
+        'password' => 'password',
+    ]);
+
+    $this->assertAuthenticatedAs($user);
+});
+
+test('email tidak lagi bisa dipakai untuk login', function () {
+    $user = User::factory()->create();
+
+    $this->post('/login', [
+        'email' => $user->email,
+        'password' => 'password',
+    ])->assertSessionHasErrors('nip');
+
+    $this->assertGuest();
 });

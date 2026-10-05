@@ -31,7 +31,7 @@
             <div class="mb-6">
                 <h2 class="text-xl font-bold text-gray-800">Lupa Kata Sandi</h2>
                 <p class="text-xs text-gray-500 mt-2 leading-relaxed">
-                    Masukkan alamat email yang terdaftar. Kami akan mengirimkan instruksi dan tautan untuk mengatur ulang kata sandi Anda.
+                    Masukkan NIP Anda. Kami akan mengirimkan tautan untuk mengatur ulang kata sandi ke email yang terdaftar pada akun Anda.
                 </p>
             </div>
 
@@ -42,11 +42,11 @@
             <form method="POST" action="{{ route('password.email') }}">
                 @csrf
 
-                <!-- Email Address -->
+                <!-- NIP -->
                 <div class="mb-5">
-                    <label for="email" class="block text-xs font-semibold text-gray-700 mb-1">Alamat Email</label>
-                    <input id="email" type="email" name="email" :value="old('email')" required autofocus placeholder="nama@perusahaan.co.id" class="w-full rounded-lg border-gray-300 focus:border-blue-600 focus:ring-blue-600 shadow-sm px-4 py-2.5 text-sm">
-                    <x-input-error :messages="$errors->get('email')" class="mt-1" />
+                    <label for="nip" class="block text-xs font-semibold text-gray-700 mb-1">NIP</label>
+                    <input id="nip" type="text" name="nip" value="{{ old('nip') }}" required autofocus inputmode="numeric" placeholder="Masukkan NIP" class="w-full rounded-lg border-gray-300 focus:border-blue-600 focus:ring-blue-600 shadow-sm px-4 py-2.5 text-sm">
+                    <x-input-error :messages="$errors->get('nip')" class="mt-1" />
                 </div>
 
                 <!-- Tombol Kirim -->

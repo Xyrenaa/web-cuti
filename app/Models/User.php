@@ -15,6 +15,33 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasRoles;
 
+    /**
+     * Satu pintu pembersihan NIP (dipakai login, lupa password, register, import).
+     * Hasilnya selalu digit polos, sama dengan format yang tersimpan di database.
+     */
+    public static function bersihkanNip(mixed $nip): string
+    {
+        return preg_replace('/\D/', '', is_scalar($nip) ? (string) $nip : '');
+    }
+
+    /**
+     * Email sementara bentukan import: "<NIP 18 digit>@otban3.com".
+     * Email seperti ini tidak bisa menerima surel, jadi tidak boleh dipakai
+     * sebagai email final dan tidak bisa dipakai untuk reset password.
+     */
+    public static function emailSementara(?string $email): bool
+    {
+        return (bool) preg_match('/^\d{18}@otban3\.com$/i', (string) $email);
+    }
+
+    /** Email disamarkan untuk ditampilkan, mis. "wa***@gmail.com". */
+    public function emailTersamar(): string
+    {
+        [$nama, $domain] = array_pad(explode('@', (string) $this->email, 2), 2, '');
+
+        return mb_substr($nama, 0, 2) . str_repeat('*', max(3, mb_strlen($nama) - 2)) . '@' . $domain;
+    }
+
      /**
      * Tentukan status kepegawaian dari struktur NIP 18 digit, sesuai aturan
      * BKN (PP 49/2018 & Perka BKN 22/2007): digit ke-13—14 pada NIP PNS
@@ -121,6 +148,7 @@ class User extends Authenticatable
         'level_jabatan',
         'jatah_cuti',
         'status_kepegawaian',
+        'wajib_ganti_kredensial',
     ];
     public const STRUKTUR_ORGANISASI = [
         'Bagian Tata Usaha' => [
@@ -157,6 +185,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'wajib_ganti_kredensial' => 'boolean',
         ];
     }
     public function atasan()

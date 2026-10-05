@@ -7,6 +7,7 @@ use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 use App\Http\Middleware\KepalaAtauPlh;
+use App\Http\Middleware\WajibGantiKredensial;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -21,6 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'kepala.atau.plh'    => KepalaAtauPlh::class,
         ]);
+
+        // Jalan di SEMUA route web setelah session aktif, jadi pegawai yang belum
+        // ganti kredensial awal tidak bisa menembus ke halaman/aksi lain.
+        $middleware->web(append: [WajibGantiKredensial::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

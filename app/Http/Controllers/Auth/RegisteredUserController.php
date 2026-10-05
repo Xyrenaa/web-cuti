@@ -36,7 +36,7 @@ class RegisteredUserController extends Controller
         // dan tersimpan selalu 18 digit polos — sama persis konvensinya
         // dengan NIP hasil import Excel.
         $request->merge([
-            'nip' => preg_replace('/\D/', '', (string) $request->input('nip')),
+            'nip' => User::bersihkanNip($request->input('nip')),
         ]);
 
         $request->validate([
