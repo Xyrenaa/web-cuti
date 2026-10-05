@@ -31,11 +31,11 @@
             <form method="POST" action="{{ route('login') }}">
                 @csrf
 
-                <!-- Email Address -->
+                <!-- NIP -->
                 <div class="mb-4">
-                    <label for="email" class="block text-xs font-semibold text-gray-700 mb-1">Alamat Email</label>
-                    <input id="email" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" placeholder="Masukkan alamat email" class="w-full rounded-lg border-gray-300 focus:border-blue-600 focus:ring-blue-600 shadow-sm px-4 py-2.5 text-sm">
-                    <x-input-error :messages="$errors->get('email')" class="mt-1" />
+                    <label for="nip" class="block text-xs font-semibold text-gray-700 mb-1">NIP</label>
+                    <input id="nip" type="text" name="nip" value="{{ old('nip') }}" required autofocus inputmode="numeric" autocomplete="username" placeholder="Masukkan NIP" class="w-full rounded-lg border-gray-300 focus:border-blue-600 focus:ring-blue-600 shadow-sm px-4 py-2.5 text-sm">
+                    <x-input-error :messages="$errors->get('nip')" class="mt-1" />
                 </div>
 
                 <!-- Password -->

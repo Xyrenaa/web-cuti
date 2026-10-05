@@ -32,5 +32,7 @@
                 {{ $slot }}
             </main>
         </div>
+
+        <x-kredensial-awal-modal />
     </body>
 </html>

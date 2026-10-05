@@ -59,6 +59,9 @@ class NewPasswordController extends Controller
                 $user->forceFill([
                     'password' => Hash::make($request->password),
                     'remember_token' => Str::random(60),
+                    // Reset lewat tautan email membuktikan email itu milik user,
+                    // jadi pop-up kredensial awal tidak perlu muncul lagi.
+                    'wajib_ganti_kredensial' => false,
                 ])->save();
 
                 event(new PasswordReset($user));

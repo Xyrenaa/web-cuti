@@ -195,6 +195,10 @@ return [
     |
     */
 
-    'attributes' => [],
+    'attributes' => [
+        'nip' => 'NIP',
+        'email' => 'email',
+        'password' => 'kata sandi',
+    ],
 
 ];

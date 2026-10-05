@@ -22,7 +22,8 @@ class PegawaiSheetImport implements ToModel, WithHeadingRow, WithBatchInserts, W
             return null;
         }
 
-        $nipBersih = str_replace(' ', '', $row['nip']);
+        // Digit polos, sama dengan format yang dipakai form login.
+        $nipBersih = User::bersihkanNip((string) $row['nip']);
         $status = User::statusKepegawaianDariNip($nipBersih);
 
         $subBagianId = null;
@@ -86,6 +87,9 @@ class PegawaiSheetImport implements ToModel, WithHeadingRow, WithBatchInserts, W
             'level_jabatan'       => 'Pegawai',
             'jatah_cuti'          => 12,
             'status_kepegawaian'  => $status,
+            // Email sementara + password awal yang sama untuk semua pegawai:
+            // wajib ganti lewat pop-up saat login pertama.
+            'wajib_ganti_kredensial' => true,
         ]);
     }
 

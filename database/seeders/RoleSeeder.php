@@ -165,6 +165,9 @@ class RoleSeeder extends Seeder
         ]);
         $kasiAngkutan->assignRole('Kepala Seksi');
 
+        // Semua akun kepala memakai password awal yang sama -> wajib ganti saat login pertama.
+        User::where('email', 'like', '%@otban3.com')->update(['wajib_ganti_kredensial' => true]);
+
         // 8. ADMIN KEPEGAWAIAN (Dimasukkan ke ekosistem Tata Usaha)
         $admin = User::updateOrCreate(
             ['email' => 'admin@cuti.com'],

@@ -15,7 +15,7 @@ test('reset password link can be requested', function () {
 
     $user = User::factory()->create();
 
-    $this->post('/forgot-password', ['email' => $user->email]);
+    $this->post('/forgot-password', ['nip' => $user->nip]);
 
     Notification::assertSentTo($user, ResetPassword::class);
 });
@@ -25,7 +25,7 @@ test('reset password screen can be rendered', function () {
 
     $user = User::factory()->create();
 
-    $this->post('/forgot-password', ['email' => $user->email]);
+    $this->post('/forgot-password', ['nip' => $user->nip]);
 
     Notification::assertSentTo($user, ResetPassword::class, function ($notification) {
         $response = $this->get('/reset-password/'.$notification->token);
@@ -41,14 +41,14 @@ test('password can be reset with valid token', function () {
 
     $user = User::factory()->create();
 
-    $this->post('/forgot-password', ['email' => $user->email]);
+    $this->post('/forgot-password', ['nip' => $user->nip]);
 
     Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
         $response = $this->post('/reset-password', [
             'token' => $notification->token,
             'email' => $user->email,
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => 'password-baru-123',
+            'password_confirmation' => 'password-baru-123',
         ]);
 
         $response
@@ -57,4 +57,17 @@ test('password can be reset with valid token', function () {
 
         return true;
     });
+});
+
+test('lupa password ditolak untuk akun yang belum konfirmasi email', function () {
+    Notification::fake();
+
+    $user = User::factory()->create([
+        'email' => '199001012015011001@otban3.com',
+        'wajib_ganti_kredensial' => true,
+    ]);
+
+    $this->post('/forgot-password', ['nip' => $user->nip])->assertSessionHasErrors('nip');
+
+    Notification::assertNothingSent();
 });
