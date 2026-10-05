@@ -1,7 +1,7 @@
 <x-superadmin-layout>
     <x-slot name="header">
         <div class="text-blue-100 text-sm mb-1 opacity-80">Superadmin</div>
-        <h2 class="font-bold text-3xl text-white leading-tight">Plh &amp; Plt</h2>
+        <h2 class="font-bold text-3xl text-white leading-tight">Plt &amp; Penugasan Superadmin</h2>
     </x-slot>
 
     @php
@@ -13,32 +13,25 @@
             'dicabut'   => 'bg-red-100 text-red-700',
             'dialihkan' => 'bg-amber-100 text-amber-800',
         ];
+        $flash = [
+            ['success', 'bg-green-100 border-green-400 text-green-800'],
+            ['warning', 'bg-amber-100 border-amber-400 text-amber-800'],
+            ['error',   'bg-red-100 border-red-400 text-red-800'],
+        ];
     @endphp
 
     <div class="pt-10 pb-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            @foreach(['success' => 'green', 'warning' => 'amber', 'error' => 'red'] as $kunci => $warna)
+            @foreach($flash as [$kunci, $kelas])
                 @if(session($kunci))
-                    <div class="bg-{{ $warna }}-100 border border-{{ $warna }}-400 text-{{ $warna }}-800 px-4 py-3 rounded">{{ session($kunci) }}</div>
+                    <div class="border px-4 py-3 rounded {{ $kelas }}">{{ session($kunci) }}</div>
                 @endif
             @endforeach
 
-            {{-- PERLU PERHATIAN --}}
+            {{-- PERLU PERHATIAN: pengganti dari penugasan Superadmin yang sedang cuti --}}
             @if($perhatian)
-                @foreach($perhatian['tanpaPlh'] as $r)
-                    <div class="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                        <div class="text-sm text-amber-900">
-                            <strong>{{ $r['kepala']->name }}</strong> ({{ $r['label'] }}) cuti
-                            {{ $fmt($r['cuti']->tanggal_mulai) }} – {{ $fmt($r['cuti']->tanggal_selesai) }}
-                            dan <strong>belum ada Plh</strong>.
-                        </div>
-                        <a href="{{ route('superadmin.penugasan.create', ['kepala_id' => $r['kepala']->id]) }}"
-                           class="shrink-0 bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-700 text-center">Tunjuk Plh</a>
-                    </div>
-                @endforeach
-
-                @foreach($perhatian['penggantiCuti'] as $r)
+                @foreach($perhatian['pltBerhalangan'] as $r)
                     <div class="bg-red-50 border border-red-200 rounded-xl px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                         <div class="text-sm text-red-900">
                             <strong>{{ $r['penugasan']->pengganti->name }}</strong>
@@ -104,8 +97,8 @@
                                     @if($tab === 'berlaku')
                                         <td class="px-4 py-3 text-right whitespace-nowrap">
                                             <a href="{{ route('superadmin.penugasan.tukar.form', $p->id) }}" class="text-blue-600 font-semibold hover:underline mr-3">Tukar</a>
-                                            <form method="POST" action="{{ route('superadmin.penugasan.cabut', $p->id) }}" class="inline"
-                                                  onsubmit="const k = prompt('Alasan pencabutan:'); if (!k) { return false; } this.keterangan.value = k;">
+                                            <form method="POST" action="{{ route('superadmin.penugasan.cabut', $p->id) }}" class="inline form-cabut"
+                                                  data-nama="{{ $p->pengganti->name }}" data-jabatan="{{ $p->nama_jabatan }}">
                                                 @csrf @method('PUT')
                                                 <input type="hidden" name="keterangan">
                                                 <button class="text-red-600 font-semibold hover:underline">Cabut</button>
@@ -120,10 +113,29 @@
                     </table>
                 </div>
 
-                <div class="p-4 border-t border-gray-100 bg-gray-50/50">
-                    {{ $penugasans->links() }}
-                </div>
+                <x-paginasi :paginator="$penugasans" />
             </div>
         </div>
     </div>
+
+    <script>
+        document.querySelectorAll('.form-cabut').forEach(function (form) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                konfirmasiSubmit(this, {
+                    icon: 'warning',
+                    title: 'Cabut Penugasan?',
+                    html: 'Penugasan <b>' + escHtml(this.dataset.nama) + '</b> sebagai ' + escHtml(this.dataset.jabatan) + ' akan diakhiri sekarang.',
+                    input: 'textarea',
+                    inputLabel: 'Alasan pencabutan',
+                    inputPlaceholder: 'mis. Pejabat definitif sudah dilantik',
+                    inputValidator: (v) => !v ? 'Alasan pencabutan wajib diisi.' : undefined,
+                    inputName: 'keterangan',
+                    confirmButtonText: 'Ya, Cabut',
+                    confirmButtonColor: '#dc2626',
+                });
+            });
+        });
+    </script>
 </x-superadmin-layout>

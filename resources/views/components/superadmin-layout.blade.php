@@ -1,6 +1,40 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
+                <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script>
+            window.escHtml = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+            window.konfirmasiSubmit = function (form, opsi) {
+                const { inputName, ...swalOpsi } = opsi;
+
+                Swal.fire({
+                    icon: 'question',
+                    showCancelButton: true,
+                    cancelButtonText: 'Batal',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonColor: '#2A65F3',
+                    reverseButtons: true,
+                    customClass: { popup: 'rounded-2xl shadow-xl border border-gray-100', title: 'text-xl font-bold text-gray-800' },
+                    ...swalOpsi,
+                }).then((hasil) => {
+                    if (!hasil.isConfirmed) return;
+
+                    if (inputName) {
+                        let h = form.querySelector('input[name="' + inputName + '"]');
+                        if (!h) {
+                            h = document.createElement('input');
+                            h.type = 'hidden';
+                            h.name = inputName;
+                            form.appendChild(h);
+                        }
+                        h.value = hasil.value;
+                    }
+
+                    form.submit();
+                });
+            };
+        </script>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -22,9 +56,10 @@
 
             @php
                 $menu = [
-                    ['label' => 'Beranda',      'route' => 'superadmin.dashboard',     'aktif' => 'superadmin.dashboard'],
-                    ['label' => 'Data Pegawai', 'route' => 'superadmin.pegawai.index', 'aktif' => 'superadmin.pegawai.*'],
-                    ['label' => 'Plh & Plt',    'route' => 'superadmin.penugasan.index', 'aktif' => 'superadmin.penugasan.*'],
+                    ['label' => 'Beranda',      'route' => 'superadmin.dashboard',       'aktif' => 'superadmin.dashboard'],
+                    ['label' => 'Data Pegawai', 'route' => 'superadmin.pegawai.index',   'aktif' => 'superadmin.pegawai.*'],
+                    ['label' => 'Plh',          'route' => 'superadmin.plh.index',       'aktif' => 'superadmin.plh.*'],
+                    ['label' => 'Plt',          'route' => 'superadmin.penugasan.index', 'aktif' => 'superadmin.penugasan.*'],
                 ];
             @endphp
 

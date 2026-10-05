@@ -102,8 +102,18 @@ class User extends Authenticatable
 
     public function sedangMenjadiPlh(): bool
     {
-        return $this->penugasanPlhAktif()->exists();
+        return $this->penugasanPlhAktif()->exists()
+            || $this->penugasanSebagaiPengganti()->berlaku()->exists();
     }
+
+        /** Penugasan Plh/Plt dari Superadmin yang sedang berlaku, dengan user ini sebagai pengganti. */
+    public function penugasanPejabatBerlaku()
+    {
+        return $this->penugasanSebagaiPengganti()
+            ->berlaku()
+            ->with(['pejabatDefinitif', 'bagianBidang', 'subBagianSeksi']);
+    }
+
     
     /**
      * The attributes that are mass assignable.
@@ -192,6 +202,12 @@ class User extends Authenticatable
     public function scopeBukanSuperadmin($query)
     {
         return $query->whereDoesntHave('roles', fn ($r) => $r->where('name', 'Superadmin'));
+    }
+
+        public function scopeBisaJadiPengganti($query)
+    {
+        return $query->bukanSuperadmin()
+            ->whereDoesntHave('roles', fn ($r) => $r->where('name', 'Admin Kepegawaian'));
     }
 
     /**

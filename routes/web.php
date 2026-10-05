@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 use App\Models\SubBagianSeksi;
 use App\Http\Controllers\DashboardKepalaController;
 use App\Http\Controllers\MigrasiDataController;
+use App\Http\Controllers\SuperadminPlhController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -122,6 +123,10 @@ Route::middleware(['auth', 'verified', 'role:Superadmin'])->prefix('superadmin')
     Route::get('/penugasan/{id}/tukar', [SuperadminPenugasanController::class, 'tukarForm'])->whereNumber('id')->name('penugasan.tukar.form');
     Route::post('/penugasan/{id}/tukar', [SuperadminPenugasanController::class, 'tukar'])->whereNumber('id')->name('penugasan.tukar');
     Route::put('/penugasan/{id}/cabut', [SuperadminPenugasanController::class, 'cabut'])->whereNumber('id')->name('penugasan.cabut');
+    // PLH pilihan kepala: lihat & tukar
+    Route::get('/plh', [SuperadminPlhController::class, 'index'])->name('plh.index');
+    Route::get('/plh/{id}/tukar', [SuperadminPlhController::class, 'tukarForm'])->whereNumber('id')->name('plh.tukar.form');
+    Route::post('/plh/{id}/tukar', [SuperadminPlhController::class, 'tukar'])->whereNumber('id')->name('plh.tukar');
 });
 
 // ==========================================

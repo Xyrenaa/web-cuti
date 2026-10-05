@@ -27,7 +27,7 @@
                     <p class="text-[11px] text-gray-400 font-bold uppercase tracking-widest">Plt Berlaku</p>
                     <p class="text-4xl font-bold text-indigo-600 mt-2">{{ $stat['plt_aktif'] }}</p>
                 </div>
-                <a href="{{ route('superadmin.penugasan.index') }}"
+                <a href="{{ route('superadmin.plh.index') }}"
                    class="rounded-xl p-6 border shadow-sm transition hover:shadow-md {{ $stat['perlu_perhatian'] > 0 ? 'bg-amber-50 border-amber-300' : 'bg-white border-gray-200' }}">
                     <p class="text-[11px] text-gray-400 font-bold uppercase tracking-widest">Perlu Perhatian</p>
                     <p class="text-4xl font-bold mt-2 {{ $stat['perlu_perhatian'] > 0 ? 'text-amber-600' : 'text-gray-300' }}">{{ $stat['perlu_perhatian'] }}</p>
@@ -35,15 +35,15 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <a href="{{ route('superadmin.pegawai.index') }}"
+                <a href="{{ route('superadmin.plh.index') }}"
                    class="block bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition">
-                    <h3 class="text-lg font-bold text-gray-800">Data Pegawai</h3>
-                    <p class="text-sm text-gray-500 mt-1">Perbarui data diri, email, dan reset password pegawai yang lupa akun.</p>
+                    <h3 class="text-lg font-bold text-gray-800">Plh dari Kepala</h3>
+                    <p class="text-sm text-gray-500 mt-1">Lihat PLH yang ditunjuk kepala, dan tukar bila PLH berhalangan.</p>
                 </a>
                 <a href="{{ route('superadmin.penugasan.index') }}"
                    class="block bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition">
-                    <h3 class="text-lg font-bold text-gray-800">Plh &amp; Plt</h3>
-                    <p class="text-sm text-gray-500 mt-1">Lihat siapa yang sedang menjabat, tunjuk pengganti, atau tukar bila pengganti berhalangan.</p>
+                    <h3 class="text-lg font-bold text-gray-800">Plt</h3>
+                    <p class="text-sm text-gray-500 mt-1">Tunjuk Pelaksana Tugas untuk jabatan yang lowong.</p>
                 </a>
             </div>
         </div>

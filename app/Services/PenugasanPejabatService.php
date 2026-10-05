@@ -96,54 +96,48 @@ class PenugasanPejabatService
 
     /**
      * Hal yang perlu ditindak superadmin:
-     *  - tanpaPlh      : kepala sedang/akan cuti (<= 7 hari) tapi belum ada Plh
-     *  - penggantiCuti : pengganti yang sedang menjabat ternyata sedang cuti hari ini
+     *  - tanpaPlh       : cuti kepala (step 7/8) yang sedang/akan berjalan (<= 7 hari) tapi PLH belum ditunjuk
+     *  - plhBerhalangan : PLH pilihan kepala yang punya cuti bertabrakan dengan masa PLH-nya
+     *  - pltBerhalangan : pengganti Plt/penugasan Superadmin yang sedang berlaku tapi sedang cuti hari ini
      */
     public function perhatian(): array
     {
         $hariIni = now()->toDateString();
         $batas   = now()->addDays(7)->toDateString();
 
-        $kepalas = $this->daftarKepala();
-
-        $cutiKepala = PengajuanCuti::where('approval_step', 8)
-            ->whereIn('user_id', $kepalas->pluck('id'))
+        $kepalaCuti = PengajuanCuti::with(['user.bagianBidang', 'user.subBagianSeksi', 'plh'])
+            ->whereIn('approval_step', [7, 8])
+            ->whereHas('user', fn ($u) => $u->role(PengajuanCuti::ROLE_WAJIB_PLH))
             ->whereDate('tanggal_selesai', '>=', $hariIni)
             ->whereDate('tanggal_mulai', '<=', $batas)
             ->orderBy('tanggal_mulai')
-            ->get()
-            ->groupBy('user_id');
+            ->get();
 
-        $tanpaPlh = [];
-        foreach ($kepalas as $kepala) {
-            $cuti = $cutiKepala->get($kepala->id)?->first();
-            if (! $cuti || ! ($jabatan = $kepala->jabatanKepala())) {
-                continue;
-            }
+        $tanpaPlh = $kepalaCuti->whereNull('plh_user_id')
+            ->map(fn ($p) => [
+                'pengajuan' => $p,
+                'kepala'    => $p->user,
+                'label'     => $this->labelJabatan($p->user),
+            ])
+            ->values()->all();
 
-            $sudahAda = PenugasanPejabat::statusAktif()
-                ->untukJabatan(...$jabatan)
-                ->whereDate('tanggal_mulai', '<=', Carbon::parse($cuti->tanggal_selesai)->toDateString())
-                ->where(function ($w) use ($cuti) {
-                    $w->whereNull('tanggal_selesai')
-                      ->orWhereDate('tanggal_selesai', '>=', Carbon::parse($cuti->tanggal_mulai)->toDateString());
-                })
-                ->exists();
-
-            if (! $sudahAda) {
-                $tanpaPlh[] = ['kepala' => $kepala, 'label' => $this->labelJabatan($kepala), 'cuti' => $cuti];
-            }
-        }
-
-        $penggantiCuti = [];
-        $berlaku = PenugasanPejabat::berlaku()->with(['pengganti', 'bagianBidang', 'subBagianSeksi'])->get();
-        foreach ($berlaku as $p) {
-            $cuti = $this->cutiBentrok($p->pengganti_id, $hariIni)->first();
+        $plhBerhalangan = [];
+        foreach ($kepalaCuti->whereNotNull('plh_user_id') as $p) {
+            $cuti = $this->cutiBentrok($p->plh_user_id, $p->tanggal_mulai, $p->tanggal_selesai)->first();
             if ($cuti) {
-                $penggantiCuti[] = ['penugasan' => $p, 'cuti' => $cuti];
+                $plhBerhalangan[] = ['pengajuan' => $p, 'plh' => $p->plh, 'cuti' => $cuti];
             }
         }
 
-        return compact('tanpaPlh', 'penggantiCuti');
+        $pltBerhalangan = [];
+        $berlaku = PenugasanPejabat::berlaku()->with(['pengganti', 'bagianBidang', 'subBagianSeksi'])->get();
+        foreach ($berlaku as $t) {
+            $cuti = $this->cutiBentrok($t->pengganti_id, $hariIni)->first();
+            if ($cuti) {
+                $pltBerhalangan[] = ['penugasan' => $t, 'cuti' => $cuti];
+            }
+        }
+
+        return compact('tanpaPlh', 'plhBerhalangan', 'pltBerhalangan');
     }
 }
