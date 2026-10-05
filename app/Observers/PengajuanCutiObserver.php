@@ -101,9 +101,15 @@ class PengajuanCutiObserver
         $mulai   = \Carbon\Carbon::parse($pengajuan->tanggal_mulai)->translatedFormat('d F Y');
         $selesai = \Carbon\Carbon::parse($pengajuan->tanggal_selesai)->translatedFormat('d F Y');
 
+        $olehSuperadmin = Auth::user()?->hasRole('Superadmin');
+
+        $pesan = $olehSuperadmin
+            ? "Superadmin menetapkan Anda sebagai PLH (Pelaksana Harian) menggantikan {$kepala->name} pada {$mulai} s.d. {$selesai}."
+            : "{$kepala->name} menunjuk Anda sebagai PLH (Pelaksana Harian) pada {$mulai} s.d. {$selesai}. Penunjukan baru berlaku setelah pengajuan cuti beliau disetujui final.";
+
         $plh->notify(new StatusCutiNotification(
             'Anda Ditunjuk Sebagai PLH',
-            "{$kepala->name} menunjuk Anda sebagai PLH (Pelaksana Harian) pada {$mulai} s.d. {$selesai}. Penunjukan baru berlaku setelah pengajuan cuti beliau disetujui final.",
+            $pesan,
             [
                 'tipe'           => 'status',
                 'kode_pengajuan' => $pengajuan->kode_pengajuan,

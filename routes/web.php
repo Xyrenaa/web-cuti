@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\SuperadminController;
+use App\Http\Controllers\SuperadminPegawaiController;
+use App\Http\Controllers\SuperadminPenugasanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PengajuanController;
 use App\Http\Controllers\NotifikasiController;
@@ -7,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 use App\Models\SubBagianSeksi;
 use App\Http\Controllers\DashboardKepalaController;
 use App\Http\Controllers\MigrasiDataController;
+use App\Http\Controllers\SuperadminPlhController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -22,6 +26,12 @@ Route::get('/dashboard', function () {
         'Kepala TU',
         'Kepala Kantor'
     ];
+
+
+        // Superadmin punya area sendiri, terpisah dari Admin Kepegawaian.
+    if (auth()->user()->hasRole('Superadmin')) {
+        return redirect()->route('superadmin.dashboard');
+    }
 
     // Jika role adalah Admin Kepegawaian, arahkan ke dashboard admin yang asli
     // (yang route-nya terdaftar di grup middleware role:Admin Kepegawaian di bawah).
@@ -94,6 +104,30 @@ Route::middleware(['auth', 'verified', 'role:Admin Kepegawaian'])->group(functio
     Route::post('/admin/rekap/{id}/update-jatah', [PengajuanController::class, 'updateJatahIndividu'])->whereNumber('id')->name('admin.rekap.update-jatah-individu');
 });
 
+
+// ==========================================
+// ROUTE SUPERADMIN (Prefix: /superadmin, Name: superadmin.)
+// ==========================================
+Route::middleware(['auth', 'verified', 'role:Superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
+    Route::get('/dashboard', [SuperadminController::class, 'dashboard'])->name('dashboard');
+
+    // Data pegawai: koreksi info, email, password (role tidak bisa diubah)
+    Route::get('/pegawai', [SuperadminPegawaiController::class, 'index'])->name('pegawai.index');
+    Route::get('/pegawai/{id}/edit', [SuperadminPegawaiController::class, 'edit'])->whereNumber('id')->name('pegawai.edit');
+    Route::put('/pegawai/{id}', [SuperadminPegawaiController::class, 'update'])->whereNumber('id')->name('pegawai.update');
+    Route::put('/pegawai/{id}/password', [SuperadminPegawaiController::class, 'resetPassword'])->whereNumber('id')->name('pegawai.password');
+    // Plh & Plt
+    Route::get('/penugasan', [SuperadminPenugasanController::class, 'index'])->name('penugasan.index');
+    Route::get('/penugasan/create', [SuperadminPenugasanController::class, 'create'])->name('penugasan.create');
+    Route::post('/penugasan', [SuperadminPenugasanController::class, 'store'])->name('penugasan.store');
+    Route::get('/penugasan/{id}/tukar', [SuperadminPenugasanController::class, 'tukarForm'])->whereNumber('id')->name('penugasan.tukar.form');
+    Route::post('/penugasan/{id}/tukar', [SuperadminPenugasanController::class, 'tukar'])->whereNumber('id')->name('penugasan.tukar');
+    Route::put('/penugasan/{id}/cabut', [SuperadminPenugasanController::class, 'cabut'])->whereNumber('id')->name('penugasan.cabut');
+    // PLH pilihan kepala: lihat & tukar
+    Route::get('/plh', [SuperadminPlhController::class, 'index'])->name('plh.index');
+    Route::get('/plh/{id}/tukar', [SuperadminPlhController::class, 'tukarForm'])->whereNumber('id')->name('plh.tukar.form');
+    Route::post('/plh/{id}/tukar', [SuperadminPlhController::class, 'tukar'])->whereNumber('id')->name('plh.tukar');
+});
 
 // ==========================================
 // ROUTE KEPALA (Prefix: /kepala, Name: kepala.)

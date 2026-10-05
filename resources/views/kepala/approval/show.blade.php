@@ -47,8 +47,12 @@
     <div class="py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
         @if(isset($meja) && $meja && $meja['via_plh'])
             <div class="p-4 mb-6 text-sm text-purple-800 bg-purple-50 border-l-4 border-purple-500 rounded shadow-sm" role="status">
-                Anda memproses pengajuan ini sebagai <strong>PLH {{ $meja['peran'] }}</strong>
-                menggantikan <strong>{{ $meja['kepala']->name }}</strong> yang sedang cuti.
+                Anda memproses pengajuan ini sebagai <strong>{{ $meja['jenis'] ?? 'PLH' }} {{ $meja['peran'] }}</strong>
+                @if(!empty($meja['kepala']))
+                    menggantikan <strong>{{ $meja['kepala']->name }}</strong> yang sedang berhalangan.
+                @else
+                    karena jabatan tersebut sedang lowong.
+                @endif
             </div>
         @endif
         <div class="grid grid-cols-1 gap-6 md:grid-cols-3">

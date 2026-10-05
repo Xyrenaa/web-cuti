@@ -164,12 +164,16 @@
         @foreach($antreanPlh as $plh)
             <div class="mt-10">
                 <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
-                    <h3 class="text-lg font-bold text-gray-900">Sedang Menjadi PLH Untuk {{ $plh['kepala']->name }}</h3>
-                    <span class="text-[11px] font-bold px-3 py-1.5 rounded-full bg-purple-100 text-purple-700">PLH {{ $plh['peran'] }}</span>
+                    <h3 class="text-lg font-bold text-gray-900">Sedang Menjadi {{ $plh['jenis'] ?? 'PLH' }} Untuk {{ $plh['label'] ?? $plh['kepala']->name }}</h3>
+                    <span class="text-[11px] font-bold px-3 py-1.5 rounded-full bg-purple-100 text-purple-700">{{ $plh['jenis'] ?? 'PLH' }} {{ $plh['peran'] }}</span>
                 </div>
                 <p class="mb-3 text-xs text-gray-500">
-                    Berlaku sampai {{ \Carbon\Carbon::parse($plh['sampai'])->translatedFormat('d F Y') }}.
-                    Pengajuan di bawah ini seharusnya masuk ke meja beliau dan kini menjadi wewenang Anda selama masa PLH.
+                    @if($plh['sampai'])
+                        Berlaku sampai {{ \Carbon\Carbon::parse($plh['sampai'])->translatedFormat('d F Y') }}.
+                    @else
+                        Berlaku sampai dicabut oleh Superadmin.
+                    @endif
+                    Pengajuan di bawah ini seharusnya masuk ke meja jabatan tersebut dan kini menjadi wewenang Anda selama masa penugasan.
                 </p>
 
                 <div class="overflow-hidden bg-white border border-purple-100 shadow-sm rounded-xl">
@@ -202,7 +206,7 @@
                                 @empty
                                     <tr>
                                         <td colspan="6" class="px-6 py-8 text-center text-gray-500">
-                                            Belum ada pengajuan yang perlu diproses atas nama {{ $plh['kepala']->name }}.
+                                            Belum ada pengajuan yang perlu diproses atas nama {{ $plh['label'] ?? $plh['kepala']->name }}.
                                         </td>
                                     </tr>
                                 @endforelse

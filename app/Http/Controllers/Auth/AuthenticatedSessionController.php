@@ -31,6 +31,11 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // 0. Superadmin punya dashboard sendiri
+        if ($request->user()->hasRole('Superadmin')) {
+            return redirect()->route('superadmin.dashboard');
+        }
+
         // 1. Jika yang login adalah Admin (Disesuaikan dengan nama role di sistem)
         if ($request->user()->hasAnyRole(['Admin Kepegawaian', 'admin', 'Admin'])) {
             return redirect()->route('admin.dashboard');

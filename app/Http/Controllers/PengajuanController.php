@@ -66,6 +66,25 @@ class PengajuanController extends Controller
             return ['peran' => $peran, 'via_plh' => true, 'kepala' => $kepala];
         }
 
+                // 3) Meja jabatan yang digantikan lewat penugasan Superadmin (Plh / Plt).
+        foreach ($user->penugasanPejabatBerlaku()->get() as $tugas) {
+            $peran = $tugas->jabatan_role;
+
+            if (! isset($this->alurKepala[$peran])
+                || $peran === 'Kepala Kantor'
+                || $step !== $this->alurKepala[$peran]['step']
+                || ! $this->unitCocok($pengajuan, $peran, $tugas)) {
+                continue;
+            }
+
+            return [
+                'peran'   => $peran,
+                'via_plh' => true,
+                'kepala'  => $tugas->pejabatDefinitif, // null untuk Plt (jabatan lowong)
+                'jenis'   => $tugas->jenis,            // PLH | PLT
+            ];
+        }
+
         return null;
     }
 
@@ -504,6 +523,35 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
             ->filter()
             ->values();
 
+                // ---- Penugasan Plh/Plt dari Superadmin (tabel penugasan_pejabat) ----
+        $antreanPenugasan = $user->penugasanPejabatBerlaku()->get()
+            ->map(function ($tugas) use ($user, $terapkanFilter) {
+                $peran = $tugas->jabatan_role;
+
+                if (! isset($this->alurKepala[$peran]) || $peran === 'Kepala Kantor') {
+                    return null;
+                }
+
+                $daftar = PengajuanCuti::with(['user', 'jenisCuti'])
+                    ->where('user_id', '!=', $user->id)
+                    ->where(fn ($q) => $this->terapkanMeja($q, $peran, $tugas))
+                    ->tap($terapkanFilter)
+                    ->latest()
+                    ->get();
+
+                return [
+                    'kepala'     => $tugas->pejabatDefinitif,
+                    'label'      => $tugas->pejabatDefinitif?->name ?? $tugas->nama_jabatan,
+                    'jenis'      => $tugas->jenis,
+                    'peran'      => $peran,
+                    'sampai'     => $tugas->tanggal_selesai,
+                    'pengajuans' => $daftar,
+                ];
+            })
+            ->filter();
+
+        $antreanPlh = $antreanPlh->concat($antreanPenugasan)->values();
+
         return view('kepala.approval.index', compact('pengajuans', 'antreanPlh', 'peranSendiri'));
     }
 
@@ -918,7 +966,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         $constraintPeriode = $this->constraintPengajuanRekap($tahun, $bulan, $jenisCutiId); // ikut filter bulan/jenis
         $constraintTahun   = $this->constraintPengajuanRekap($tahun, null, null);           // setahun penuh
 
-        $query = \App\Models\User::with(['bagianBidang', 'subBagianSeksi']);
+        $query = \App\Models\User::bukanSuperadmin()->with(['bagianBidang', 'subBagianSeksi']);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -1010,7 +1058,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
             ->push((int) date('Y'))
             ->unique()->sortDesc()->values();
 
-        $totalPegawai = \App\Models\User::count();
+        $totalPegawai = \App\Models\User::bukanSuperadmin()->count();
         $pengajuanBulanIni = \App\Models\PengajuanCuti::where('approval_step', 8)
             ->whereMonth('created_at', date('m'))
             ->whereYear('created_at', date('Y'))
@@ -1030,7 +1078,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
             ->pluck('user_id')->flip();
 
         $rataSisa = round(
-            \App\Models\User::get(['id', 'jatah_cuti', 'saldo_tahun_lalu', 'koreksi_terpakai'])
+            \App\Models\User::bukanSuperadmin()->get(['id', 'jatah_cuti', 'saldo_tahun_lalu', 'koreksi_terpakai'])
                 ->map(fn ($u) => \App\Models\User::saldoDari(
                     $u, (int) ($terpakaiTahun[$u->id] ?? 0), $idCutiBesar->has($u->id)
                 )['total_sisa'])
@@ -1140,7 +1188,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
     {
         $constraint = $this->constraintPengajuanRekap($tahunDitutup, null, null);
 
-        return \App\Models\User::query()
+        return \App\Models\User::bukanSuperadmin()
             ->withSum(['pengajuanCutis as terpakai_tahun_ini' => function ($q) use ($constraint) {
                 $constraint($q);
                 $q->whereHas('jenisCuti', fn ($jq) => $jq->where('mengurangi_kuota', true));
