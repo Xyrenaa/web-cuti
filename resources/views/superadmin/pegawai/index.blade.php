@@ -118,9 +118,8 @@
                     </table>
                 </div>
 
-                <div class="p-4 border-t border-gray-100 bg-gray-50/50">
-                    {{ $pegawais->links() }}
-                </div>
+                <x-paginasi :paginator="$pegawais" />
+
             </div>
         </div>
     </div>
