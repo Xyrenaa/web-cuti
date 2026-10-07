@@ -9,6 +9,7 @@ use App\Models\PenugasanPejabat;
 use Spatie\Permission\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -44,6 +45,77 @@ class SuperadminPegawaiController extends Controller
         $menjabat = PenugasanPejabat::berlaku()->get()->keyBy('pengganti_id'); // siapa yang sedang Plh/Plt
 
         return view('superadmin.pegawai.index', compact('pegawais', 'bagians', 'roles', 'menjabat'));
+    }
+
+        /** Password awal yang sama dengan import Excel Admin; wajib diganti lewat pop-up login pertama. */
+    private const PASSWORD_AWAL = 'password123';
+
+    public function create()
+    {
+        $bagians = BagianBidang::with('subBagianSeksis')->orderBy('nama')->get();
+
+        return view('superadmin.pegawai.create', compact('bagians'));
+    }
+
+    public function store(Request $request)
+    {
+        // Digit polos, sama dengan konvensi import Excel & form login.
+        $request->merge(['nip' => User::bersihkanNip($request->input('nip'))]);
+
+        $data = $request->validate([
+            'name'                => ['required', 'string', 'max:255'],
+            // 18 digit: syarat agar email sementara dikenali sistem (User::emailSementara)
+            'nip'                 => ['required', 'regex:/^\d{18}$/', 'unique:users,nip'],
+            'bagian_bidang_id'    => ['required', 'exists:bagian_bidangs,id'],
+            'sub_bagian_seksi_id' => [
+                'required',
+                Rule::exists('sub_bagian_seksis', 'id')->where('bagian_bidang_id', $request->input('bagian_bidang_id')),
+            ],
+        ], [
+            'name.required'                => 'Nama wajib diisi.',
+            'nip.regex'                    => 'NIP harus terdiri dari tepat 18 digit angka.',
+            'nip.unique'                   => 'NIP ini sudah terdaftar.',
+            'bagian_bidang_id.required'    => 'Pilih Bagian/Bidang.',
+            'sub_bagian_seksi_id.required' => 'Pilih Sub-Bagian/Seksi.',
+            'sub_bagian_seksi_id.exists'   => 'Sub-Bagian/Seksi tidak sesuai dengan Bagian/Bidang yang dipilih.',
+        ]);
+
+        $emailSementara = $data['nip'] . '@otban3.com';
+
+        if (User::where('email', $emailSementara)->exists()) {
+            return back()->withInput()->withErrors([
+                'nip' => 'Email sementara untuk NIP ini sudah dipakai akun lain.',
+            ]);
+        }
+
+        $pegawai = DB::transaction(function () use ($data, $emailSementara) {
+            $user = User::create([
+                'name'                   => $data['name'],
+                'nip'                    => $data['nip'],
+                'email'                  => $emailSementara,
+                'password'               => self::PASSWORD_AWAL, // di-hash otomatis oleh cast 'hashed'
+                'bagian_bidang_id'       => $data['bagian_bidang_id'],
+                'sub_bagian_seksi_id'    => $data['sub_bagian_seksi_id'],
+                'level_jabatan'          => 'Pegawai',
+                'jatah_cuti'             => 12,
+                'status_kepegawaian'     => User::statusKepegawaianDariNip($data['nip']),
+                'wajib_ganti_kredensial' => true,
+            ]);
+            $user->assignRole('Pegawai');
+
+            return $user;
+        });
+
+        Log::info('Superadmin menambah pegawai baru', [
+            'superadmin_id' => $request->user()->id,
+            'pegawai_id'    => $pegawai->id,
+        ]);
+
+        return redirect()->route('superadmin.pegawai.index')->with(
+            'success',
+            "Pegawai {$pegawai->name} berhasil ditambahkan. Login dengan NIP {$pegawai->nip} dan kata sandi " . self::PASSWORD_AWAL
+            . '. Saat login pertama, pegawai diminta mengisi email aktif dan mengganti kata sandi.'
+        );
     }
 
     public function edit($id)

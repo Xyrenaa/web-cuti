@@ -116,6 +116,8 @@ Route::middleware(['auth', 'verified', 'role:Superadmin'])->prefix('superadmin')
     Route::get('/pegawai/{id}/edit', [SuperadminPegawaiController::class, 'edit'])->whereNumber('id')->name('pegawai.edit');
     Route::put('/pegawai/{id}', [SuperadminPegawaiController::class, 'update'])->whereNumber('id')->name('pegawai.update');
     Route::put('/pegawai/{id}/password', [SuperadminPegawaiController::class, 'resetPassword'])->whereNumber('id')->name('pegawai.password');
+    Route::get('/pegawai/tambah', [SuperadminPegawaiController::class, 'create'])->name('pegawai.create');
+    Route::post('/pegawai', [SuperadminPegawaiController::class, 'store'])->name('pegawai.store');
     // Plh & Plt
     Route::get('/penugasan', [SuperadminPenugasanController::class, 'index'])->name('penugasan.index');
     Route::get('/penugasan/create', [SuperadminPenugasanController::class, 'create'])->name('penugasan.create');
