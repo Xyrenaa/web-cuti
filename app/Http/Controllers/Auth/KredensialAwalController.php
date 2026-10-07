@@ -23,7 +23,7 @@ class KredensialAwalController extends Controller
 
         // Endpoint ini hanya untuk akun yang memang wajib. Kalau sudah selesai,
         // jangan beri jalan pintas ganti email/password tanpa password lama.
-        if (! $user->wajib_ganti_kredensial) {
+        if (! $user->perluGantiKredensial()) {
             return redirect()->route('dashboard');
         }
 

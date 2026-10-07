@@ -229,6 +229,25 @@ class User extends Authenticatable
         return $this->hasRole('Superadmin');
     }
 
+        /**
+     * Pegawai biasa = bukan kepala, bukan Admin Kepegawaian, dan bukan Superadmin.
+     * Dengan definisi "bukan role khusus" (bukan "wajib punya role Pegawai"), akun pegawai yang
+     * kebetulan belum punya role tetap diminta mengamankan akunnya.
+     */
+    public function adalahPegawaiBiasa(): bool
+    {
+        return ! $this->hasAnyRole([...self::ROLE_KEPALA, 'Admin Kepegawaian', 'Superadmin']);
+    }
+
+    /**
+     * Satu-satunya pintu untuk menentukan apakah pop-up "Amankan Akun" wajib tampil.
+     * Dipakai oleh modal, middleware, dan controller penyimpanan.
+     */
+    public function perluGantiKredensial(): bool
+    {
+        return $this->wajib_ganti_kredensial && $this->adalahPegawaiBiasa();
+    }
+
     /**
      * Sembunyikan akun Superadmin dari daftar/rekap pegawai. Sengaja scope lokal,
      * BUKAN global scope: global scope akan ikut menyaring proses login Superadmin itu sendiri.

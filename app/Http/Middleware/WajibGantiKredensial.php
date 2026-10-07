@@ -25,7 +25,7 @@ class WajibGantiKredensial
     {
         $user = $request->user();
 
-        if (! $user || ! $user->wajib_ganti_kredensial) {
+        if (! $user || ! $user->perluGantiKredensial()) {
             return $next($request);
         }
 
