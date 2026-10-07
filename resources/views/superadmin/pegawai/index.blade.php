@@ -24,6 +24,11 @@
                 <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">{{ session('success') }}</div>
             @endif
 
+            <div class="flex justify-end">
+                <a href="{{ route('superadmin.pegawai.create') }}"
+                   class="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700">+ Tambah Pegawai</a>
+            </div>
+
             {{-- FILTER --}}
             <form method="GET" class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3"
                   x-data="{

@@ -127,11 +127,6 @@
                     </button>
                 </div>
 
-                <!-- Daftar Sekarang -->
-                <div class="text-center mt-5 text-xs text-gray-600">
-                    Belum punya akun? 
-                    <a href="{{ route('register') }}" class="text-blue-600 hover:text-blue-800 font-bold">Daftar Sekarang</a>
-                </div>
             </form>
         </div>
     </div>
