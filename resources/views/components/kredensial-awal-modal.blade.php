@@ -2,7 +2,7 @@
      Tidak bisa ditutup (tanpa tombol close/klik luar/Esc); satu-satunya jalan
      keluar selain menyimpan adalah Keluar (logout). Dipasang di kedua layout. --}}
 @auth
-    @if (auth()->user()->wajib_ganti_kredensial)
+    @if (auth()->user()->perluGantiKredensial())
         @php($bag = $errors->getBag('kredensialAwal'))
         <div x-data="{ lihatPw: false }"
              x-init="document.body.classList.add('overflow-hidden')"
