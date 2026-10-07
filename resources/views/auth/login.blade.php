@@ -58,6 +58,59 @@
                     <x-input-error :messages="$errors->get('password')" class="mt-1" />
                 </div>
 
+                <!-- Captcha angka -->
+                @if ($captchaSrc)
+                    <div class="mb-4"
+                         x-data="{
+                             src: @js($captchaSrc),
+                             memuat: false,
+                             pesan: '',
+                             async segarkan() {
+                                 if (this.memuat) return;
+                                 this.memuat = true; this.pesan = '';
+                                 try {
+                                     const r = await fetch(@js(route('captcha.segarkan', [], false)) + '?t=' + Date.now(), {
+                                         headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                                         credentials: 'same-origin',
+                                         cache: 'no-store',
+                                     });
+                                     if (r.status === 429) { this.pesan = 'Terlalu sering mengganti gambar. Tunggu sebentar lalu coba lagi.'; }
+                                     else if (!r.ok) {
+                                         // Saat APP_DEBUG=true Laravel mengirim penyebab asli di field message;
+                                         // saat produksi isinya generik ('Server Error'), jadi aman ditampilkan.
+                                         const d = await r.json().catch(() => ({}));
+                                         const rinci = (d.message && d.message !== 'Server Error') ? ' — ' + String(d.message).slice(0, 160) : '';
+                                         this.pesan = 'Gambar baru gagal dimuat (kode ' + r.status + ')' + rinci;
+                                     }
+                                     else {
+                                         this.src = (await r.json()).src;
+                                         this.$refs.captcha.value = '';
+                                         this.$refs.captcha.focus();
+                                     }
+                                 } catch (e) {
+                                     this.pesan = 'Gambar baru gagal dimuat. Periksa koneksi lalu tekan tombol lagi.';
+                                 }
+                                 this.memuat = false;
+                             }
+                         }">
+                        <div class="flex items-center gap-2 mb-2">
+                            <img :src="src" alt="Gambar captcha angka" width="150" height="48"
+                                 class="w-[150px] h-12 rounded-md border border-gray-200 select-none"
+                                 :class="memuat ? 'opacity-50' : ''" draggable="false">
+                            <button type="button" @click="segarkan()" :disabled="memuat"
+                                    class="shrink-0 p-1.5 rounded-md border border-gray-300 text-gray-500 hover:text-blue-600 hover:border-blue-600 transition disabled:opacity-50"
+                                    aria-label="Ganti gambar captcha" title="Ganti gambar">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" :class="memuat ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                            </button>
+                        </div>
+                        <input id="captcha" x-ref="captcha" type="text" name="captcha" required inputmode="numeric" pattern="[0-9]*" maxlength="{{ config('captcha.length', 5) }}" autocomplete="off" placeholder="Masukkan angka" class="w-full rounded-lg border-gray-300 focus:border-blue-600 focus:ring-blue-600 shadow-sm px-4 py-2.5 text-sm tracking-widest">
+                        <p x-show="pesan" x-cloak x-text="pesan" class="mt-1 text-xs text-red-600"></p>
+                        <x-input-error :messages="$errors->get('captcha')" class="mt-1" />
+                    </div>
+                @endif
+
                 <!-- Lupa Sandi -->
                 <div class="flex items-center justify-between mb-5">
                     @if (Route::has('password.request'))

@@ -23,6 +23,11 @@ Route::middleware('guest')->group(function () {
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
+    // 60/menit per IP: satu kantor berbagi IP yang sama, jadi jangan terlalu ketat.
+    Route::get('captcha/segarkan', [AuthenticatedSessionController::class, 'segarkanCaptcha'])
+        ->middleware('throttle:60,1')
+        ->name('captcha.segarkan');
+
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 

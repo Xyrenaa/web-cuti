@@ -20,8 +20,10 @@ test('pop-up tampil di dashboard untuk akun yang wajib ganti kredensial', functi
 });
 
 test('halaman selain dashboard dialihkan selama kredensial belum diganti', function () {
-    $this->actingAs(pegawaiBaru())->get('/pengajuan')->assertRedirect(route('dashboard'));
-    $this->actingAs(pegawaiBaru())->post('/pengajuan', [])->assertRedirect(route('dashboard'));
+    $user = pegawaiBaru();
+
+    $this->actingAs($user)->get('/pengajuan')->assertRedirect(route('dashboard'));
+    $this->actingAs($user)->post('/pengajuan', [])->assertRedirect(route('dashboard'));
 });
 
 test('email dan password berhasil diganti lalu akses terbuka', function () {
@@ -53,9 +55,10 @@ test('password baru tidak boleh sama dengan password awal', function () {
 
 test('email sementara atau yang sudah dipakai akun lain ditolak', function () {
     User::factory()->create(['email' => 'dipakai@gmail.com']);
+    $user = pegawaiBaru();
 
     foreach (['199001012015011001@otban3.com', 'dipakai@gmail.com'] as $email) {
-        $this->actingAs(pegawaiBaru())->put('/kredensial-awal', [
+        $this->actingAs($user)->put('/kredensial-awal', [
             'email' => $email,
             'email_confirmation' => $email,
             'password' => 'RahasiaBaru#2026',

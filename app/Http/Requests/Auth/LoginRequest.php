@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use App\Models\User;
+use App\Support\Captcha;
 
 class LoginRequest extends FormRequest
 {
@@ -39,16 +40,23 @@ class LoginRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        $aturan = [
             'nip' => ['required', 'string'],
             'password' => ['required', 'string'],
         ];
+
+        if (Captcha::aktif()) {
+            $aturan['captcha'] = ['required', 'string'];
+        }
+
+        return $aturan;
     }
 
     public function messages(): array
     {
         return [
             'nip.required' => 'NIP wajib diisi.',
+            'captcha.required' => 'Isi angka yang tampil pada gambar.',
         ];
     }
 
@@ -60,6 +68,17 @@ class LoginRequest extends FormRequest
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
+
+        // Captcha dicek SEBELUM NIP/password disentuh, jadi bot yang gagal captcha
+        // tidak bisa memakai login sebagai alat tebak password. Salah captcha juga
+        // dihitung ke batas percobaan, dan kode selalu hangus setelah dicek.
+        if (Captcha::aktif() && ! Captcha::cocok($this->input('captcha'))) {
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'captcha' => 'Angka captcha salah atau sudah kedaluwarsa. Silakan coba dengan gambar yang baru.',
+            ]);
+        }
 
         if (! Auth::attempt($this->only('nip', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
