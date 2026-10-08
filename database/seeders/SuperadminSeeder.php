@@ -23,6 +23,7 @@ class SuperadminSeeder extends Seeder
             ['email' => 'superadmin@cuti.com'],
             [
                 'name'          => 'Super Admin',
+                'nip'           => '123987654',
                 'password'      => Hash::make('superadmin123'), // GANTI setelah login pertama
                 'level_jabatan' => 'Pegawai',
                 'jatah_cuti'    => 0,
