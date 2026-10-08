@@ -25,13 +25,41 @@ class User extends Authenticatable
     }
 
     /**
-     * Email sementara bentukan import: "<NIP 18 digit>@otban3.com".
-     * Email seperti ini tidak bisa menerima surel, jadi tidak boleh dipakai
-     * sebagai email final dan tidak bisa dipakai untuk reset password.
+     * Email sementara = email placeholder instansi (domain @otban3.com), baik hasil
+     * import ("<NIP>@otban3.com") maupun akun seeder (kakan@, akunplt@, dst.).
+     * Alamat seperti ini tidak bisa menerima surel, jadi tidak boleh dipakai sebagai
+     * email final dan tidak bisa dipakai untuk reset password.
      */
     public static function emailSementara(?string $email): bool
     {
-        return (bool) preg_match('/^\d{18}@otban3\.com$/i', (string) $email);
+        return str_ends_with(mb_strtolower(trim((string) $email)), '@otban3.com');
+    }
+
+    /**
+     * Role yang DIBEBASKAN dari pop-up konfirmasi email & ganti password awal.
+     * Hapus nama role dari daftar ini kalau suatu saat role tersebut ingin
+     * diwajibkan juga (tidak perlu mengubah kode lain).
+     */
+    public const ROLE_BEBAS_KREDENSIAL_AWAL = [
+        'Kepala Kantor',
+        'Kepala TU',
+        'Kepala Bidang',
+        'Kepala Sub-Bagian',
+        'Kepala Seksi',
+    ];
+
+    /**
+     * Apakah akun ini harus melewati pop-up konfirmasi email & ganti password awal?
+     * Satu pintu untuk middleware, pop-up, dan controller: flag harus menyala DAN
+     * akun bukan role yang dibebaskan (Kepala, termasuk akun PLT Kepala Kantor).
+     */
+    public function perluGantiKredensial(): bool
+    {
+        if (! $this->wajib_ganti_kredensial) {
+            return false;
+        }
+
+        return ! $this->hasAnyRole(self::ROLE_BEBAS_KREDENSIAL_AWAL);
     }
 
     /** Email disamarkan untuk ditampilkan, mis. "wa***@gmail.com". */
@@ -127,25 +155,10 @@ class User extends Authenticatable
         return $this->pengajuanPlh()->plhAktifPada()->with('user');
     }
 
-    /** Cache per-request: navbar memanggil ini dua kali (desktop + mobile) di setiap halaman. */
-    private ?bool $cacheSedangMenjadiPlh = null;
-
     public function sedangMenjadiPlh(): bool
     {
-        return $this->cacheSedangMenjadiPlh ??= (
-            $this->penugasanPlhAktif()->exists()
-            || $this->penugasanSebagaiPengganti()->berlaku()->exists()
-        );
+        return $this->penugasanPlhAktif()->exists();
     }
-
-        /** Penugasan Plh/Plt dari Superadmin yang sedang berlaku, dengan user ini sebagai pengganti. */
-    public function penugasanPejabatBerlaku()
-    {
-        return $this->penugasanSebagaiPengganti()
-            ->berlaku()
-            ->with(['pejabatDefinitif', 'bagianBidang', 'subBagianSeksi']);
-    }
-
     
     /**
      * The attributes that are mass assignable.
@@ -203,118 +216,6 @@ class User extends Authenticatable
             'wajib_ganti_kredensial' => 'boolean',
         ];
     }
-
-    // =====================================================================
-    // SUPERADMIN & PLH/PLT
-    // =====================================================================
-
-    /** Role kepala yang jabatannya bisa digantikan lewat Plh/Plt. */
-    public const ROLE_KEPALA = [
-        'Kepala Kantor',
-        'Kepala TU',
-        'Kepala Bidang',
-        'Kepala Sub-Bagian',
-        'Kepala Seksi',
-    ];
-
-    public const ROLE_BISA_DIGANTIKAN = [
-        'Kepala TU',
-        'Kepala Bidang',
-        'Kepala Sub-Bagian',
-        'Kepala Seksi',
-    ];
-
-    public function isSuperadmin(): bool
-    {
-        return $this->hasRole('Superadmin');
-    }
-
-        /**
-     * Pegawai biasa = bukan kepala, bukan Admin Kepegawaian, dan bukan Superadmin.
-     * Dengan definisi "bukan role khusus" (bukan "wajib punya role Pegawai"), akun pegawai yang
-     * kebetulan belum punya role tetap diminta mengamankan akunnya.
-     */
-    public function adalahPegawaiBiasa(): bool
-    {
-        return ! $this->hasAnyRole([...self::ROLE_KEPALA, 'Admin Kepegawaian', 'Superadmin']);
-    }
-
-    /**
-     * Satu-satunya pintu untuk menentukan apakah pop-up "Amankan Akun" wajib tampil.
-     * Dipakai oleh modal, middleware, dan controller penyimpanan.
-     */
-    public function perluGantiKredensial(): bool
-    {
-        return $this->wajib_ganti_kredensial && $this->adalahPegawaiBiasa();
-    }
-
-    /**
-     * Sembunyikan akun Superadmin dari daftar/rekap pegawai. Sengaja scope lokal,
-     * BUKAN global scope: global scope akan ikut menyaring proses login Superadmin itu sendiri.
-     */
-    public function scopeBukanSuperadmin($query)
-    {
-        return $query->whereDoesntHave('roles', fn ($r) => $r->where('name', 'Superadmin'));
-    }
-
-        public function scopeBisaJadiPengganti($query)
-    {
-        return $query->bukanSuperadmin()
-            ->whereDoesntHave('roles', fn ($r) => $r->where('name', 'Admin Kepegawaian'));
-    }
-
-    /**
-     * Identitas jabatan kepala milik user ini: [role, bagian_bidang_id, sub_bagian_seksi_id].
-     * Null kalau bukan kepala. Dipakai untuk mencocokkan dengan tabel penugasan_pejabat.
-     */
-     public function jabatanKepala(): ?array
-    {
-        foreach (self::ROLE_BISA_DIGANTIKAN as $role) {
-            if (! $this->hasRole($role)) {
-                continue;
-            }
-
-            return match ($role) {
-                'Kepala TU', 'Kepala Bidang' => [$role, $this->bagian_bidang_id, null],
-                default /* Kasubag, Kasi */  => [$role, $this->bagian_bidang_id, $this->sub_bagian_seksi_id],
-            };
-        }
-
-        return null;
-    }
-
-    /** Penugasan di mana user ini ditunjuk sebagai pengganti. */
-    public function penugasanSebagaiPengganti()
-    {
-        return $this->hasMany(PenugasanPejabat::class, 'pengganti_id');
-    }
-
-    /** Penugasan di mana user ini adalah kepala yang digantikan. */
-    public function penugasanSebagaiDefinitif()
-    {
-        return $this->hasMany(PenugasanPejabat::class, 'pejabat_definitif_id');
-    }
-
-    /** Penugasan Plh/Plt yang sedang berlaku hari ini dengan user ini sebagai pengganti (null jika tidak ada). */
-    public function penugasanAktif(): ?PenugasanPejabat
-    {
-        return $this->penugasanSebagaiPengganti()->berlaku()->latest('id')->first();
-    }
-
-    /**
-     * Apakah jabatan kepala user ini sedang dipegang orang lain (Plh/Plt berlaku)?
-     * Kalau ya, user ini tidak boleh meng-approve selama periodenya.
-     */
-    public function sedangDigantikan(): bool
-    {
-        $jabatan = $this->jabatanKepala();
-        if (! $jabatan) {
-            return false;
-        }
-
-        return PenugasanPejabat::berlaku()->untukJabatan(...$jabatan)->exists();
-    }
-
     public function atasan()
     {
         return $this->belongsTo(User::class, 'atasan_id');

@@ -57,7 +57,7 @@ test('email sementara atau yang sudah dipakai akun lain ditolak', function () {
     User::factory()->create(['email' => 'dipakai@gmail.com']);
     $user = pegawaiBaru();
 
-    foreach (['199001012015011001@otban3.com', 'dipakai@gmail.com'] as $email) {
+    foreach (['199001012015011001@otban3.com', 'akunplt@otban3.com', 'dipakai@gmail.com'] as $email) {
         $this->actingAs($user)->put('/kredensial-awal', [
             'email' => $email,
             'email_confirmation' => $email,
