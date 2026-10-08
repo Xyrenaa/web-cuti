@@ -155,9 +155,92 @@ class User extends Authenticatable
         return $this->pengajuanPlh()->plhAktifPada()->with('user');
     }
 
+    /**
+     * Sedang memegang meja jabatan lain lewat SALAH SATU jalur:
+     *  - PLH pilihan kepala saat cuti (pengajuan_cutis.plh_user_id), atau
+     *  - penunjukan Plh/Plt dari Superadmin (tabel penugasan_pejabat).
+     * Dipakai middleware KepalaAtauPlh dan menu navigasi supaya pegawai biasa yang
+     * ditunjuk Plt/Plh bisa membuka halaman Approval Cuti.
+     */
     public function sedangMenjadiPlh(): bool
     {
-        return $this->penugasanPlhAktif()->exists();
+        return $this->penugasanPlhAktif()->exists()
+            || $this->penugasanPejabatBerlaku()->exists();
+    }
+
+    // =====================================================================
+    // SUPERADMIN & PLH/PLT (tabel penugasan_pejabat)
+    // =====================================================================
+
+    /** Role kepala yang berhak membuka halaman approval. */
+    public const ROLE_KEPALA = [
+        'Kepala Kantor',
+        'Kepala TU',
+        'Kepala Bidang',
+        'Kepala Sub-Bagian',
+        'Kepala Seksi',
+    ];
+
+    /** Role kepala yang jabatannya bisa digantikan lewat Plh/Plt (Kepala Kantor tidak termasuk). */
+    public const ROLE_BISA_DIGANTIKAN = [
+        'Kepala TU',
+        'Kepala Bidang',
+        'Kepala Sub-Bagian',
+        'Kepala Seksi',
+    ];
+
+    /**
+     * Sembunyikan akun Superadmin dari daftar/rekap pegawai. Sengaja scope lokal,
+     * BUKAN global scope: global scope akan ikut menyaring proses login Superadmin itu sendiri.
+     */
+    public function scopeBukanSuperadmin($query)
+    {
+        return $query->whereDoesntHave('roles', fn ($r) => $r->where('name', 'Superadmin'));
+    }
+
+    /**
+     * Identitas jabatan kepala milik user ini: [role, bagian_bidang_id, sub_bagian_seksi_id].
+     * Null kalau bukan kepala yang bisa digantikan. Dipakai untuk mencocokkan dengan tabel penugasan_pejabat.
+     */
+    public function jabatanKepala(): ?array
+    {
+        foreach (self::ROLE_BISA_DIGANTIKAN as $role) {
+            if (! $this->hasRole($role)) {
+                continue;
+            }
+
+            return match ($role) {
+                'Kepala TU', 'Kepala Bidang' => [$role, $this->bagian_bidang_id, null],
+                default /* Kasubag, Kasi */  => [$role, $this->bagian_bidang_id, $this->sub_bagian_seksi_id],
+            };
+        }
+
+        return null;
+    }
+
+    /** Penugasan di mana user ini ditunjuk sebagai pengganti. */
+    public function penugasanSebagaiPengganti()
+    {
+        return $this->hasMany(PenugasanPejabat::class, 'pengganti_id');
+    }
+
+    /** Penugasan Plh/Plt yang BERLAKU hari ini dengan user ini sebagai pengganti (bisa lebih dari satu). */
+    public function penugasanPejabatBerlaku()
+    {
+        return $this->penugasanSebagaiPengganti()
+            ->berlaku()
+            ->with(['pejabatDefinitif', 'bagianBidang', 'subBagianSeksi']);
+    }
+
+    /** Apakah jabatan kepala user ini sedang dipegang orang lain (Plh/Plt berlaku)? */
+    public function sedangDigantikan(): bool
+    {
+        $jabatan = $this->jabatanKepala();
+        if (! $jabatan) {
+            return false;
+        }
+
+        return PenugasanPejabat::berlaku()->untukJabatan(...$jabatan)->exists();
     }
     
     /**
