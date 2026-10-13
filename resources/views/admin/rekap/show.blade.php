@@ -121,8 +121,8 @@
                                     </td>
                                     <td class="px-4 py-3 text-center font-bold text-gray-800">{{ $c->durasi_hari }}</td>
                                     <td class="px-4 py-3 text-gray-500 whitespace-nowrap">{{ optional($c->created_at)->translatedFormat('d M Y') }}</td>
-                                    <td class="px-4 py-3"><span class="px-2.5 py-1 rounded-full text-[11px] font-bold border {{ $badge[1] }}">{{ $badge[0] }}</span></td>
-                                    <td class="px-6 py-3 text-right"><a href="{{ route('admin.approval.show', $c->id) }}" class="text-[#2a64f5] hover:text-blue-800 font-bold text-xs">Detail</a></td>
+                                    <x-status-dot :status="$badge[0]">{{ $badge[0] }}</x-status-dot>
+                                    <td class="px-6 py-3 text-right"><a href="{{ route('admin.approval.show', $c->id) }}" class="text-xs font-semibold text-[#2A65F3] hover:underline">Detail →</a></td>
                                 </tr>
                             @empty
                                 <tr><td colspan="7" class="px-6 py-10 text-center text-gray-500">Belum ada riwayat cuti pada {{ $tahun }}.</td></tr>

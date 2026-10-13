@@ -192,11 +192,10 @@ private function hitungHariKerja(\Carbon\Carbon $mulai, \Carbon\Carbon $selesai)
     $tanggal_selesai = \Carbon\Carbon::parse($request->tanggal_selesai);
     
 
-    $durasi_hari = $tanggal_mulai->diffInWeekdays($tanggal_selesai->copy()->addDay());
+     $durasi_hari = $this->hitungHariKerja($tanggal_mulai, $tanggal_selesai);
 
-    // Validasi pencegahan jika user murni mengajukan hanya di hari libur (misal: Sabtu ke Minggu)
     if ($durasi_hari < 1) {
-        return redirect()->back()->withInput()->with('error', 'Tanggal tidak valid. Pengajuan cuti tidak bisa dilakukan di hari libur akhir pekan.');
+        return redirect()->back()->withInput()->with('error', 'Tanggal tidak valid. Rentang yang dipilih seluruhnya jatuh pada akhir pekan atau hari libur nasional.');
     }
     $batasBulan = ['Cuti Alasan Penting' => 1, 'Cuti Melahirkan' => 3, 'Cuti Besar' => 3];
     $namaJenisDipilih = $jenisCutiDipilih->nama_cuti ?? '';
@@ -698,9 +697,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
 
         $pengajuan = \App\Models\PengajuanCuti::find($id);
 
-        // =========================================================
         // JIKA DATA TIDAK ADA (MODE DUMMY)
-        // =========================================================
         if (!$pengajuan) {
             if (in_array($id, [1, 2, 3])) { 
                 if ($action == 'setujui') {
@@ -1235,30 +1232,38 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         ]);
     }
 
-    public function prosesTutupTahun(Request $request)
+        public function prosesTutupTahun(Request $request)
     {
         $request->validate([
-            'tahun'       => 'required|integer|min:2020|max:2100',
-            'konfirmasi'  => 'required|accepted',
+            'tahun'      => 'required|integer|min:2020|max:2100',
+            'konfirmasi' => 'required|accepted',
         ]);
 
         $tahunDitutup = (int) $request->tahun;
+
+        // Pengaman: tahun yang sama tidak boleh ditutup dua kali. Hitungan kedua
+        // akan berangkat dari saldo yang sudah di-rollover, jadi hasilnya salah.
+        if (\App\Models\TutupTahunLog::where('tahun_ditutup', $tahunDitutup)->exists()) {
+            return redirect()->route('admin.rekap.tutup-tahun.preview', ['tahun' => $tahunDitutup])
+                ->with('error', "Tahun {$tahunDitutup} sudah pernah ditutup dan tidak bisa diproses ulang.");
+        }
+
         $hasil = $this->hitungRolloverTahun($tahunDitutup);
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($hasil, $tahunDitutup) {
             foreach ($hasil as $baris) {
-                // SESUDAH
-        \App\Models\User::whereKey($baris->id)->update([
-                'jatah_cuti'       => $baris->jatah_baru,
-                'saldo_tahun_lalu' => $baris->sisa_dibawa,
-            ]);
-            }
-
                 \App\Models\User::whereKey($baris->id)->update([
                     'jatah_cuti'       => $baris->jatah_baru,
                     'saldo_tahun_lalu' => $baris->sisa_dibawa,
-                    'koreksi_terpakai' => 0,   // tahun baru mulai dari nol
+                    'koreksi_terpakai' => 0, // tahun baru mulai dari nol
                 ]);
+            }
+
+            \App\Models\TutupTahunLog::create([
+                'tahun_ditutup'  => $tahunDitutup,
+                'jumlah_pegawai' => $hasil->count(),
+                'dilakukan_oleh' => auth()->id(),
+            ]);
         });
 
         return redirect()->route('admin.rekap.index')
