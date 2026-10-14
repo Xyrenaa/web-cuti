@@ -64,28 +64,35 @@
             @endphp
 
             <nav x-data="{ open: false, scrolled: false }"
-                 @scroll.window.passive="scrolled = (window.pageYOffset > 20)"
-                 :class="scrolled ? 'shadow-md' : 'shadow-sm'"
-                 class="sticky top-0 z-50 border-b border-gray-100 bg-white transition-shadow duration-300">
+                x-init="scrolled = window.pageYOffset > 40"
+                @scroll.window.passive="scrolled = scrolled ? (window.pageYOffset > 10) : (window.pageYOffset > 40)"
+                :class="scrolled ? 'shadow-md' : 'shadow-sm'"
+                class="fixed inset-x-0 top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur transition-shadow duration-300">
 
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="flex justify-between items-center h-20">
+                <div :class="scrolled ? 'h-16' : 'h-20'" class="flex justify-between items-center transition-[height] duration-300">
 
                         <div class="shrink-0 flex items-center">
                             <a href="{{ route('superadmin.dashboard') }}" class="flex items-center gap-3">
-                                <img src="{{ asset('img/Logo Otban.png') }}" class="block h-[50px] w-auto" alt="Logo Instansi" width="50" height="50" />
-                                <div class="w-px h-8 bg-gray-300"></div>
-                                <img src="{{ asset('img/logo-pelita.png') }}" class="block h-14 w-auto" alt="Logo PELITA" width="186" height="56" />
+                               
                             </a>
-                        </div>
+                        </div><!-- Logo Instansi (Otban) -->
+                            <img src="{{ asset('img/Logo Otban.png') }}"
+                                class="block w-auto drop-shadow-sm transition-all duration-300"
+                                :class="scrolled ? 'h-10' : 'h-[50px]'" alt="Logo Instansi" />
+                            <!-- Garis Pemisah -->
+                            <div class="w-px h-8 bg-gray-300"></div>
+                            <!-- Logo Web (PELITA) -->
+                            <img src="{{ asset('img/logo-pelita.png') }}"
+                                class="block w-auto drop-shadow-sm transition-all duration-300"
+                                :class="scrolled ? 'h-11' : 'h-14'" alt="Logo PELITA" />
 
-                        <div class="hidden sm:flex space-x-4 items-center">
-                            @foreach($menu as $m)
-                                <a href="{{ route($m['route']) }}"
-                                   class="px-5 py-2 rounded-full font-bold text-sm transition {{ request()->routeIs($m['aktif']) ? 'bg-[#eef2ff] text-blue-600' : 'text-gray-500 hover:text-gray-800' }}">
-                                    {{ $m['label'] }}
-                                </a>
-                            @endforeach
+                           <div class="hidden sm:flex sm:items-center gap-6 lg:gap-8">
+                              @foreach($menu as $m)
+                                    <x-nav-link :href="route($m['route'])" :active="request()->routeIs($m['aktif'])">
+                                        {{ $m['label'] }}
+                                    </x-nav-link>
+                             @endforeach
 
                             {{-- PROFIL SUPERADMIN DINONAKTIFKAN (sementara). Hapus tanda komentar ini untuk mengaktifkan lagi.
                             <a href="{{ route('profile.show') }}"
@@ -94,11 +101,11 @@
                             </a>
                             --}}
 
-                            <div class="w-px h-5 bg-gray-200"></div>
+                            <div class="w-px h-5 bg-gray-200 self-center"></div>
 
-                            <form method="POST" action="{{ route('logout') }}" class="inline">
+                            <form method="POST" action="{{ route('logout') }}" class="flex">
                                 @csrf
-                                <button type="submit" class="text-gray-400 hover:text-red-500 transition px-2" title="Keluar">
+                                <button type="submit" class="flex items-center text-gray-400 hover:text-red-500 transition px-2" title="Keluar">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                                 </button>
                             </form>
@@ -138,6 +145,8 @@
                     </div>
                 </div>
             </nav>
+            <div class="h-20" aria-hidden="true"></div>
+
 
             @isset($header)
                 <header class="bg-[#2a64f5] shadow-md relative z-40">

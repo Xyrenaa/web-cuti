@@ -49,10 +49,7 @@ Route::get('/dashboard', function () {
     return view('pegawai.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-
-// ==========================================
 // ROUTE PEGAWAI (Semua wajib login)
-// ==========================================
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/pengajuan', [PengajuanController::class, 'index'])->name('pengajuan.index');
     Route::post('/pengajuan', [PengajuanController::class, 'store'])->name('pengajuan.store');
@@ -72,14 +69,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // Route API bebas akses
-Route::get('/api/sub-bagian/{bagian_id}', function ($bagian_id) {
-    return SubBagianSeksi::where('bagian_bidang_id', $bagian_id)->get();
+Route::middleware('auth')->get('/api/sub-bagian/{bagian_id}', function ($bagian_id) {
+    return SubBagianSeksi::where('bagian_bidang_id', $bagian_id)->get(['id', 'nama']);
 });
 
 
-// ==========================================
 // ROUTE ADMIN (Wajib login)
-// ==========================================
 Route::middleware(['auth', 'verified', 'role:Admin Kepegawaian'])->group(function () {
     Route::get('/admin/migrasi-data', [MigrasiDataController::class, 'index'])->name('admin.migrasi.index');
     Route::post('/admin/migrasi-data/pegawai', [MigrasiDataController::class, 'importPegawai'])->name('admin.migrasi.pegawai');

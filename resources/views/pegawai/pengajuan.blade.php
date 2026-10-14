@@ -58,16 +58,10 @@
                                 {{ $item->durasi_hari }} Hari
                             </td>
                             <td class="px-6 py-4">
-                                @if($item->status_group === 'Menunggu')
-                                    <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">{{ $item->status_label }}</span>
-                                @elseif($item->status_group === 'Disetujui')
-                                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">Disetujui</span>
-                                @else
-                                    <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">{{ $item->status_label }}</span>
-                                @endif
+                               <x-status-dot :status="$item->status_group">{{ $item->status_group === 'Disetujui' ? 'Disetujui' : $item->status_label }}</x-status-dot>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <a href="{{ route('pengajuan.show', $item->id) }}" class="text-[#2A65F3] font-semibold hover:underline">Detail</a>
+                                <a href="{{ route('pengajuan.show', $item->id) }}" class="text-sm font-semibold text-[#2A65F3] hover:underline">Detail →</a>
                             </td>
                         </tr>
                         @empty

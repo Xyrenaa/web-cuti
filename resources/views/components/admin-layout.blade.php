@@ -25,51 +25,50 @@
             
             <!-- Navbar Admin -->
             <nav x-data="{ open: false, scrolled: false }"
-                @scroll.window.passive="scrolled = (window.pageYOffset > 20)"
+                x-init="scrolled = window.pageYOffset > 40"
+                @scroll.window.passive="scrolled = scrolled ? (window.pageYOffset > 10) : (window.pageYOffset > 40)"
                 :class="scrolled ? 'shadow-md' : 'shadow-sm'"
-                class="sticky top-0 z-50 border-b border-gray-100 bg-white transition-shadow duration-300">
+                class="fixed inset-x-0 top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur transition-shadow duration-300">
                 
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="flex justify-between items-center h-20">
+                   <div :class="scrolled ? 'h-16' : 'h-20'" class="flex justify-between items-center transition-[height] duration-300">
                         
                         <!-- Kiri: DUA LOGO BERDAMPINGAN -->
                         <div class="shrink-0 flex items-center">
                             <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3">
-                            <img src="{{ asset('img/Logo Otban.png') }}" class="block h-[50px] w-auto" alt="Logo Instansi" width="50" height="50" />
+                            <!-- Logo Instansi (Otban) -->
+                            <img src="{{ asset('img/Logo Otban.png') }}"
+                                class="block w-auto drop-shadow-sm transition-all duration-300"
+                                :class="scrolled ? 'h-10' : 'h-[50px]'" alt="Logo Instansi" />
+                            <!-- Garis Pemisah -->
                             <div class="w-px h-8 bg-gray-300"></div>
-                            <img src="{{ asset('img/logo-pelita.png') }}" class="block h-14 w-auto" alt="Logo PELITA" width="186" height="56" />
+                            <!-- Logo Web (PELITA) -->
+                            <img src="{{ asset('img/logo-pelita.png') }}"
+                                class="block w-auto drop-shadow-sm transition-all duration-300"
+                                :class="scrolled ? 'h-11' : 'h-14'" alt="Logo PELITA" />
                             </a>
                         </div>
 
-                        <!-- Kanan: Navigation Links -->
-                        <div class="hidden sm:flex space-x-8 items-center">
-                            
-                            <!-- Menu Beranda -->
-                            <a href="{{ route('admin.dashboard') }}" 
-                               class="px-5 py-2 rounded-full font-bold text-sm transition {{ request()->routeIs('admin.dashboard') ? 'bg-[#eef2ff] text-blue-600' : 'text-gray-500 hover:text-gray-800' }}">
+                                                <!-- Kanan: Navigation Links -->
+                        <div class="hidden sm:flex sm:items-center gap-6 lg:gap-8">
+
+                            <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
                                 Beranda
-                            </a>
-                            
-                            <!-- Menu Approval Cuti -->
-                            <a href="{{ route('admin.approval.index') }}" 
-                               class="px-5 py-2 rounded-full font-bold text-sm transition {{ request()->routeIs('admin.approval*') ? 'bg-[#eef2ff] text-blue-600' : 'text-gray-500 hover:text-gray-800' }}">
+                            </x-nav-link>
+
+                            <x-nav-link :href="route('admin.approval.index')" :active="request()->routeIs('admin.approval*')">
                                 Approval Cuti
-                            </a>
-                            
-                            <!-- Menu Rekap Cuti -->
-                            <a href="{{ route('admin.rekap.index') }}" 
-                               class="px-5 py-2 rounded-full font-bold text-sm transition {{ request()->routeIs('admin.rekap.*') ? 'bg-[#eef2ff] text-blue-600' : 'text-gray-500 hover:text-gray-800' }}">
+                            </x-nav-link>
+
+                            <x-nav-link :href="route('admin.rekap.index')" :active="request()->routeIs('admin.rekap.*')">
                                 Rekap Cuti
-                            </a>
-                            
-                         <!-- Menu Notifikasi (Lonceng + Badge Belum Dibaca) -->
+                            </x-nav-link>
+
                             @php $jumlahNotif = $jumlahNotifBelumDibaca ?? 0; @endphp
-                            <a href="{{ route('admin.notifikasi') }}"
-                               class="group px-5 py-2 rounded-full text-sm transition-all duration-300 flex items-center gap-1.5
-                               {{ request()->routeIs('admin.notifikasi') ? 'bg-[#e5edff] font-bold text-[#2A65F3]' : 'font-semibold text-gray-600 hover:text-[#2A65F3] hover:bg-[#e5edff]/60' }}">
+                            <x-nav-link :href="route('admin.notifikasi')" :active="request()->routeIs('admin.notifikasi')" class="group gap-1.5">
                                 Notifikasi
                                 <span class="relative inline-flex">
-                                    <svg class="w-4 h-4 transition-all duration-300 origin-top group-hover:rotate-12 group-hover:scale-110 {{ request()->routeIs('admin.notifikasi') ? 'text-[#2A65F3]' : 'text-gray-400 group-hover:text-[#2A65F3]' }} {{ $jumlahNotif > 0 ? 'animate-pulse' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-4 h-4 origin-top transition-transform duration-300 group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                                     </svg>
                                     @if($jumlahNotif > 0)
@@ -78,25 +77,21 @@
                                         </span>
                                     @endif
                                 </span>
-                            </a>
-                            
-                            <!-- Menu Profil (Mengarah ke route admin.profile.show) -->
-                            <a href="{{ route('admin.profile.show') }}" class="px-5 py-2 rounded-full font-bold text-sm transition {{ request()->routeIs('admin.profile.*') ? 'bg-[#eef2ff] text-blue-600' : 'text-gray-500 hover:text-gray-800' }}">
+                            </x-nav-link>
+
+                            <x-nav-link :href="route('admin.profile.show')" :active="request()->routeIs('admin.profile.*')">
                                 Profil
-                            </a>
-                            
-                            <!-- Garis Pemisah Menu -->
-                            <div class="w-px h-5 bg-gray-200"></div>
-                            
-                                                        <!-- Logout -->
-                            <form method="POST" action="{{ route('logout') }}" class="inline">
+                            </x-nav-link>
+
+                            <div class="w-px h-5 bg-gray-200 self-center"></div>
+
+                            <form method="POST" action="{{ route('logout') }}" class="flex">
                                 @csrf
-                                <button type="submit" class="text-gray-400 hover:text-red-500 transition px-2">
+                                <button type="submit" class="flex items-center text-gray-400 hover:text-red-500 transition px-2" title="Keluar">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                                 </button>
                             </form>
                         </div>
-
                         <!-- Hamburger Menu (Mobile) -->
                         <div class="-me-2 flex items-center sm:hidden">
                             <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 transition duration-150 ease-in-out">
@@ -147,6 +142,7 @@
                     </div>
                 </div>
             </nav>
+            <div class="h-20" aria-hidden="true"></div>
 
             <!-- Page Heading -->
             @isset($header)

@@ -91,10 +91,6 @@
                     <tbody class="divide-y divide-gray-100">
                         @forelse ($riwayat as $item)
                             @php
-                                $warna = 'bg-yellow-100 text-yellow-800 border-yellow-200';
-                                if ($item->status_group === 'Disetujui') $warna = 'bg-green-100 text-green-800 border-green-200';
-                                if ($item->status_group === 'Ditolak')   $warna = 'bg-red-100 text-red-800 border-red-200';
-                                if ($item->status_group === 'Dibatalkan') $warna = 'bg-gray-100 text-gray-500 border-gray-200';
                                 $mulai   = \Carbon\Carbon::parse($item->tanggal_mulai);
                                 $selesai = \Carbon\Carbon::parse($item->tanggal_selesai);
                             @endphp
@@ -106,10 +102,10 @@
                                 </td>
                                 <td class="px-4 py-3 text-center font-bold text-gray-800">{{ $item->durasi_hari }}</td>
                                 <td class="px-4 py-3">
-                                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full border whitespace-nowrap {{ $warna }}">{{ $item->status_label }}</span>
+                                <x-status-dot :status="$item->status_group">{{ $item->status_label }}</x-status-dot>
                                 </td>
                                 <td class="px-4 py-3 text-right whitespace-nowrap">
-                                    <a href="{{ route('pegawai.detail', $item->id) }}" class="text-blue-600 hover:text-blue-800 font-semibold">Detail →</a>
+                                    <a href="{{ route('pegawai.detail', $item->id) }}" class="text-blue-600 hover:text-blue-800 font-semibold">Detail </a>
                                 </td>
                             </tr>
                         @empty
