@@ -25,9 +25,10 @@
             
             <!-- Navbar Admin -->
             <nav x-data="{ open: false, scrolled: false }"
-                @scroll.window.passive="scrolled = (window.pageYOffset > 20)"
+                x-init="scrolled = window.pageYOffset > 40"
+                @scroll.window.passive="scrolled = scrolled ? (window.pageYOffset > 10) : (window.pageYOffset > 40)"
                 :class="scrolled ? 'shadow-md' : 'shadow-sm'"
-                class="sticky top-0 z-50 border-b border-gray-100 bg-white transition-shadow duration-300">
+                class="fixed inset-x-0 top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur transition-shadow duration-300">
                 
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                    <div :class="scrolled ? 'h-16' : 'h-20'" class="flex justify-between items-center transition-[height] duration-300">
@@ -35,9 +36,16 @@
                         <!-- Kiri: DUA LOGO BERDAMPINGAN -->
                         <div class="shrink-0 flex items-center">
                             <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3">
-                            <img src="{{ asset('img/Logo Otban.png') }}" class="block h-[50px] w-auto" alt="Logo Instansi" width="50" height="50" />
+                            <!-- Logo Instansi (Otban) -->
+                            <img src="{{ asset('img/Logo Otban.png') }}"
+                                class="block w-auto drop-shadow-sm transition-all duration-300"
+                                :class="scrolled ? 'h-10' : 'h-[50px]'" alt="Logo Instansi" />
+                            <!-- Garis Pemisah -->
                             <div class="w-px h-8 bg-gray-300"></div>
-                            <img src="{{ asset('img/logo-pelita.png') }}" class="block h-14 w-auto" alt="Logo PELITA" width="186" height="56" />
+                            <!-- Logo Web (PELITA) -->
+                            <img src="{{ asset('img/logo-pelita.png') }}"
+                                class="block w-auto drop-shadow-sm transition-all duration-300"
+                                :class="scrolled ? 'h-11' : 'h-14'" alt="Logo PELITA" />
                             </a>
                         </div>
 
@@ -134,6 +142,7 @@
                     </div>
                 </div>
             </nav>
+            <div class="h-20" aria-hidden="true"></div>
 
             <!-- Page Heading -->
             @isset($header)

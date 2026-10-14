@@ -5,153 +5,167 @@
         <h1 class="text-white text-3xl font-bold">Informasi & Jatah Cuti</h1>
     </div>
 
+    @php
+        // Tahapan persetujuan. Ubah teks di sini kalau prosedur kantor berubah.
+        $alur = [
+            ['Pegawai Mengajukan', 'Mengisi formulir pengajuan, melampirkan surat pengajuan dan bukti pendukung.'],
+            ['Kepala Seksi', 'Memeriksa dan menyetujui pengajuan di tingkat seksi.'],
+            ['Kepala Bidang', 'Memberikan persetujuan di tingkat bidang.'],
+            ['Verifikasi Admin Kepegawaian', 'Memeriksa kelengkapan berkas dan ketersediaan jatah cuti.'],
+            ['Kepala Sub Bagian & Kepala TU', 'Persetujuan lanjutan di tingkat Tata Usaha.'],
+            ['Kepala Kantor (Keputusan)', 'Keputusan akhir atas pengajuan cuti.'],
+            ['Finalisasi Admin & Terbit Surat', 'Penomoran dan penerbitan surat cuti final.'],
+        ];
+
+        $ringkasanCuti = [
+            ['Cuti Tahunan', '12 hari kerja/tahun', 'Sudah bekerja ≥ 1 tahun terus-menerus.'],
+            ['Cuti Sakit', '1 tahun, dapat diperpanjang 6 bulan', 'Surat keterangan dokter.'],
+            ['Cuti Alasan Penting', '1 bulan', 'Keluarga inti sakit keras/meninggal, menikah, istri melahirkan/caesar, atau musibah bencana/kebakaran.'],
+            ['Cuti Besar', '3 bulan', 'Sudah bekerja ≥ 5 tahun terus-menerus (kecuali ibadah haji pertama kali). Menghanguskan Cuti Tahunan tahun berjalan.'],
+            ['Cuti Melahirkan', '3 bulan', 'Untuk anak ke-1 s/d ke-3. Anak ke-4 dan seterusnya memakai Cuti Besar dengan lama yang sama.'],
+        ];
+    @endphp
+
     <div class="bg-[#F8FAFC] min-h-screen py-10 px-4 sm:px-6 lg:px-24">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
+
             <!-- KOLOM KIRI: Kuota & Statistik -->
             <div class="lg:col-span-1 space-y-6">
-                
-                <!-- Card Jatah Cuti -->
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        Sisa Kuota Cuti Anda
-                    </h3>
-                    
-                    <div class="text-center mb-6">
-                        <span class="text-5xl font-extrabold text-blue-600">{{ $totalJatah }}</span>
-                        <span class="text-gray-500 font-medium ml-1">Hari</span>
+
+                <!-- Jatah Cuti -->
+                <div class="bg-white rounded-lg border border-gray-200 p-6">
+                    <p class="text-sm font-semibold text-gray-500">Total Sisa Kuota Cuti</p>
+                    <div class="mt-2 flex items-baseline gap-2">
+                        <span class="text-5xl font-extrabold tracking-tight text-[#2A65F3]">{{ $totalJatah }}</span>
+                        <span class="text-base font-medium text-gray-500">hari kerja</span>
                     </div>
 
-                                        <div class="space-y-3 text-sm">
-                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                            <span class="text-gray-600">Sisa Tahun Ini ({{ date('Y') }})</span>
-                            <span class="font-bold text-gray-900">{{ $jatahTahunIni }} Hari</span>
+                    <dl class="mt-5 divide-y divide-gray-100 text-sm">
+                        <div class="flex items-center justify-between py-3">
+                            <dt class="text-gray-600">Sisa tahun ini ({{ date('Y') }})</dt>
+                            <dd class="font-semibold text-gray-900">{{ $jatahTahunIni }} hari</dd>
                         </div>
-                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                            <span class="text-gray-600">Sisa Tahun Lalu</span>
-                            <span class="font-bold text-green-600">+ {{ $jatahTahunLalu }} Hari</span>
+                        <div class="flex items-center justify-between py-3">
+                            <dt class="text-gray-600">Sisa tahun lalu</dt>
+                            <dd class="font-semibold text-emerald-600">+ {{ $jatahTahunLalu }} hari</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <!-- Statistik Pengajuan -->
+                <div class="bg-white rounded-lg border border-gray-200 p-6">
+                    <p class="text-sm font-semibold text-gray-500 mb-4">Statistik Pengajuan</p>
+                    <div class="grid grid-cols-3 divide-x divide-gray-100 text-center">
+                        <div class="px-2">
+                            <div class="text-2xl font-bold text-gray-900">{{ $statistik['total_diajukan'] }}</div>
+                            <div class="mt-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">Diajukan</div>
+                        </div>
+                        <div class="px-2">
+                            <div class="text-2xl font-bold text-emerald-600">{{ $statistik['disetujui'] }}</div>
+                            <div class="mt-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">Disetujui</div>
+                        </div>
+                        <div class="px-2">
+                            <div class="text-2xl font-bold text-amber-600">{{ $statistik['menunggu'] }}</div>
+                            <div class="mt-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">Menunggu</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Card Statistik Pengajuan -->
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4">Statistik Pengajuan</h3>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 text-center">
-                            <div class="text-2xl font-bold text-gray-800">{{ $statistik['total_diajukan'] }}</div>
-                            <div class="text-xs font-semibold text-gray-500 uppercase mt-1">Total Diajukan</div>
-                        </div>
-                        <div class="bg-green-50 p-4 rounded-xl border border-green-100 text-center">
-                            <div class="text-2xl font-bold text-green-700">{{ $statistik['disetujui'] }}</div>
-                            <div class="text-xs font-semibold text-green-600 uppercase mt-1">Disetujui</div>
-                        </div>
-                        <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-100 text-center col-span-2">
-                            <div class="text-2xl font-bold text-yellow-700">{{ $statistik['menunggu'] }}</div>
-                            <div class="text-xs font-semibold text-yellow-600 uppercase mt-1">Menunggu Persetujuan</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <a href="{{ route('pengajuan.index') }}" class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 rounded-xl transition shadow-md">
+                <!-- Satu-satunya aksi utama di halaman ini -->
+                <a href="{{ route('pengajuan.index') }}"
+                   class="block w-full rounded-lg bg-[#2A65F3] px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-blue-700">
                     + Ajukan Cuti Sekarang
                 </a>
             </div>
 
-            <!-- KOLOM KANAN: Informasi, Panduan & Alur -->
-            <div class="lg:col-span-2 space-y-6">
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b border-gray-100 pb-4">Panduan & Tata Cara Cuti</h2>
-                    
-                    <div class="space-y-8">
-                        <!-- Alur Pengajuan -->
-                                                <!-- Alur Pengajuan -->
-                        <div>
-                            <h3 class="text-lg font-bold text-blue-600 mb-4 flex items-center gap-2">
-                                <span class="bg-blue-100 text-blue-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
-                                Alur Persetujuan
-                            </h3>
-                            <div class="flex flex-wrap gap-2 items-center text-xs ml-2 md:ml-10">
-                                <div class="bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg font-medium">1. Pegawai Mengajukan</div>
-                                <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                                <div class="bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg font-medium">2. Kepala Seksi</div>
-                                <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                                <div class="bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg font-medium">3. Kepala Bidang</div>
-                                <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                                <div class="bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg font-medium">4. Verifikasi Admin Kepegawaian</div>
-                                <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                                <div class="bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg font-medium">5. Kepala Sub Bagian &amp; Kepala TU</div>
-                                <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                                <div class="bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg font-medium">6. Kepala Kantor (Keputusan)</div>
-                                <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                                <div class="bg-blue-50 border border-blue-200 px-3 py-2 rounded-lg font-bold text-blue-700">7. Finalisasi Admin &amp; Terbit Surat</div>
+            <!-- KOLOM KANAN: Panduan -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg border border-gray-200 p-8">
+                    <h2 class="text-2xl font-bold text-gray-900 pb-6 border-b border-gray-100">Panduan & Tata Cara Cuti</h2>
+
+                    <div class="divide-y divide-gray-100">
+
+                        <!-- 01 Alur Persetujuan -->
+                        <section class="py-8">
+                            <div class="flex items-baseline gap-3">
+                                <span class="text-xs font-bold tracking-widest text-[#2A65F3]">01</span>
+                                <h3 class="text-lg font-bold text-gray-900">Alur Persetujuan</h3>
                             </div>
-                            <p class="text-xs text-gray-400 mt-3 ml-2 md:ml-10">Pejabat struktural (mis. Kepala Seksi, Kepala Bidang) yang mengajukan cuti sendiri otomatis melewati tahap approval jabatannya sendiri, sesuai posisinya di alur ini.</p>
-                        </div>
 
-                                                <!-- Syarat & Ketentuan -->
-                        <div>
-                            <h3 class="text-lg font-bold text-blue-600 mb-3 flex items-center gap-2">
-                                <span class="bg-blue-100 text-blue-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
-                                Syarat & Ketentuan Umum
-                            </h3>
-                            <ul class="list-disc list-inside text-gray-600 space-y-2 ml-2 md:ml-10 leading-relaxed text-sm">
-                                <li><strong>Cuti Tahunan</strong> baru menjadi hak setelah bekerja paling kurang 1 tahun terus-menerus, sebanyak 12 hari kerja per tahun.</li>
-                                <li>Sisa <strong>Cuti Tahunan</strong> tahun lalu yang tidak digunakan dapat dibawa maksimal <strong>6 hari kerja</strong> ke tahun berikutnya (kecuali ada penangguhan resmi oleh Kepala Kantor, maksimal 12 hari).</li>
-                                <li>Setiap pengajuan <strong>Cuti Sakit</strong> di sistem ini wajib melampirkan surat keterangan dokter, sesuai kolom lampiran pada form.</li>
-                                <li><strong>Cuti Karena Alasan Penting</strong> dan <strong>Cuti Melahirkan</strong> tidak mengurangi jatah Cuti Tahunan Anda.</li>
-                                <li><strong>Cuti Besar</strong> menghanguskan hak Cuti Tahunan pada tahun cuti besar tersebut diambil.</li>
-                                <li>Pegawai berstatus PPPK hanya dapat mengajukan Cuti Tahunan, Cuti Sakit, Cuti Melahirkan, dan Cuti Bersama.</li>
+                            <ol class="mt-6">
+                                @foreach($alur as [$judul, $keterangan])
+                                    <li class="relative pl-10 {{ $loop->last ? '' : 'pb-7' }}">
+                                        @unless($loop->last)
+                                            <span class="absolute left-3 top-7 bottom-0 w-px -translate-x-1/2 bg-gray-200" aria-hidden="true"></span>
+                                        @endunless
+                                        <span class="absolute left-0 top-0 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold
+                                            {{ $loop->last ? 'bg-[#2A65F3] text-white' : 'border border-gray-300 bg-white text-gray-600' }}">
+                                            {{ $loop->iteration }}
+                                        </span>
+                                        <p class="text-sm font-semibold leading-6 {{ $loop->last ? 'text-[#2A65F3]' : 'text-gray-900' }}">{{ $judul }}</p>
+                                        <p class="text-sm text-gray-500">{{ $keterangan }}</p>
+                                    </li>
+                                @endforeach
+                            </ol>
+
+                            <p class="mt-6 border-l-2 border-gray-200 pl-4 text-sm text-gray-500">
+                                Pejabat struktural (mis. Kepala Seksi, Kepala Bidang) yang mengajukan cuti sendiri otomatis melewati tahap approval jabatannya sendiri, sesuai posisinya di alur ini.
+                            </p>
+                        </section>
+
+                        <!-- 02 Syarat & Ketentuan -->
+                        <section class="py-8">
+                            <div class="flex items-baseline gap-3">
+                                <span class="text-xs font-bold tracking-widest text-[#2A65F3]">02</span>
+                                <h3 class="text-lg font-bold text-gray-900">Syarat & Ketentuan Umum</h3>
+                            </div>
+
+                            <ul class="mt-5 space-y-3 text-sm leading-relaxed text-gray-600">
+                                @foreach([
+                                    '<strong class="font-semibold text-gray-900">Cuti Tahunan</strong> baru menjadi hak setelah bekerja paling kurang 1 tahun terus-menerus, sebanyak 12 hari kerja per tahun.',
+                                    'Sisa <strong class="font-semibold text-gray-900">Cuti Tahunan</strong> tahun lalu yang tidak digunakan dapat dibawa maksimal <strong class="font-semibold text-gray-900">6 hari kerja</strong> ke tahun berikutnya (kecuali ada penangguhan resmi oleh Kepala Kantor, maksimal 12 hari).',
+                                    'Setiap pengajuan <strong class="font-semibold text-gray-900">Cuti Sakit</strong> di sistem ini wajib melampirkan surat keterangan dokter, sesuai kolom lampiran pada form.',
+                                    '<strong class="font-semibold text-gray-900">Cuti Karena Alasan Penting</strong> dan <strong class="font-semibold text-gray-900">Cuti Melahirkan</strong> tidak mengurangi jatah Cuti Tahunan Anda.',
+                                    '<strong class="font-semibold text-gray-900">Cuti Besar</strong> menghanguskan hak Cuti Tahunan pada tahun cuti besar tersebut diambil.',
+                                    'Pegawai berstatus PPPK hanya dapat mengajukan Cuti Tahunan, Cuti Sakit, Cuti Melahirkan, dan Cuti Bersama.',
+                                ] as $poin)
+                                    <li class="flex gap-3">
+                                        <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#2A65F3]"></span>
+                                        <span>{!! $poin !!}</span>
+                                    </li>
+                                @endforeach
                             </ul>
-                        </div>
+                        </section>
 
-                        <!-- Ringkasan Tiap Jenis Cuti -->
-                        <div>
-                            <h3 class="text-lg font-bold text-blue-600 mb-3 flex items-center gap-2">
-                                <span class="bg-blue-100 text-blue-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">3</span>
-                                Ringkasan Jenis Cuti
-                            </h3>
-                            <div class="overflow-x-auto ml-2 md:ml-10">
-                                <table class="min-w-full text-xs border border-gray-200">
-                                    <thead class="bg-gray-50 text-gray-600 uppercase">
-                                        <tr>
-                                            <th class="px-3 py-2 text-left border border-gray-200">Jenis Cuti</th>
-                                            <th class="px-3 py-2 text-left border border-gray-200">Lama Maksimal</th>
-                                            <th class="px-3 py-2 text-left border border-gray-200">Syarat Utama</th>
+                        <!-- 03 Ringkasan Jenis Cuti -->
+                        <section class="pt-8">
+                            <div class="flex items-baseline gap-3">
+                                <span class="text-xs font-bold tracking-widest text-[#2A65F3]">03</span>
+                                <h3 class="text-lg font-bold text-gray-900">Ringkasan Jenis Cuti</h3>
+                            </div>
+
+                            <div class="mt-5 overflow-x-auto">
+                                <table class="min-w-full text-sm">
+                                    <thead>
+                                        <tr class="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
+                                            <th class="py-3 pr-4 font-semibold">Jenis Cuti</th>
+                                            <th class="py-3 pr-4 font-semibold">Lama Maksimal</th>
+                                            <th class="py-3 font-semibold">Syarat Utama</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="text-gray-700">
-                                        <tr>
-                                            <td class="px-3 py-2 border border-gray-200 font-semibold">Cuti Tahunan</td>
-                                            <td class="px-3 py-2 border border-gray-200">12 hari kerja/tahun</td>
-                                            <td class="px-3 py-2 border border-gray-200">Sudah bekerja ≥ 1 tahun terus-menerus.</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="px-3 py-2 border border-gray-200 font-semibold">Cuti Sakit</td>
-                                            <td class="px-3 py-2 border border-gray-200">1 tahun, dapat diperpanjang 6 bulan</td>
-                                            <td class="px-3 py-2 border border-gray-200">Surat keterangan dokter.</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="px-3 py-2 border border-gray-200 font-semibold">Cuti Alasan Penting</td>
-                                            <td class="px-3 py-2 border border-gray-200">1 bulan</td>
-                                            <td class="px-3 py-2 border border-gray-200">Keluarga inti sakit keras/meninggal, menikah, istri melahirkan/caesar, atau musibah bencana/kebakaran.</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="px-3 py-2 border border-gray-200 font-semibold">Cuti Besar</td>
-                                            <td class="px-3 py-2 border border-gray-200">3 bulan</td>
-                                            <td class="px-3 py-2 border border-gray-200">Sudah bekerja ≥ 5 tahun terus-menerus (kecuali ibadah haji pertama kali). Menghanguskan Cuti Tahunan tahun berjalan.</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="px-3 py-2 border border-gray-200 font-semibold">Cuti Melahirkan</td>
-                                            <td class="px-3 py-2 border border-gray-200">3 bulan</td>
-                                            <td class="px-3 py-2 border border-gray-200">Untuk anak ke-1 s/d ke-3. Anak ke-4 dan seterusnya memakai Cuti Besar dengan lama yang sama.</td>
-                                        </tr>
+                                    <tbody class="divide-y divide-gray-100 text-gray-700">
+                                        @foreach($ringkasanCuti as [$jenis, $lama, $syarat])
+                                            <tr>
+                                                <td class="py-3 pr-4 align-top font-semibold text-gray-900 whitespace-nowrap">{{ $jenis }}</td>
+                                                <td class="py-3 pr-4 align-top">{{ $lama }}</td>
+                                                <td class="py-3 align-top text-gray-600">{{ $syarat }}</td>
+                                            </tr>
+                                        @endforeach
                                     </tbody>
                                 </table>
                             </div>
-                            <p class="text-xs text-gray-400 mt-2 ml-2 md:ml-10">Ringkasan berdasarkan Peraturan BKN Nomor 7 Tahun 2021. Hubungi bagian kepegawaian untuk kasus khusus.</p>
-                        </div>
+                            <p class="mt-4 text-xs text-gray-400">Ringkasan berdasarkan Peraturan BKN Nomor 7 Tahun 2021. Hubungi bagian kepegawaian untuk kasus khusus.</p>
+                        </section>
                     </div>
                 </div>
             </div>

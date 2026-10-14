@@ -105,7 +105,7 @@
                                 <x-status-dot :status="$item->status_group">{{ $item->status_label }}</x-status-dot>
                                 </td>
                                 <td class="px-4 py-3 text-right whitespace-nowrap">
-                                    <a href="{{ route('pegawai.detail', $item->id) }}" class="text-blue-600 hover:text-blue-800 font-semibold">Detail →</a>
+                                    <a href="{{ route('pegawai.detail', $item->id) }}" class="text-blue-600 hover:text-blue-800 font-semibold">Detail </a>
                                 </td>
                             </tr>
                         @empty
