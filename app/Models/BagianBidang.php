@@ -14,7 +14,7 @@ class BagianBidang extends Model
     //Relasi 1 Bagian/Bidang memiliki banyak Seksi
     public function subBagianSeksis()
     {
-        return $this->hasMany(subBagianSeksi::class, 'bagian_bidang_id');
+        return $this->hasMany(SubBagianSeksi::class, 'bagian_bidang_id');
     }
 
     //Relasi 2 Bagian/Bidang memiliki banyak Pegawai

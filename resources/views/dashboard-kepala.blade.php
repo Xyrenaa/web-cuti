@@ -40,6 +40,25 @@
             .trend-col.is-go .trend-bar { animation-duration:.01ms; }
             .trend-col b { transition:none; }
         }
+        /* --- Dropdown rincian pegawai di bawah batang tren (klik batang untuk membuka) --- */
+        .trend-col.is-open .trend-bar { background:#1E4FCC; }
+        .trend-col.is-open span { color:#1E4FCC; font-weight:700; text-decoration:underline; text-underline-offset:3px; }
+        .trend-drop { display:grid; grid-template-rows:0fr; transition:grid-template-rows .3s ease, margin-top .3s ease; margin-top:0; }
+        .trend-drop.is-open { grid-template-rows:1fr; margin-top:14px; }
+        .trend-drop-inner { overflow:hidden; min-height:0; }
+        .trend-drop-card { position:relative; margin-top:8px; background:#F4F7FF; border:1px solid #D5E1FF; border-radius:14px; padding:14px 16px; }
+        .trend-drop-card::before { content:''; position:absolute; top:-7px; left:var(--caret-x, 50%); width:12px; height:12px; background:#F4F7FF; border-left:1px solid #D5E1FF; border-top:1px solid #D5E1FF; transform:translateX(-50%) rotate(45deg); transition:left .25s ease; }
+        .trend-list { max-height:260px; overflow-y:auto; list-style:none; margin:0; padding:0; }
+        .trend-list li { display:flex; align-items:center; gap:10px; padding:9px 2px; border-top:1px solid #E1EAFF; }
+        .trend-list li:first-child { border-top:0; }
+        .trend-avatar { width:32px; height:32px; border-radius:9999px; background:#DCE7FF; color:#1E4FCC; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .trend-info { flex:1; min-width:0; }
+        .trend-info p { margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .trend-tutup { width:28px; height:28px; border-radius:8px; border:1px solid #D5E1FF; background:#fff; color:#6b7280; font-size:18px; line-height:1; cursor:pointer; flex-shrink:0; }
+        .trend-tutup:hover { color:#1E4FCC; border-color:#2A65F3; }
+        @media (prefers-reduced-motion: reduce) {
+            .trend-drop, .trend-drop-card::before { transition:none; }
+        }
 
         /* ===== Kartu Risiko Seksi/Sub-Bagian (meteran busur) ===== */
         .gauge-chip { opacity:0; transform:translateY(6px); animation:gaugeChipIn .35s ease forwards; }
@@ -173,13 +192,14 @@
                         <div data-trend data-bulan-ini="{{ $bulanIni }}" data-puncak="{{ $puncakTren }}">
                             <p class="text-sm text-gray-500">
                                 Puncak cuti tahun ini di bulan <span class="font-semibold text-gray-700">{{ $namaBulanPenuh[$puncakTren] }}</span>
-                                ({{ $trenBulanan[$puncakTren] }} cuti disetujui). Arahkan kursor atau ketuk batang untuk melihat angkanya.
+                                ({{ $trenBulanan[$puncakTren] }} cuti disetujui). Arahkan kursor untuk melihat angkanya, <span class="font-semibold text-[#2A65F3]">klik batang</span> untuk melihat nama pegawai yang cuti.
                             </p>
                             <p class="trend-readout text-lg text-gray-800 min-h-[28px] mt-2" aria-live="polite"></p>
 
                             <div class="trend-bars">
                                 @foreach($trenBulanan as $i => $jumlah)
                                     <div class="trend-col {{ ($i + 1) === $bulanIni ? 'is-now' : '' }}" tabindex="0"
+                                         role="button" aria-expanded="false" aria-controls="trend-panel-{{ $i }}"
                                          data-i="{{ $i }}" data-nama="{{ $namaBulanPenuh[$i] }}" data-jumlah="{{ $jumlah }}"
                                          style="--i: {{ $i }}"
                                          aria-label="{{ $namaBulanPenuh[$i] }}: {{ $jumlah }} cuti disetujui">
@@ -190,9 +210,45 @@
                                 @endforeach
                             </div>
 
-                            <button type="button" data-trend-replay
-                                    class="mt-3 px-3 py-2 text-sm font-semibold text-[#2A65F3] border border-gray-200 rounded-lg hover:bg-[#F4F7FF] transition-colors">
-                            </button>
+                            {{-- DROPDOWN: nama pegawai yang cuti pada bulan yang batangnya diklik --}}
+                            <div class="trend-drop" data-trend-drop>
+                                <div class="trend-drop-inner">
+                                    <div class="trend-drop-card">
+                                        @foreach($detailTren as $i => $rows)
+                                            <section id="trend-panel-{{ $i }}" data-panel="{{ $i }}" hidden
+                                                     aria-label="Pegawai yang cuti pada {{ $namaBulanPenuh[$i] }}">
+                                                <div class="flex items-start justify-between gap-3 mb-2">
+                                                    <div>
+                                                        <p class="text-sm font-semibold text-gray-800">{{ $namaBulanPenuh[$i] }} {{ now()->year }}</p>
+                                                        <p class="text-xs text-gray-500">{{ count($rows) }} cuti disetujui</p>
+                                                    </div>
+                                                    <button type="button" class="trend-tutup" data-trend-tutup aria-label="Tutup daftar">&times;</button>
+                                                </div>
+
+                                                @if(count($rows))
+                                                    <ul class="trend-list">
+                                                        @foreach($rows as $r)
+                                                            <li>
+                                                                <span class="trend-avatar" aria-hidden="true">{{ mb_strtoupper(mb_substr($r['nama'], 0, 1)) }}</span>
+                                                                <div class="trend-info">
+                                                                    <p class="text-sm font-medium text-gray-800">{{ $r['nama'] }}</p>
+                                                                    <p class="text-xs text-gray-500">@if($levelKepala === 'kantor' && $r['unit']){{ $r['unit'] }} &middot; @endif{{ $r['jenis'] }}</p>
+                                                                </div>
+                                                                <div class="text-right shrink-0">
+                                                                    <p class="text-xs font-medium text-gray-700">{{ $r['mulai'] }}@if($r['mulai'] !== $r['selesai']) &ndash; {{ $r['selesai'] }}@endif</p>
+                                                                    <p class="text-xs text-gray-400">{{ $r['hari'] }} hari</p>
+                                                                </div>
+                                                            </li>
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <p class="text-sm text-gray-500 py-3">Tidak ada cuti yang disetujui pada bulan ini.</p>
+                                                @endif
+                                            </section>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         @else
                         <div class="h-48 flex items-center justify-center text-sm text-gray-500 text-center">
@@ -517,7 +573,8 @@
                     readout.innerHTML = `${c.dataset.nama}: <b>${c.dataset.jumlah}</b> cuti disetujui${paling}`;
                 };
 
-                // Batang naik satu per satu, lalu penanda menyapu dari Januari sampai bulan ini
+                // Animasi pembuka, hanya SEKALI per muat halaman (ulangi dengan refresh): batang naik satu per satu,
+                // lalu penanda menyapu dari Januari sampai bulan ini
                 const putar = () => {
                     clearTimeout(timer);
                     cols.forEach((c) => { c.classList.remove('is-go'); void c.offsetWidth; c.classList.add('is-go'); });
@@ -529,13 +586,53 @@
                     timer = setTimeout(langkah, 500);
                 };
 
+                // --- Dropdown rincian pegawai: klik batang = buka, klik lagi / tombol x / Esc = tutup ---
+                const drop = w.querySelector('[data-trend-drop]');
+                const kartu = drop.querySelector('.trend-drop-card');
+                const panels = [...drop.querySelectorAll('[data-panel]')];
+                const kurangGerak = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                let terbuka = -1;
+                drop.inert = true; // saat tertutup: tidak bisa difokus & tidak dibaca pembaca layar
+
+                const posisiPanah = () => {
+                    if (terbuka < 0) return;
+                    const cb = cols[terbuka].getBoundingClientRect();
+                    const kb = kartu.getBoundingClientRect();
+                    kartu.style.setProperty('--caret-x', (cb.left + cb.width / 2 - kb.left) + 'px');
+                };
+                const tutup = () => {
+                    terbuka = -1;
+                    drop.classList.remove('is-open');
+                    drop.inert = true;
+                    cols.forEach((c) => { c.classList.remove('is-open'); c.setAttribute('aria-expanded', 'false'); });
+                };
+                const buka = (i) => {
+                    terbuka = i;
+                    panels.forEach((p) => { p.hidden = parseInt(p.dataset.panel, 10) !== i; });
+                    cols.forEach((c, j) => { c.classList.toggle('is-open', j === i); c.setAttribute('aria-expanded', j === i ? 'true' : 'false'); });
+                    drop.inert = false;
+                    drop.classList.add('is-open');
+                    posisiPanah();
+                    requestAnimationFrame(() => kartu.scrollIntoView({ block: 'nearest', behavior: kurangGerak ? 'auto' : 'smooth' }));
+                };
+                window.addEventListener('resize', posisiPanah);
+                drop.querySelectorAll('[data-trend-tutup]').forEach((b) => b.addEventListener('click', () => {
+                    const c = cols[terbuka]; tutup(); if (c) c.focus();
+                }));
+                w.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && terbuka >= 0) { const c = cols[terbuka]; tutup(); c.focus(); }
+                });
+
                 cols.forEach((c) => {
-                    const f = () => { clearTimeout(timer); pilih(parseInt(c.dataset.i, 10)); };
+                    const i = parseInt(c.dataset.i, 10);
+                    const f = () => { clearTimeout(timer); pilih(i); };
                     c.addEventListener('pointerenter', f);
                     c.addEventListener('focus', f);
-                    c.addEventListener('click', f);
+                    c.addEventListener('click', () => { f(); terbuka === i ? tutup() : buka(i); });
+                    c.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); c.click(); }
+                    });
                 });
-                w.querySelector('[data-trend-replay]').addEventListener('click', putar);
 
                 pilih(bulanIni);
                 if ('IntersectionObserver' in window) {

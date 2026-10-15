@@ -134,6 +134,32 @@ class DashboardKepalaController extends Controller
         $trenBulanan = [];
         for ($i = 1; $i <= 12; $i++) { $trenBulanan[] = $trenBulananData[$i] ?? 0; }
 
+        // RINCIAN PER BULAN: nama pegawai di balik tiap batang tren (dibuka lewat klik batang).
+        // Filter SAMA PERSIS dengan hitungan di atas (tahun ini, step disetujui, hanya bawahan
+        // si kepala), jadi jumlah baris tiap bulan selalu sama dengan angka di batangnya.
+        // Indeks 0 = Januari ... 11 = Desember. Alasan cuti sengaja TIDAK ikut dimuat.
+        $detailTren = array_fill(0, 12, []);
+        PengajuanCuti::with(['user:id,name,bagian_bidang_id', 'user.bagianBidang:id,nama', 'jenisCuti:id,nama_cuti'])
+            ->whereYear('tanggal_mulai', $now->year)
+            ->where('approval_step', $this->stepDisetujui)
+            ->whereIn('user_id', $bawahanIds) // FILTER BAWAHAN
+            ->orderBy('tanggal_mulai')
+            ->orderBy('id')
+            ->get(['id', 'user_id', 'jenis_cuti_id', 'tanggal_mulai', 'tanggal_selesai', 'durasi_hari'])
+            ->each(function ($p) use (&$detailTren) {
+                $mulai   = Carbon::parse($p->tanggal_mulai);
+                $selesai = Carbon::parse($p->tanggal_selesai);
+
+                $detailTren[$mulai->month - 1][] = [
+                    'nama'    => $p->user->name ?? '(akun dihapus)',
+                    'unit'    => $p->user->bagianBidang->nama ?? null,
+                    'jenis'   => $p->jenisCuti->nama_cuti ?? 'Cuti',
+                    'mulai'   => $mulai->format('d/m/Y'),
+                    'selesai' => $selesai->format('d/m/Y'),
+                    'hari'    => (int) $p->durasi_hari,
+                ];
+            });
+
         // ==========================================
         // 4. RISIKO KEKOSONGAN — bentuk & cakupan data beda per level jabatan
         // ==========================================
@@ -266,7 +292,7 @@ class DashboardKepalaController extends Controller
 
         return view('dashboard-kepala', compact(
             'countMenunggu', 'countDisetujui', 'countDitolak', 'totalPegawai',
-            'menungguPerDivisi', 'trenBulanan', 'risikoDivisi', 'risikoRingkas', 'levelKepala', 'pengajuanTerbaru'
+            'menungguPerDivisi', 'trenBulanan', 'detailTren', 'risikoDivisi', 'risikoRingkas', 'levelKepala', 'pengajuanTerbaru'
         ));
     }
 }
