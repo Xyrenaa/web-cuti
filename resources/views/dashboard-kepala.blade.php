@@ -25,13 +25,18 @@
             transition: opacity .25s ease, transform .25s ease;
         }
         /* ===== Grafik Tren Cuti Bulanan (batang interaktif) ===== */
-        .trend-bars { display:flex; align-items:flex-end; gap:6px; height:200px; margin-top:8px; }
-        .trend-col { flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; height:100%; gap:4px; font-size:13px; color:#6b7280; cursor:pointer; border-radius:8px; }
+        /* Area batang MELAR mengikuti tinggi kartu (kartu kiri & kanan satu baris grid, tingginya disamakan),
+           jadi batang selalu pas mengisi kotak di semua role: Kepala Seksi/Sub-Bagian, Bidang/TU, maupun Kepala Kantor.
+           Tinggi batang dihitung sebagai persen (--p) dari area, bukan piksel tetap. */
+        .trend-wrap { display:flex; flex-direction:column; flex:1 1 auto; min-height:0; }
+        .trend-bars { display:flex; align-items:stretch; gap:6px; flex:1 1 auto; min-height:200px; margin-top:8px; }
+        .trend-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:13px; color:#6b7280; cursor:pointer; border-radius:8px; }
+        .trend-plot { position:relative; flex:1 1 0; width:100%; min-height:0; margin-top:22px; } /* 22px = ruang angka di atas batang tertinggi */
         .trend-col:focus-visible { outline:3px solid #2A65F3; outline-offset:2px; }
         .trend-col.is-now { color:#1f2937; font-weight:700; }
-        .trend-col b { color:#1f2937; font-size:14px; opacity:0; transition:opacity .4s ease; }
+        .trend-col b { position:absolute; left:0; right:0; bottom:calc(var(--p) * 1% + 6px); text-align:center; color:#1f2937; font-size:14px; opacity:0; transition:opacity .4s ease; }
         .trend-col.is-go b { opacity:1; transition-delay:calc(var(--i) * 50ms + .5s); }
-        .trend-bar { width:100%; background:#BFD3FF; border-radius:6px 6px 0 0; height:var(--h); min-height:3px; transform:scaleY(0); transform-origin:bottom; transition:background-color .2s ease, box-shadow .2s ease; }
+        .trend-bar { position:absolute; left:0; right:0; bottom:0; background:#BFD3FF; border-radius:6px 6px 0 0; height:calc(var(--p) * 1%); min-height:3px; transform:scaleY(0); transform-origin:bottom; transition:background-color .2s ease, box-shadow .2s ease; }
         .trend-col.is-go .trend-bar { animation:trendGrow .7s cubic-bezier(.16,1,.3,1) forwards; animation-delay:calc(var(--i) * 50ms); }
         .trend-col:hover .trend-bar { background:#1E4FCC; }
         .trend-col.is-on .trend-bar { background:#2A65F3; box-shadow:0 -8px 18px -8px rgba(42,101,243,.65); }
@@ -175,9 +180,9 @@
             <!-- SECTION 2: EXECUTIVE ANALYTICS -->
             <div class="mb-8">
                 <h2 class="reveal text-lg font-semibold text-gray-800 mb-4" style="animation-delay: .14s">Analisis Strategis & Tren</h2>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" data-trend-grid>
                     
-                    <div class="reveal card-lift bg-white p-6 rounded-2xl shadow-sm border border-gray-200" style="animation-delay: .18s">
+                    <div class="reveal card-lift bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col" style="animation-delay: .18s">
                         <h3 class="text-md font-medium text-gray-700 mb-2">Tren Pengajuan Cuti Bulanan</h3>
                         @php
                             $namaBulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
@@ -189,7 +194,7 @@
                         @endphp
 
                         @if($adaDataTren)
-                        <div data-trend data-bulan-ini="{{ $bulanIni }}" data-puncak="{{ $puncakTren }}">
+                        <div class="trend-wrap" data-trend data-bulan-ini="{{ $bulanIni }}" data-puncak="{{ $puncakTren }}">
                             <p class="text-sm text-gray-500">
                                 Puncak cuti tahun ini di bulan <span class="font-semibold text-gray-700">{{ $namaBulanPenuh[$puncakTren] }}</span>
                                 ({{ $trenBulanan[$puncakTren] }} cuti disetujui). Arahkan kursor untuk melihat angkanya, <span class="font-semibold text-[#2A65F3]">klik batang</span> untuk melihat nama pegawai yang cuti.
@@ -201,10 +206,12 @@
                                     <div class="trend-col {{ ($i + 1) === $bulanIni ? 'is-now' : '' }}" tabindex="0"
                                          role="button" aria-expanded="false" aria-controls="trend-panel-{{ $i }}"
                                          data-i="{{ $i }}" data-nama="{{ $namaBulanPenuh[$i] }}" data-jumlah="{{ $jumlah }}"
-                                         style="--i: {{ $i }}"
+                                         style="--i: {{ $i }}; --p: {{ round($jumlah / $maxTren * 100) }}"
                                          aria-label="{{ $namaBulanPenuh[$i] }}: {{ $jumlah }} cuti disetujui">
-                                        <b>{{ $jumlah }}</b>
-                                        <div class="trend-bar" style="--h: {{ round($jumlah / $maxTren * 130) }}px"></div>
+                                        <div class="trend-plot">
+                                            <b>{{ $jumlah }}</b>
+                                            <div class="trend-bar"></div>
+                                        </div>
                                         <span>{{ $namaBulan[$i] }}</span>
                                     </div>
                                 @endforeach
@@ -562,6 +569,10 @@
             document.querySelectorAll('[data-trend]').forEach((w) => {
                 const cols = [...w.querySelectorAll('.trend-col')];
                 const readout = w.querySelector('.trend-readout');
+                const bars = w.querySelector('.trend-bars');
+                // Kartu lain di baris grid yang sama (Risiko Kekosongan)
+                const grid = w.closest('[data-trend-grid]');
+                const kartuLain = grid ? [...grid.children].filter((el) => !el.contains(w)) : [];
                 const bulanIni = parseInt(w.dataset.bulanIni, 10) - 1;
                 const puncak = parseInt(w.dataset.puncak, 10);
                 let timer;
@@ -600,13 +611,33 @@
                     const kb = kartu.getBoundingClientRect();
                     kartu.style.setProperty('--caret-x', (cb.left + cb.width / 2 - kb.left) + 'px');
                 };
+                // Selama dropdown terbuka, tinggi area batang DAN kartu sebelahnya dikunci. Tanpa ini, grid
+                // menyamakan tinggi kedua kartu, sehingga Risiko Kekosongan ikut memanjang (ruang kosong
+                // besar) dan batang ikut mengecil saat kartu tren bertambah tinggi oleh daftar pegawai.
+                let timerLepas;
+                const kunciTinggi = () => {
+                    clearTimeout(timerLepas);
+                    if (bars.style.minHeight) return; // sudah terkunci (mis. ganti bulan saat dropdown terbuka)
+                    bars.style.minHeight = bars.offsetHeight + 'px';
+                    kartuLain.forEach((el) => { el.style.height = el.offsetHeight + 'px'; el.style.alignSelf = 'flex-start'; });
+                };
+                const lepasTinggi = () => {
+                    clearTimeout(timerLepas);
+                    // tunggu animasi tutup dropdown (.3s) selesai supaya tidak ada lompatan ukuran
+                    timerLepas = setTimeout(() => {
+                        bars.style.minHeight = '';
+                        kartuLain.forEach((el) => { el.style.height = ''; el.style.alignSelf = ''; });
+                    }, 350);
+                };
                 const tutup = () => {
+                    lepasTinggi();
                     terbuka = -1;
                     drop.classList.remove('is-open');
                     drop.inert = true;
                     cols.forEach((c) => { c.classList.remove('is-open'); c.setAttribute('aria-expanded', 'false'); });
                 };
                 const buka = (i) => {
+                    kunciTinggi();
                     terbuka = i;
                     panels.forEach((p) => { p.hidden = parseInt(p.dataset.panel, 10) !== i; });
                     cols.forEach((c, j) => { c.classList.toggle('is-open', j === i); c.setAttribute('aria-expanded', j === i ? 'true' : 'false'); });
