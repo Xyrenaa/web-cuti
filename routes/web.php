@@ -11,6 +11,7 @@ use App\Models\SubBagianSeksi;
 use App\Http\Controllers\DashboardKepalaController;
 use App\Http\Controllers\MigrasiDataController;
 use App\Http\Controllers\SuperadminPlhController;
+use App\Http\Controllers\SuperadminAturanCutiController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -124,6 +125,9 @@ Route::middleware(['auth', 'verified', 'role:Superadmin'])->prefix('superadmin')
     Route::get('/plh', [SuperadminPlhController::class, 'index'])->name('plh.index');
     Route::get('/plh/{id}/tukar', [SuperadminPlhController::class, 'tukarForm'])->whereNumber('id')->name('plh.tukar.form');
     Route::post('/plh/{id}/tukar', [SuperadminPlhController::class, 'tukar'])->whereNumber('id')->name('plh.tukar');
+    // Aturan cuti (jatah dasar & batas sisa dibawa)
+    Route::get('/aturan-cuti', [SuperadminAturanCutiController::class, 'index'])->name('aturan-cuti.index');
+    Route::put('/aturan-cuti', [SuperadminAturanCutiController::class, 'update'])->name('aturan-cuti.update');
 });
 
 // ==========================================

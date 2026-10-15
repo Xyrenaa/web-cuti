@@ -149,8 +149,20 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Sisa tahun lalu yang dibawa</label>
-                            <input type="number" name="saldo_tahun_lalu" min="0" max="12" required value="{{ $user->saldo_tahun_lalu }}" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <p class="text-xs text-gray-500 mt-1">Normal maksimal 6. Isi sampai 12 hanya kalau ada SK penangguhan cuti dari PPK.</p>
+ @php
+    $batasSisa  = \App\Services\AturanCuti::batasSisaDibawa();
+    $maksIsian  = \App\Services\AturanCuti::maksIsianSaldoLalu();
+@endphp
+<input type="number" name="saldo_tahun_lalu" min="0" max="{{ $maksIsian }}" required value="{{ $user->saldo_tahun_lalu }}" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500">
+<p class="text-xs text-gray-500 mt-1">
+    @if($batasSisa === null)
+        Aturan saat ini: sisa cuti dibawa tanpa batas.
+    @elseif($maksIsian > $batasSisa)
+        Normal maksimal {{ $batasSisa }}. Isi sampai {{ $maksIsian }} hanya kalau ada SK penangguhan cuti dari PPK.
+    @else
+        Normal maksimal {{ $batasSisa }}.
+    @endif
+</p>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Penyesuaian pemakaian (hari, boleh negatif)</label>

@@ -63,7 +63,7 @@
                                 <th class="px-6 py-4">NIP</th>
                                 <th class="px-6 py-4 text-center">Jatah {{ $tahunDitutup }}</th>
                                 <th class="px-6 py-4 text-center">Terpakai {{ $tahunDitutup }}</th>
-                                <th class="px-6 py-4 text-center">Sisa Dibawa (maks 6)</th>
+                                <th class="px-6 py-4 text-center">Sisa Dibawa ({{ \App\Services\AturanCuti::teksBatasSingkat() }})</th>
                                 <th class="px-6 py-4 text-center">Jatah Baru {{ $tahunBaru }}</th>
                             </tr>
                         </thead>

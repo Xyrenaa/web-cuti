@@ -6,10 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class TutupTahunLog extends Model
 {
-    protected $fillable = ['tahun_ditutup', 'jumlah_pegawai', 'dilakukan_oleh'];
+    protected $fillable = ['tahun_ditutup', 'jumlah_pegawai', 'aturan', 'dilakukan_oleh'];
 
-    public function admin()
+    protected function casts(): array
     {
-        return $this->belongsTo(User::class, 'dilakukan_oleh');
+        return ['aturan' => 'array'];
     }
 }

@@ -28,7 +28,7 @@ class JatahCutiSheetImport implements ToModel, WithHeadingRow, WithBatchInserts,
         $sisaLalu  = max(0, $hitung25);
         $utangLalu = max(0, -$hitung25);
 
-        $jatahIni = (int) round((float) ($row['asli_sisa_tahun_2026'] ?? 12));
+        $jatahIni = (int) round((float) ($row['asli_sisa_tahun_2026'] ?? \App\Services\AturanCuti::jatahDasar()));
         $ctSheet  = (int) round((float) ($row['total_ct_tahun_2026'] ?? 0));
 
         $tercatat = (int) PengajuanCuti::where('user_id', $user->id)

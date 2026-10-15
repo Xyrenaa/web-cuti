@@ -18,7 +18,7 @@
         ];
 
         $ringkasanCuti = [
-            ['Cuti Tahunan', '12 hari kerja/tahun', 'Sudah bekerja ≥ 1 tahun terus-menerus.'],
+            ['Cuti Tahunan', \App\Services\AturanCuti::jatahDasar() . ' hari kerja/tahun', 'Sudah bekerja ≥ 1 tahun terus-menerus.'],
             ['Cuti Sakit', '1 tahun, dapat diperpanjang 6 bulan', 'Surat keterangan dokter.'],
             ['Cuti Alasan Penting', '1 bulan', 'Keluarga inti sakit keras/meninggal, menikah, istri melahirkan/caesar, atau musibah bencana/kebakaran.'],
             ['Cuti Besar', '3 bulan', 'Sudah bekerja ≥ 5 tahun terus-menerus (kecuali ibadah haji pertama kali). Menghanguskan Cuti Tahunan tahun berjalan.'],
@@ -122,8 +122,8 @@
 
                             <ul class="mt-5 space-y-3 text-sm leading-relaxed text-gray-600">
                                 @foreach([
-                                    '<strong class="font-semibold text-gray-900">Cuti Tahunan</strong> baru menjadi hak setelah bekerja paling kurang 1 tahun terus-menerus, sebanyak 12 hari kerja per tahun.',
-                                    'Sisa <strong class="font-semibold text-gray-900">Cuti Tahunan</strong> tahun lalu yang tidak digunakan dapat dibawa maksimal <strong class="font-semibold text-gray-900">6 hari kerja</strong> ke tahun berikutnya (kecuali ada penangguhan resmi oleh Kepala Kantor, maksimal 12 hari).',
+                                    '<strong class="font-semibold text-gray-900">Cuti Tahunan</strong> baru menjadi hak setelah bekerja paling kurang 1 tahun terus-menerus, sebanyak ' . \App\Services\AturanCuti::jatahDasar() . ' hari kerja per tahun.',
+                                    'Sisa <strong class="font-semibold text-gray-900">Cuti Tahunan</strong> tahun lalu yang tidak digunakan dapat dibawa <strong class="font-semibold text-gray-900">' . \App\Services\AturanCuti::teksBatasSisa() . '</strong> ke tahun berikutnya (kecuali ada penangguhan resmi oleh Kepala Kantor).',
                                     'Setiap pengajuan <strong class="font-semibold text-gray-900">Cuti Sakit</strong> di sistem ini wajib melampirkan surat keterangan dokter, sesuai kolom lampiran pada form.',
                                     '<strong class="font-semibold text-gray-900">Cuti Karena Alasan Penting</strong> dan <strong class="font-semibold text-gray-900">Cuti Melahirkan</strong> tidak mengurangi jatah Cuti Tahunan Anda.',
                                     '<strong class="font-semibold text-gray-900">Cuti Besar</strong> menghanguskan hak Cuti Tahunan pada tahun cuti besar tersebut diambil.',

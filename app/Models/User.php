@@ -119,7 +119,7 @@ class User extends Authenticatable
     public static function saldoDari(self $user, int $terpakaiTercatat, bool $cutiBesar = false): array
     {
         $saldoLalu = (int) $user->saldo_tahun_lalu;
-        $jatah     = (int) ($user->jatah_cuti ?? 12);
+        $jatah = (int) ($user->jatah_cuti ?? \App\Services\AturanCuti::jatahDasar());
 
         if ($cutiBesar) {
             $jatah = min($jatah, $saldoLalu);

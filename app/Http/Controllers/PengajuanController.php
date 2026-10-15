@@ -1016,7 +1016,8 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
                 $query->orderByRaw('COALESCE(metrik_terpakai_tahun, 0) ' . $sortDir);
                 break;
             case 'sisa_jatah':
-                $query->orderByRaw('(CASE WHEN punya_cuti_besar = 1 THEN LEAST(COALESCE(jatah_cuti, 12), saldo_tahun_lalu) ELSE COALESCE(jatah_cuti, 12) END - COALESCE(metrik_terpakai_tahun, 0) - COALESCE(koreksi_terpakai, 0)) ' . $sortDir);
+                $dasar = (int) \App\Services\AturanCuti::jatahDasar();
+                $query->orderByRaw("(CASE WHEN punya_cuti_besar = 1 THEN LEAST(COALESCE(jatah_cuti, {$dasar}), saldo_tahun_lalu) ELSE COALESCE(jatah_cuti, {$dasar}) END - COALESCE(metrik_terpakai_tahun, 0) - COALESCE(koreksi_terpakai, 0)) " . $sortDir);
                 break;
             case 'nama':
             default:
@@ -1157,7 +1158,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
     {
         $data = $request->validate([
             'jatah_cuti'       => 'required|integer|min:0|max:365',
-            'saldo_tahun_lalu' => 'required|integer|min:0|max:12',
+            'saldo_tahun_lalu' => 'required|integer|min:0|max:' . \App\Services\AturanCuti::maksIsianSaldoLalu(),
             'koreksi_terpakai' => 'required|integer|min:-60|max:60',
             'alasan'           => 'required|string|max:255',
         ], ['alasan.required' => 'Alasan koreksi wajib diisi.']);
@@ -1200,7 +1201,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
             ->map(function ($user) {
                 $s          = \App\Models\User::saldoDari($user, (int) ($user->terpakai_tahun_ini ?? 0), (bool) $user->punya_cuti_besar);
                 $sisaMentah = max(0, $s['total_sisa']);
-                $sisaDibawa = min(6, $sisaMentah);
+                $sisaDibawa = \App\Services\AturanCuti::sisaYangDibawa($sisaMentah);
 
                 return (object) [
                     'id'             => $user->id,
@@ -1210,7 +1211,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
                     'terpakai'       => $s['terpakai'],
                     'sisa_mentah'    => $sisaMentah,
                     'sisa_dibawa'    => $sisaDibawa,
-                    'jatah_baru'     => $sisaDibawa + 12,
+                    'jatah_baru'     => $sisaDibawa + \App\Services\AturanCuti::jatahDasar(),
                 ];
             });
     }
@@ -1262,6 +1263,7 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
             \App\Models\TutupTahunLog::create([
                 'tahun_ditutup'  => $tahunDitutup,
                 'jumlah_pegawai' => $hasil->count(),
+                'aturan'         => \App\Services\AturanCuti::semua(), // salinan aturan yang dipakai
                 'dilakukan_oleh' => auth()->id(),
             ]);
         });

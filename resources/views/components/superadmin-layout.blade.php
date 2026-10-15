@@ -60,6 +60,7 @@
                     ['label' => 'Data Pegawai', 'route' => 'superadmin.pegawai.index',   'aktif' => 'superadmin.pegawai.*'],
                     ['label' => 'Plh',          'route' => 'superadmin.plh.index',       'aktif' => 'superadmin.plh.*'],
                     ['label' => 'Plt',          'route' => 'superadmin.penugasan.index', 'aktif' => 'superadmin.penugasan.*'],
+                    ['label' => 'Aturan Cuti',  'route' => 'superadmin.aturan-cuti.index', 'aktif' => 'superadmin.aturan-cuti.*'],
                 ];
             @endphp
 

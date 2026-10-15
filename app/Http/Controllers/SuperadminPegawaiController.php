@@ -97,7 +97,7 @@ class SuperadminPegawaiController extends Controller
                 'bagian_bidang_id'       => $data['bagian_bidang_id'],
                 'sub_bagian_seksi_id'    => $data['sub_bagian_seksi_id'],
                 'level_jabatan'          => 'Pegawai',
-                'jatah_cuti'             => 12,
+                'jatah_cuti'             => \App\Services\AturanCuti::jatahDasar(),
                 'status_kepegawaian'     => User::statusKepegawaianDariNip($data['nip']),
                 'wajib_ganti_kredensial' => true,
             ]);
