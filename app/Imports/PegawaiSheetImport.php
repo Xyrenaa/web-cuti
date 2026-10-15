@@ -85,7 +85,7 @@ class PegawaiSheetImport implements ToModel, WithHeadingRow, WithBatchInserts, W
             'bagian_bidang_id'    => $bagianId,
             'sub_bagian_seksi_id' => $subBagianId,
             'level_jabatan'       => 'Pegawai',
-            'jatah_cuti'          => 12,
+            'jatah_cuti'          => \App\Services\AturanCuti::jatahDasar(),
             'status_kepegawaian'  => $status,
             // Email sementara + password awal yang sama untuk semua pegawai:
             // wajib ganti lewat pop-up saat login pertama.
