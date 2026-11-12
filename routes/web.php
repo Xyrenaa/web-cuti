@@ -92,6 +92,7 @@ Route::middleware(['auth', 'verified', 'role:Admin Kepegawaian'])->group(functio
     Route::get('/admin/approval', [PengajuanController::class, 'indexApproval'])->name('admin.approval.index');
     Route::get('/admin/approval/{id}', [PengajuanController::class, 'showApproval'])->name('admin.approval.show');
     Route::post('/admin/approval/{id}/verifikasi', [PengajuanController::class, 'verifikasiAdmin'])->name('admin.approval.verifikasi');
+    Route::post('/admin/approval/{id}/surat-cuti', [PengajuanController::class, 'unggahSuratCuti'])->whereNumber('id')->name('admin.approval.surat-cuti');
 
     Route::get('/admin/notifikasi', [PengajuanController::class, 'notifikasiAdmin'])->name('admin.notifikasi');
 

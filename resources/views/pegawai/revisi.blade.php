@@ -55,7 +55,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Surat Pengajuan</label>
-                    <p class="text-xs text-gray-500 mb-2">Saat ini: {{ \App\Models\PengajuanCuti::namaBerkas($pengajuan->surat_pengajuan) }} (kosongkan jika tidak diganti)</p>
+                    <p class="text-xs text-gray-500 mb-2">Saat ini: {{ \App\Models\PengajuanCuti::namaBerkas($pengajuan->surat_pengajuan, $pengajuan->surat_pengajuan_nama) }} (kosongkan jika tidak diganti)</p>
                     <input type="file" name="surat_pengajuan" accept=".doc,.docx,.pdf,.jpg,.jpeg,.png" class="block w-full text-sm">
                 </div>
                 <div>

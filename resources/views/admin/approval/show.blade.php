@@ -66,38 +66,35 @@
                          </div>
                      </div>
 
-                    <!-- Card: Lampiran -->
+                                       <!-- Card: Lampiran -->
+                    @php
+                        $suratBerkas = $data->daftarBerkas('surat');
+                        $bukti       = $data->daftarBerkas('bukti');
+                        $ttdBerkas   = $data->daftarBerkas('ttd');
+                    @endphp
                     <div class="bg-white rounded-2xl p-7 shadow-sm border border-gray-100">
                         <h3 class="font-bold text-lg text-gray-900 mb-4">Lampiran</h3>
-                        
-                        $bukti = $data->daftarBerkas('bukti');
 
-                        @if($data->surat_pengajuan || !empty($buktiPendukung))
+                        @if(count($suratBerkas) || count($bukti))
                             <div class="space-y-3">
-                                @if($data->surat_pengajuan)
+                                @foreach($suratBerkas as $b)
                                     <div class="border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gray-50/50 hover:bg-gray-50 transition gap-4">
                                         <div class="flex items-center space-x-3 overflow-hidden">
                                             <svg class="w-6 h-6 text-[#2a64f5] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                                            <span class="text-sm font-bold text-gray-800 truncate">{{ basename($data->surat_pengajuan) }} (Surat Wajib)</span>
+                                            <span class="text-sm font-bold text-gray-800 truncate">{{ $b['nama'] }} (Surat Wajib)</span>
                                         </div>
-                                        <a href="{{ asset('storage/' . $data->surat_pengajuan) }}" target="_blank" class="text-sm font-bold text-[#2a64f5] hover:text-blue-800 transition flex-shrink-0">
-                                            Unduh File
-                                        </a>
+                                        <a href="{{ $data->urlBerkas('surat') }}" target="_blank" class="text-sm font-bold text-[#2a64f5] hover:text-blue-800 transition flex-shrink-0">Unduh File</a>
                                     </div>
-                                @endif
+                                @endforeach
 
-                                @foreach($buktiPendukung as $file)
-                                    @if(is_string($file))
+                                @foreach($bukti as $i => $b)
                                     <div class="border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gray-50/50 hover:bg-gray-50 transition gap-4">
                                         <div class="flex items-center space-x-3 overflow-hidden">
                                             <svg class="w-6 h-6 text-[#2a64f5] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                                            <span class="text-sm font-bold text-gray-800 truncate">{{ basename($file) }}</span>
+                                            <span class="text-sm font-bold text-gray-800 truncate">{{ $b['nama'] }}</span>
                                         </div>
-                                        <a href="{{ asset('storage/' . $file) }}" target="_blank" class="text-sm font-bold text-[#2a64f5] hover:text-blue-800 transition flex-shrink-0">
-                                            Unduh File
-                                        </a>
+                                        <a href="{{ $data->urlBerkas('bukti', $i) }}" target="_blank" class="text-sm font-bold text-[#2a64f5] hover:text-blue-800 transition flex-shrink-0">Unduh File</a>
                                     </div>
-                                    @endif
                                 @endforeach
                             </div>
                         @else
@@ -106,19 +103,19 @@
                             </div>
                         @endif
 
-                        @if(!empty($data->dokumen_ttd))
+                        @if(count($ttdBerkas))
                         <div class="pt-3 mt-3 border-t border-dashed border-gray-200">
                             <p class="mb-2 text-xs font-bold tracking-wide text-gray-400 uppercase">Dokumen Bertanda Tangan</p>
-                            @foreach($data->dokumen_ttd as $ttd)
+                            @foreach($ttdBerkas as $i => $b)
                             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 mb-2 transition border border-green-200 bg-green-50/50 hover:bg-green-50 rounded-xl">
                                 <div class="flex items-center overflow-hidden space-x-3">
                                     <svg class="flex-shrink-0 w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     <div class="truncate">
-                                        <span class="text-sm font-bold text-gray-800">{{ basename($ttd['file']) }}</span>
-                                        <p class="text-xs text-gray-500">Ditandatangani {{ $ttd['nama'] ?? '-' }} ({{ $ttd['peran'] ?? '-' }}) &middot; {{ \Carbon\Carbon::parse($ttd['waktu'])->format('d/m/Y H:i') }}</p>
+                                        <span class="text-sm font-bold text-gray-800">{{ $b['nama'] }}</span>
+                                        <p class="text-xs text-gray-500">Ditandatangani {{ $b['meta']['nama'] ?? '-' }} ({{ $b['meta']['peran'] ?? '-' }}) &middot; {{ !empty($b['meta']['waktu']) ? \Carbon\Carbon::parse($b['meta']['waktu'])->format('d/m/Y H:i') : '-' }}</p>
                                     </div>
                                 </div>
-                                <a href="{{ asset('storage/'.$ttd['file']) }}" target="_blank" class="flex-shrink-0 text-sm font-bold text-green-700 hover:text-green-900 transition">Unduh File</a>
+                                <a href="{{ $data->urlBerkas('ttd', $i) }}" target="_blank" class="flex-shrink-0 text-sm font-bold text-green-700 hover:text-green-900 transition">Unduh File</a>
                             </div>
                             @endforeach
                         </div>
@@ -134,12 +131,7 @@
                     <!-- Card: Alur Persetujuan Dinamis -->
                     <div class="bg-white rounded-2xl p-7 shadow-sm border border-gray-100">
                         <h3 class="font-bold text-lg text-gray-900 mb-6">Alur Persetujuan</h3>
-                        
-                        @php
-                            $step = $data->approval_step ?? 0;
-                            $halted = in_array($step, [0,10]);
-                        @endphp
-
+            
                         <div class="relative border-l-2 border-gray-100 ml-3 space-y-6 pb-2">
                             
                             <!-- 1. Pengajuan Dikirim -->
@@ -310,7 +302,43 @@
                         </div>
                     </div>
                     @endif
+                
+                    {{-- Surat cuti final: hanya muncul setelah disetujui final (step 8) --}}
+                    @if($step == 8)
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <h3 class="font-bold text-lg text-gray-900 mb-3">Surat Cuti untuk Pegawai</h3>
 
+                        @if(session('success'))
+                            <div class="p-3 mb-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg">{{ session('success') }}</div>
+                        @endif
+
+                        @if($data->surat_cuti_final)
+                            <div class="flex items-center justify-between gap-3 p-3 mb-4 border border-green-200 bg-green-50/50 rounded-xl">
+                                <div class="truncate">
+                                    <p class="text-sm font-bold text-gray-800 truncate">{{ \App\Models\PengajuanCuti::namaBerkas($data->surat_cuti_final, $data->surat_cuti_final_nama) }}</p>
+                                    <p class="text-xs text-gray-500">Diunggah {{ $data->surat_cuti_final_at?->format('d/m/Y H:i') }}</p>
+                                </div>
+                                <a href="{{ $data->urlBerkas('surat-cuti') }}" target="_blank" class="flex-shrink-0 text-sm font-bold text-green-700 hover:text-green-900">Unduh</a>
+                            </div>
+                        @else
+                            <p class="mb-4 p-3 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg">
+                                Surat cuti belum diunggah, jadi pegawai belum bisa mengunduhnya.
+                            </p>
+                        @endif
+
+                        <form action="{{ route('admin.approval.surat-cuti', $data->id) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+                            @csrf
+                            <input type="file" name="surat_cuti" required accept=".pdf,.doc,.docx"
+                                class="block w-full text-xs text-gray-600 border border-gray-300 rounded-lg file:mr-3 file:py-2 file:px-3 file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#2a64f5] hover:file:bg-blue-100">
+                            @error('surat_cuti')
+                                <p class="text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                            <button type="submit" class="w-full bg-[#2a64f5] text-white rounded-lg py-2.5 font-bold text-sm hover:bg-blue-700 transition">
+                                {{ $data->surat_cuti_final ? 'Ganti Surat Cuti' : 'Unggah Surat Cuti' }}
+                            </button>
+                        </form>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>

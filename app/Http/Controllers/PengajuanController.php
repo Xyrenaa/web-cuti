@@ -370,7 +370,7 @@ public function unduhBerkas(Request $request, $pengajuan, string $jenis, $index 
     $user = Auth::user();
 
     // Pemilik, Admin/Superadmin, atau pejabat yang saat ini memegang meja pengajuan (aturan sama dengan halaman approval)
-    $boleh = $data->user_id === $user->id
+        $boleh = (int) $data->user_id === (int) $user->id
         || $user->hasAnyRole(['Admin Kepegawaian', 'Superadmin'])
         || $this->mejaSayaDetail($data, $user) !== null;
 
@@ -486,8 +486,10 @@ public function kirimRevisi(Request $request, $id)
         'approval_step'     => $this->stepAwal(Auth::user()),
     ];
 
-    if ($request->hasFile('surat_pengajuan')) {
-        $data['surat_pengajuan'] = $this->simpanBerkas($request->file('surat_pengajuan'), 'dokumen/surat_pengajuan');
+        if ($request->hasFile('surat_pengajuan')) {
+        $surat = $this->simpanBerkas($request->file('surat_pengajuan'), 'dokumen/surat_pengajuan');
+        $data['surat_pengajuan']      = $surat['path'];
+        $data['surat_pengajuan_nama'] = $surat['nama'];
     }
     if ($request->hasFile('bukti_pendukung')) { // upload baru menggantikan seluruh bukti lama
         $data['bukti_pendukung'] = collect($request->file('bukti_pendukung'))
@@ -734,41 +736,9 @@ public function kirimRevisi(Request $request, $id)
                 $q->where('name', 'like', "%{$search}%")->orWhere('nip', 'like', "%{$search}%");
             });
         }
-
         // 4. Filter Status Dropdown
-               if ($request->filled('status') && $request->status !== 'Semua Status') {
-            match ($request->status) {
-                'Menunggu'   => $query->whereNotIn('approval_step', [0, 8, 10]), // termasuk step 9, sama seperti badge
-                'Disetujui'  => $query->where('approval_step', 8),
-                'Ditolak'    => $query->where('approval_step', 0),
-                'Dibatalkan' => $query->where('approval_step', 10),
-                default      => null,
-            };
-               }
-               
-       if ($request->filled('status') && $request->status !== 'Semua Status') {
-    if ($request->status == 'Menunggu') {
-        $query->whereNotIn('approval_step', [0, 8, 9, 10]);
-    } elseif ($request->status == 'Disetujui') {
-        $query->where('approval_step', 8);
-    } elseif ($request->status == 'Ditolak') {
-        $query->where('approval_step', 0);
-    } elseif ($request->status == 'Dibatalkan') {
-        $query->where('approval_step', 10);
-    }
-}
-        if ($request->filled('status') && $request->status !== 'Semua Status') {
-            if ($request->status == 'Menunggu') {
-                $query->whereNotIn('approval_step', [0, 8, 9, 10]);
-            } elseif ($request->status == 'Disetujui') {
-                $query->where('approval_step', 8);
-            } elseif ($request->status == 'Ditolak') {
-                $query->where('approval_step', 0);
-            } elseif ($request->status == 'Dibatalkan') {
-                $query->where('approval_step', 10);
-            }
-        }
-
+        $query->statusGroup($request->input('status'));
+        
         // 5. FILTER TANGGAL
         if ($request->filled('date')) {
             $query->whereDate('created_at', $request->date);
@@ -821,9 +791,7 @@ public function kirimRevisi(Request $request, $id)
                 ]);
 
                 if ($request->hasFile('dokumen_ttd')) {
-                    $file = $request->file('dokumen_ttd');
-                    $namaFile = time() . '_ttd_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
-                    $path = $file->storeAs('dokumen/ttd_kepala', $namaFile, 'public');
+                    $berkas = $this->simpanBerkas($request->file('dokumen_ttd'), 'dokumen/ttd_kepala');
 
                     $daftarTtd = $pengajuan->dokumen_ttd ?? [];
                     $daftarTtd[] = [
@@ -867,7 +835,41 @@ public function kirimRevisi(Request $request, $id)
             return redirect()->route('admin.approval.index')->with('error', 'Berkas pengajuan cuti ditolak. Alasan: ' . $catatan);
         }
     }
-    
+        public function unggahSuratCuti(Request $request, $id)
+    {
+        $pengajuan = PengajuanCuti::findOrFail($id);
+
+        if ((int) $pengajuan->approval_step !== 8) {
+            return redirect()->route('admin.approval.show', $pengajuan->id)
+                ->with('error', 'Surat cuti hanya bisa diunggah untuk pengajuan yang sudah disetujui final.');
+        }
+
+        $request->validate([
+            'surat_cuti' => 'required|file|mimes:pdf,doc,docx|max:5120',
+        ], [
+            'surat_cuti.required' => 'Pilih file surat cuti terlebih dahulu.',
+            'surat_cuti.mimes'    => 'Surat cuti harus berformat PDF, DOC, atau DOCX.',
+            'surat_cuti.max'      => 'Ukuran surat cuti maksimal 5 MB.',
+        ]);
+
+        $lama   = $pengajuan->surat_cuti_final;
+        $berkas = $this->simpanBerkas($request->file('surat_cuti'), 'dokumen/surat_cuti_final');
+
+        $pengajuan->update([
+            'surat_cuti_final'      => $berkas['path'],
+            'surat_cuti_final_nama' => $berkas['nama'],
+            'surat_cuti_final_at'   => now(),
+        ]);
+
+        if ($lama) {
+            foreach (['berkas', 'public'] as $disk) {
+                \Illuminate\Support\Facades\Storage::disk($disk)->delete($lama);
+            }
+        }
+
+        return redirect()->route('admin.approval.show', $pengajuan->id)
+            ->with('success', 'Surat cuti berhasil diunggah dan sudah bisa diunduh pegawai.');
+    }
     public function notifikasiAdmin()
     {
         $notifikasis = Auth::user()->notifications;
@@ -910,16 +912,15 @@ public function kirimRevisi(Request $request, $id)
         ]);
 
         if ($request->hasFile('dokumen_ttd')) {
-            $file = $request->file('dokumen_ttd');
-            $namaFile = time() . '_ttd_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
-            $path = $file->storeAs('dokumen/ttd_kepala', $namaFile, 'public');
+            $berkas = $this->simpanBerkas($request->file('dokumen_ttd'), 'dokumen/ttd_kepala');
 
             $daftarTtd = $pengajuan->dokumen_ttd ?? [];
             $daftarTtd[] = [
                 'step'  => $pengajuan->approval_step,
                 'peran' => $peranAktif,
                 'nama'  => $user->name,
-                'file'  => $path,
+                'file'      => $berkas['path'],
+                'nama_file' => $berkas['nama'],
                 'waktu' => now()->toDateTimeString(),
             ];
             $pengajuan->dokumen_ttd = $daftarTtd;
@@ -1218,7 +1219,11 @@ public function kirimRevisi(Request $request, $id)
 
         $ringkasJenis = $riwayats->where('approval_step', 8)
             ->groupBy(fn ($c) => $c->jenisCuti->nama_cuti ?? '-')
-            ->map(fn ($g) => ['kali' => $g->count(), 'hari' => $g->sum('durasi_hari')]);
+            ->map(fn ($g) => [
+                'kali'  => $g->count(),
+                'hari'  => $g->sum('durasi_hari'),
+                'kuota' => (bool) ($g->first()->jenisCuti->mengurangi_kuota ?? true),
+            ]);
 
         $daftarTahun = \App\Models\PengajuanCuti::where('user_id', $user->id)
             ->where('tanggal_mulai', '>=', '2000-01-01')
@@ -1380,7 +1385,7 @@ public function kirimRevisi(Request $request, $id)
         $pengajuanBaru = \App\Models\PengajuanCuti::whereIn('approval_step', [3, 7])->count();
 
         // Hitung semua pengajuan yang masih menggantung (belum final)
-        $menungguPersetujuan = \App\Models\PengajuanCuti::whereNotIn('approval_step', [8,0,10])->count();
+        $menungguPersetujuan = \App\Models\PengajuanCuti::whereIn('approval_step', \App\Models\PengajuanCuti::GRUP_STEP['Menunggu'])->count();
 
         // Hitung yang disetujui pada bulan ini
         $disetujuiBulanIni = \App\Models\PengajuanCuti::where('approval_step',8)
@@ -1434,7 +1439,7 @@ public function kirimRevisi(Request $request, $id)
         'disetujui' => \App\Models\PengajuanCuti::where('user_id', $user->id)
                             ->where('approval_step', 8)->count(),
         'menunggu' => \App\Models\PengajuanCuti::where('user_id', $user->id)
-                            ->whereNotIn('approval_step', [0, 8, 10])->count(),
+                            
     ];
    if ($user->hasRole('Pegawai')) {
         return view('pegawai.informasi', compact('jatahTahunIni', 'jatahTahunLalu', 'totalJatah', 'statistik'));

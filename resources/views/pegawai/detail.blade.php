@@ -41,37 +41,50 @@
                     <h3 class="text-sm font-bold text-gray-800 tracking-wider uppercase border-b border-gray-100 pb-3 mb-4">Dokumen Lampiran</h3>
                     <div class="space-y-3">
                         
-                        <!-- Lampiran Wajib -->
+                                               <!-- Lampiran Wajib -->
                         <div class="flex items-center justify-between p-3 bg-blue-50 border border-blue-100 rounded-lg">
                             <div class="flex items-center gap-3">
                                 <svg class="w-6 h-6 text-[#2A65F3]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                 <div>
                                     <span class="text-sm font-semibold text-gray-800 block">Surat Pengajuan (Wajib)</span>
-                                    <!-- Logika pemotong string jika ada format waktu di depannya -->
-                                    <span class="text-xs text-gray-500">{{ Str::after(basename($pengajuan->surat_pengajuan), '_wajib_') ?: basename($pengajuan->surat_pengajuan) }}</span>
+                                    <span class="text-xs text-gray-500">{{ \App\Models\PengajuanCuti::namaBerkas($pengajuan->surat_pengajuan, $pengajuan->surat_pengajuan_nama) }}</span>
                                 </div>
                             </div>
-                            <a href="{{ asset('storage/' . $pengajuan->surat_pengajuan) }}" target="_blank" download class="text-[#2A65F3] text-sm font-semibold hover:underline">Download</a>
+                            <a href="{{ $pengajuan->urlBerkas('surat') }}" target="_blank" class="text-[#2A65F3] text-sm font-semibold hover:underline">Download</a>
                         </div>
 
-                        <!-- Render Array Multi-Lampiran (Bukti Pendukung) -->
-                        @if($pengajuan->bukti_pendukung)
-                            @foreach($pengajuan->bukti_pendukung as $key => $bukti)
-                            <div class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                                <div class="flex items-center gap-3">
-                                    <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                                    <div>
-                                        <span class="text-sm font-semibold text-gray-800 block">Bukti Pendukung #{{ $loop->iteration }}</span>
-                                        <span class="text-xs text-gray-500">{{ Str::after(basename($bukti), '_opsi' . $key . '_') ?: basename($bukti) }}</span>
-                                    </div>
+                        <!-- Bukti Pendukung -->
+                        @foreach($pengajuan->daftarBerkas('bukti') as $i => $b)
+                        <div class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                                <div>
+                                    <span class="text-sm font-semibold text-gray-800 block">Bukti Pendukung #{{ $loop->iteration }}</span>
+                                    <span class="text-xs text-gray-500">{{ $b['nama'] }}</span>
                                 </div>
-                                <a href="{{ asset('storage/' . $bukti) }}" target="_blank" download class="text-gray-600 text-sm font-semibold hover:text-[#2A65F3] hover:underline">Download</a>
                             </div>
-                            @endforeach
-                        @endif
+                            <a href="{{ $pengajuan->urlBerkas('bukti', $i) }}" target="_blank" class="text-gray-600 text-sm font-semibold hover:text-[#2A65F3] hover:underline">Download</a>
+                        </div>
+                        @endforeach
 
                     </div>
                 </div>
+                                @if((int) $pengajuan->approval_step === 8)
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-sm font-bold text-gray-800 tracking-wider uppercase border-b border-gray-100 pb-3 mb-4">Surat Cuti</h3>
+                    @if($pengajuan->surat_cuti_final)
+                        <div class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <div>
+                                <span class="text-sm font-semibold text-gray-800 block">{{ \App\Models\PengajuanCuti::namaBerkas($pengajuan->surat_cuti_final, $pengajuan->surat_cuti_final_nama) }}</span>
+                                <span class="text-xs text-gray-500">Diunggah {{ $pengajuan->surat_cuti_final_at?->format('d/m/Y H:i') }}</span>
+                            </div>
+                            <a href="{{ $pengajuan->urlBerkas('surat-cuti') }}" target="_blank" class="text-green-700 text-sm font-semibold hover:underline">Download</a>
+                        </div>
+                    @else
+                        <p class="text-sm text-gray-500">Surat cuti sedang disiapkan oleh Admin Kepegawaian. Anda akan mendapat notifikasi saat sudah tersedia.</p>
+                    @endif
+                </div>
+                @endif
             </div>
             <!-- KOLOM KANAN: Timeline Status -->
             <div class="lg:col-span-1">
@@ -183,6 +196,12 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                 Kembali
             </a>
+              @if((int) $pengajuan->approval_step === 9)
+            <a href="{{ route('pengajuan.revisi.form', $pengajuan->id) }}"
+               class="px-6 py-2.5 bg-[#2A65F3] text-white font-semibold rounded-md hover:bg-blue-700 transition shadow-sm">
+                Perbaiki &amp; Ajukan Ulang
+            </a>
+            @endif
 
             <!-- Tombol Batalkan hanya muncul kalau belum di step final (sinkron dengan $isFinal di atas) -->
             @if(!$isFinal)

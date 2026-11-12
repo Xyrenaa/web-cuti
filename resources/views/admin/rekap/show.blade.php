@@ -82,7 +82,7 @@
                     <h3 class="font-bold text-gray-900">Riwayat Cuti {{ $tahun }} <span class="text-gray-400 font-normal text-sm">({{ $riwayats->count() }} pengajuan)</span></h3>
                     <div class="flex flex-wrap gap-2">
                         @foreach($ringkasJenis as $nama => $r)
-                            <span class="bg-gray-50 border border-gray-200 text-gray-600 rounded-full px-3 py-1 text-xs font-semibold">{{ $nama }} · {{ $r['kali'] }}× · {{ $r['hari'] }} hari</span>
+                        <span class="bg-gray-50 border border-gray-200 text-gray-600 rounded-full px-3 py-1 text-xs font-semibold">{{ $nama }} · {{ $r['kali'] }}× · {{ $r['hari'] }} hari @if(! $r['kuota'])<span class="font-normal text-gray-400">(tidak mengurangi kuota)</span>@endif</span>
                         @endforeach
                     </div>
                 </div>
@@ -121,7 +121,7 @@
                                     </td>
                                     <td class="px-4 py-3 text-center font-bold text-gray-800">{{ $c->durasi_hari }}</td>
                                     <td class="px-4 py-3 text-gray-500 whitespace-nowrap">{{ optional($c->created_at)->format('d/m/Y') }}</td>
-                                    <x-status-dot :status="$badge[0]">{{ $badge[0] }}</x-status-dot>
+                                    <td class="px-4 py-3"><x-status-dot :status="$badge[0]">{{ $badge[0] }}</x-status-dot></td>
                                     <td class="px-6 py-3 text-right"><a href="{{ route('admin.approval.show', $c->id) }}" class="text-xs font-semibold text-[#2A65F3] hover:underline">Detail →</a></td>
                                 </tr>
                             @empty

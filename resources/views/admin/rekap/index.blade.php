@@ -97,31 +97,37 @@
                         </div>
                     </div>
 
-                    <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto mt-4 lg:mt-0 items-end">
+                    <div class="flex flex-col sm:flex-row sm:items-end gap-1 w-full lg:w-auto mt-4 lg:mt-0 text-sm font-semibold text-gray-600">
 
-                                                <!-- Toggle Panel Filter -->
+                        <!-- Toggle Panel Filter -->
                         <button type="button" @click="filterOpen = !filterOpen"
-                                class="relative w-full sm:w-auto flex items-center justify-center gap-2 border rounded-xl px-5 py-2.5 text-sm font-bold transition h-[42px] whitespace-nowrap"
-                                :class="filterOpen || {{ $filterAktif ? 'true' : 'false' }} ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'">
+                                class="inline-flex items-center gap-2 px-3 h-[42px] whitespace-nowrap transition-colors hover:text-[#2A65F3]"
+                                :class="filterOpen || {{ $filterAktif ? 'true' : 'false' }} ? 'text-[#2A65F3]' : ''">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 01.8 1.6l-6.3 8.4v5.2a1 1 0 01-1.45.9l-4-2A1 1 0 018 16.2v-3.2L1.7 4.6A1 1 0 013 4z"></path></svg>
                             Filter
                             @if($filterAktif)
-                                <span class="absolute -top-1.5 -right-1.5 h-2.5 w-2.5 rounded-full bg-blue-600 ring-2 ring-white"></span>
+                                <span class="h-1.5 w-1.5 rounded-full bg-[#2A65F3]"></span>
                             @endif
                             <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="filterOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
 
-                        <!-- Tombol Ekspor (Bawa query parameter agar filter ikut ke Excel) -->
-                        <a href="{{ route('admin.rekap.export', request()->query()) }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl transition shadow-sm text-sm whitespace-nowrap h-[42px] flex items-center">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        <span class="hidden sm:block self-center h-4 w-px bg-gray-200"></span>
+
+                        <!-- Ekspor (query parameter ikut agar filter terbawa ke Excel) -->
+                        <a href="{{ route('admin.rekap.export', request()->query()) }}"
+                           class="inline-flex items-center gap-2 px-3 h-[42px] whitespace-nowrap transition-colors hover:text-[#2A65F3]">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             Ekspor (XLSX)
                         </a>
 
-                        <button type="button" x-data @click="$dispatch('open-modal-jatah')" class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-5 rounded-xl transition shadow-sm text-sm whitespace-nowrap h-[42px] flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        <span class="hidden sm:block self-center h-4 w-px bg-gray-200"></span>
+
+                        <button type="button" x-data @click="$dispatch('open-modal-jatah')"
+                                class="inline-flex items-center gap-2 px-3 h-[42px] whitespace-nowrap transition-colors hover:text-[#2A65F3]">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             Update Jatah Cuti Massal
                         </button>
-                    </div>
+                    </div>  
                 </div>
 
 <!-- Panel Filter Lanjutan: collapsible, isinya Divisi + Sub-Bagian (baru) + Urutkan -->
@@ -306,34 +312,30 @@
                 </div>
             </form>
 
-            <!-- Tutup Tahun (dipisah dari form) -->
-            <div class="flex items-center justify-between gap-4 px-6 py-4 border-t border-amber-100 bg-amber-50/70 rounded-b-2xl">
+             <!-- Tutup Tahun (dipisah dari form) -->
+            <div class="flex items-center justify-between gap-4 px-6 py-4 border-t border-gray-100">
                 <div>
-                    <div class="text-sm font-bold text-amber-800">Akhir tahun?</div>
-                    <div class="text-xs text-amber-700">Bawa sisa cuti (maks. 6 hari) dan siapkan jatah tahun baru.</div>
+                    <div class="text-sm font-semibold text-gray-800">Akhir tahun?</div>
+                    <div class="text-xs text-gray-500">Bawa sisa cuti (maks. 6 hari) dan siapkan jatah tahun baru.</div>
                 </div>
                 <a href="{{ route('admin.rekap.tutup-tahun.preview') }}"
-                   class="shrink-0 inline-flex items-center gap-2 px-4 py-2 bg-white border border-amber-300 hover:bg-amber-100 text-amber-800 font-bold text-sm rounded-xl transition whitespace-nowrap">
-                    Tutup Tahun
-                </a>
+                   class="shrink-0 text-sm font-semibold text-amber-700 hover:text-amber-900 hover:underline whitespace-nowrap">
+                         Tutup Tahun →
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-</div>
-                                <!-- Info Periode Aktif -->
-                <div class="flex flex-wrap items-center gap-2 mb-4 text-xs">
-                    <span class="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 font-bold px-3 py-1.5 rounded-full">
+                    <!-- Info Periode Aktif -->
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mb-4 text-xs font-semibold text-gray-500">
+                    <span class="inline-flex items-center gap-1.5 text-[#2A65F3]">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                         Periode: {{ $bulan ? $bulanIndo[$bulan] . ' ' : '' }}{{ $tahun }}
                     </span>
                     @if(request()->filled('jenis_cuti') && request('jenis_cuti') !== 'Semua Jenis')
-                        <span class="inline-flex items-center gap-1.5 bg-gray-50 text-gray-600 font-bold px-3 py-1.5 rounded-full border border-gray-100">
-                            Jenis: {{ optional($daftarJenisCuti->firstWhere('id', (int) request('jenis_cuti')))->nama_cuti }}
-                        </span>
+                        <span>Jenis: {{ optional($daftarJenisCuti->firstWhere('id', (int) request('jenis_cuti')))->nama_cuti }}</span>
                     @endif
-                    <span class="inline-flex items-center gap-1.5 bg-gray-50 text-gray-600 font-bold px-3 py-1.5 rounded-full border border-gray-100">
-                        Urut: {{ $sortByOptions[$sortBy] ?? 'Nama Pegawai' }} ({{ $sortDir === 'desc' ? 'Ke Atas' : 'Ke Bawah' }})
-                    </span>
+                    <span>Urut: {{ $sortByOptions[$sortBy] ?? 'Nama Pegawai' }} ({{ $sortDir === 'desc' ? 'Ke Atas' : 'Ke Bawah' }})</span>
                 </div>
 
                 <!-- TABLE -->
@@ -386,7 +388,7 @@
                                 <td class="border border-gray-200 px-2 py-2 text-center font-extrabold {{ $r->total_sisa <= 0 ? 'text-red-600' : 'text-emerald-700' }}">{{ $r->total_sisa }}</td>
 
                                 <td class="border border-gray-200 px-3 py-2 text-center whitespace-nowrap">
-                                    <a href="{{ route('admin.rekap.show', $r->id) }}" class="text-[#2a64f5] hover:text-blue-800 font-bold">Detail</a>
+                                    <<a href="{{ route('admin.rekap.show', $r->id) }}" class="text-[#2A65F3] font-semibold hover:underline">Detail →</a>
                                 </td>
                             </tr>
                             @empty
