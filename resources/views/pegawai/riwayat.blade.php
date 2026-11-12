@@ -98,7 +98,7 @@
                                 <td class="px-4 py-3 font-semibold text-blue-600 whitespace-nowrap">#{{ $item->kode_pengajuan }}</td>
                                 <td class="px-4 py-3 text-gray-800">{{ $item->jenisCuti->nama_cuti ?? 'Cuti Tahunan' }}</td>
                                 <td class="px-4 py-3 text-gray-600 whitespace-nowrap">
-                                    {{ $mulai->translatedFormat('d M Y') }}@if(!$mulai->isSameDay($selesai)) – {{ $selesai->translatedFormat('d M Y') }}@endif
+                                    {{ $mulai->format('d/m/Y') }}@if(!$mulai->isSameDay($selesai)) – {{ $selesai->format('d/m/Y') }}@endif
                                 </td>
                                 <td class="px-4 py-3 text-center font-bold text-gray-800">{{ $item->durasi_hari }}</td>
                                 <td class="px-4 py-3">

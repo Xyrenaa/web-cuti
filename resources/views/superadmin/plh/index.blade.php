@@ -5,7 +5,7 @@
     </x-slot>
 
     @php
-        $fmt = fn ($d) => \Carbon\Carbon::parse($d)->format('d M Y');
+        $fmt = fn ($d) => \Carbon\Carbon::parse($d)->format('d/m/Y');
         $badge = [
             'belum_ditunjuk' => ['Belum ditunjuk', 'bg-red-100 text-red-700'],
             'menunggu_final' => ['Menunggu finalisasi Admin', 'bg-blue-100 text-blue-700'],
@@ -85,7 +85,7 @@
                         <tbody class="divide-y divide-gray-100">
                             @forelse($log as $l)
                                 <tr class="hover:bg-gray-50">
-                                    <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $l->created_at->format('d M Y H:i') }}</td>
+                                    <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $l->created_at->format('d/m/Y H:i') }}</td>
                                     <td class="px-4 py-3 font-semibold text-gray-800">{{ $l->pengajuan->user->name ?? '-' }}</td>
                                     <td class="px-4 py-3 text-gray-600">{{ $l->lama->name ?? '(belum ada)' }}</td>
                                     <td class="px-4 py-3 font-semibold text-gray-800">{{ $l->baru->name ?? '-' }}</td>

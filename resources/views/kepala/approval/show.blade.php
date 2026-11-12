@@ -13,8 +13,9 @@
     </div>
 
     @php
-        $step = $data->approval_step ?? 0;
+        $step   = (int) ($data->approval_step ?? 0);
         $halted = in_array($step, [0, 10]); // 0 = Ditolak, 10 = Dibatalkan
+        $posisi = in_array($step, [0, 9, 10]) ? -1 : $step;
 
         // Tahap mana yang boleh diproses oleh masing-masing role, dan step berikutnya kalau disetujui
         $mapPeran = [
@@ -38,10 +39,6 @@
                 }
             }
         }
-
-        $bukti = is_array($data->bukti_pendukung)
-            ? $data->bukti_pendukung
-            : (json_decode($data->bukti_pendukung ?? '[]', true) ?: []);
     @endphp
 
     <div class="py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
@@ -70,7 +67,7 @@
                         </div>
                         <div class="grid grid-cols-1 gap-1 md:grid-cols-3 md:gap-4">
                             <dt class="text-sm font-medium text-gray-500">Tanggal pengajuan</dt>
-                            <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->created_at)->translatedFormat('l, d F Y, H:i') }}</dd>
+                            <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->created_at)->translatedFormat('l, d/m/Y H:i') }}</dd>
                         </div>
                         <div class="grid grid-cols-1 gap-1 md:grid-cols-3 md:gap-4">
                             <dt class="text-sm font-medium text-gray-500">Jenis Cuti</dt>
@@ -82,15 +79,15 @@
                         </div>
                         <div class="grid grid-cols-1 gap-1 md:grid-cols-3 md:gap-4">
                             <dt class="text-sm font-medium text-gray-500">Tanggal Mulai</dt>
-                            <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->tanggal_mulai)->translatedFormat('l, d F Y') }}</dd>
+                            <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->tanggal_mulai)->translatedFormat('l, d/m/Y') }}</dd>
                         </div>
                         <div class="grid grid-cols-1 gap-1 md:grid-cols-3 md:gap-4">
                             <dt class="text-sm font-medium text-gray-500">Selesai</dt>
-                            <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->tanggal_selesai)->translatedFormat('l, d F Y') }}</dd>
+                            <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->tanggal_selesai)->translatedFormat('l, d/m/Y') }}</dd>
                         </div>
                         <div class="grid grid-cols-1 gap-1 md:grid-cols-3 md:gap-4">
                             <dt class="text-sm font-medium text-gray-500">Aktif Kembali</dt>
-                            <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->tanggal_selesai)->addDay()->translatedFormat('l, d F Y') }}</dd>
+                            <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->tanggal_selesai)->addDay()->translatedFormat('l, d/m/Y') }}</dd>
                         </div>
                     </div>
                 </div>
@@ -112,42 +109,48 @@
                          belum ada kolomnya di tabel pengajuan_cutis dan belum dikumpulkan
                          di form pengajuan. Lihat catatan di bawah jawaban ini. --}}
                 </div>
-
-                <!-- Card: Lampiran -->
+                                <!-- Card: Lampiran -->
+                @php
+                    $suratBerkas = $data->daftarBerkas('surat');
+                    $bukti       = $data->daftarBerkas('bukti');
+                    $ttdBerkas   = $data->daftarBerkas('ttd');
+                @endphp
                 <div class="p-7 bg-white border border-gray-100 shadow-sm rounded-2xl">
                     <h3 class="mb-4 text-lg font-bold text-gray-900">Lampiran</h3>
                     <div class="space-y-3">
+                        @foreach($suratBerkas as $b)
                         <div class="flex items-center justify-between p-4 transition border border-gray-200 bg-gray-50/50 hover:bg-gray-50 rounded-xl">
                             <div class="flex items-center space-x-3">
                                 <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                                <span class="text-sm font-bold text-gray-800">{{ basename($data->surat_pengajuan) }} (Surat Wajib)</span>
+                                <span class="text-sm font-bold text-gray-800">{{ $b['nama'] }} (Surat Wajib)</span>
                             </div>
-                            <a href="{{ asset('storage/'.$data->surat_pengajuan) }}" target="_blank" class="text-sm font-bold text-[#2a64f5] hover:text-blue-800 transition">Unduh File</a>
-                        </div>
-
-                        @foreach($bukti as $file)
-                        <div class="flex items-center justify-between p-4 transition border border-gray-200 bg-gray-50/50 hover:bg-gray-50 rounded-xl">
-                            <div class="flex items-center space-x-3">
-                                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                                <span class="text-sm font-bold text-gray-800">{{ basename($file) }}</span>
-                            </div>
-                            <a href="{{ asset('storage/'.$file) }}" target="_blank" class="text-sm font-bold text-[#2a64f5] hover:text-blue-800 transition">Unduh File</a>
+                            <a href="{{ $data->urlBerkas('surat') }}" target="_blank" class="text-sm font-bold text-[#2a64f5] hover:text-blue-800 transition">Unduh File</a>
                         </div>
                         @endforeach
 
-                        @if(!empty($data->dokumen_ttd))
+                        @foreach($bukti as $i => $b)
+                        <div class="flex items-center justify-between p-4 transition border border-gray-200 bg-gray-50/50 hover:bg-gray-50 rounded-xl">
+                            <div class="flex items-center space-x-3">
+                                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                <span class="text-sm font-bold text-gray-800">{{ $b['nama'] }}</span>
+                            </div>
+                            <a href="{{ $data->urlBerkas('bukti', $i) }}" target="_blank" class="text-sm font-bold text-[#2a64f5] hover:text-blue-800 transition">Unduh File</a>
+                        </div>
+                        @endforeach
+
+                        @if(count($ttdBerkas))
                         <div class="pt-3 mt-3 border-t border-dashed border-gray-200">
                             <p class="mb-2 text-xs font-bold tracking-wide text-gray-400 uppercase">Dokumen Bertanda Tangan</p>
-                            @foreach($data->dokumen_ttd as $ttd)
+                            @foreach($ttdBerkas as $i => $b)
                             <div class="flex items-center justify-between p-4 mb-2 transition border border-green-200 bg-green-50/50 hover:bg-green-50 rounded-xl">
                                 <div class="flex items-center space-x-3">
                                     <svg class="flex-shrink-0 w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     <div>
-                                        <span class="text-sm font-bold text-gray-800">{{ basename($ttd['file']) }}</span>
-                                        <p class="text-xs text-gray-500">Ditandatangani {{ $ttd['nama'] ?? '-' }} ({{ $ttd['peran'] ?? '-' }}) &middot; {{ \Carbon\Carbon::parse($ttd['waktu'])->translatedFormat('d M Y, H:i') }}</p>
+                                        <span class="text-sm font-bold text-gray-800">{{ $b['nama'] }}</span>
+                                        <p class="text-xs text-gray-500">Ditandatangani {{ $b['meta']['nama'] ?? '-' }} ({{ $b['meta']['peran'] ?? '-' }}) &middot; {{ !empty($b['meta']['waktu']) ? \Carbon\Carbon::parse($b['meta']['waktu'])->format('d/m/Y H:i') : '-' }}</p>
                                     </div>
                                 </div>
-                                <a href="{{ asset('storage/'.$ttd['file']) }}" target="_blank" class="flex-shrink-0 text-sm font-bold text-green-700 hover:text-green-900 transition">Unduh File</a>
+                                <a href="{{ $data->urlBerkas('ttd', $i) }}" target="_blank" class="flex-shrink-0 text-sm font-bold text-green-700 hover:text-green-900 transition">Unduh File</a>
                             </div>
                             @endforeach
                         </div>
@@ -181,19 +184,23 @@
                             ];
                         @endphp
 
-                        @foreach($rows as $n => $label)
+                         @foreach($rows as $n => $label)
                         <div class="relative pl-6">
-                            <span class="absolute -left-[11px] top-1 h-5 w-5 rounded-full {{ $step > $n ? 'bg-[#2A65F3]' : ($step == $n ? ($halted ? 'bg-red-500' : 'bg-yellow-400') : 'bg-gray-200') }} ring-4 ring-white"></span>
+                            <span class="absolute -left-[11px] top-1 h-5 w-5 rounded-full {{ $posisi > $n ? 'bg-[#2A65F3]' : ($posisi == $n ? 'bg-yellow-400' : 'bg-gray-200') }} ring-4 ring-white"></span>
                             <h3 class="text-sm font-semibold text-gray-800">{{ $label }}</h3>
                             <p class="mt-1 text-xs text-gray-500">
-                                {{ $step > $n ? 'Telah Disetujui' : ($step == $n ? ($halted ? 'Dihentikan' : 'Menunggu Tindakan') : 'Menunggu Tahap Sebelumnya') }}
+                                {{ $posisi > $n ? 'Telah Disetujui' : ($posisi == $n ? 'Menunggu Tindakan' : 'Menunggu Tahap Sebelumnya') }}
                             </p>
                         </div>
                         @endforeach
 
+                        @php
+                            $warnaAkhir = match ($step) { 8 => 'bg-[#2A65F3]', 0 => 'bg-red-500', 9 => 'bg-amber-400', default => 'bg-gray-200' };
+                            $judulAkhir = match ($step) { 0 => 'Pengajuan Ditolak', 9 => 'Dikembalikan untuk Revisi', 10 => 'Pengajuan Dibatalkan', default => 'Cuti Disetujui' };
+                        @endphp
                         <div class="relative pl-6">
-                            <span class="absolute -left-[11px] top-1 h-5 w-5 rounded-full {{ $step >= 8 ? 'bg-[#2A65F3]' : 'bg-gray-200' }} ring-4 ring-white"></span>
-                            <h3 class="text-sm font-semibold text-gray-800">{{ $halted ? 'Pengajuan Dihentikan' : 'Cuti Disetujui' }}</h3>
+                            <span class="absolute -left-[11px] top-1 h-5 w-5 rounded-full {{ $warnaAkhir }} ring-4 ring-white"></span>
+                                                        <h3 class="text-sm font-semibold text-gray-800">{{ $judulAkhir }}</h3>
                         </div>
                     </div>
 

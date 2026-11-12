@@ -59,6 +59,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/pengajuan/{id}', [PengajuanController::class, 'show'])->name('pengajuan.show');
     Route::get('/pengajuan/detail/{id}', [PengajuanController::class, 'show'])->name('pegawai.detail');
     Route::post('/pengajuan/{id}/batal', [PengajuanController::class, 'batal'])->name('pengajuan.batal');
+    Route::get('/pengajuan/{id}/revisi', [PengajuanController::class, 'formRevisi'])->whereNumber('id')->name('pengajuan.revisi.form');
+    Route::put('/pengajuan/{id}/revisi', [PengajuanController::class, 'kirimRevisi'])->whereNumber('id')->name('pengajuan.revisi.kirim');
+    Route::get('/berkas/{pengajuan}/{jenis}/{index?}', [PengajuanController::class, 'unduhBerkas'])
+    ->whereNumber('pengajuan')
+    ->whereIn('jenis', ['surat', 'bukti', 'ttd', 'surat-cuti'])
+    ->whereNumber('index')
+    ->name('berkas.unduh');
     Route::post('/pengajuan/{id}/plh', [PengajuanController::class, 'simpanPlh'])->whereNumber('id')->name('pengajuan.plh.store');
 
     Route::get('/notifikasi', [PengajuanController::class, 'notifikasi'])->name('notifikasi');
@@ -85,6 +92,7 @@ Route::middleware(['auth', 'verified', 'role:Admin Kepegawaian'])->group(functio
     Route::get('/admin/approval', [PengajuanController::class, 'indexApproval'])->name('admin.approval.index');
     Route::get('/admin/approval/{id}', [PengajuanController::class, 'showApproval'])->name('admin.approval.show');
     Route::post('/admin/approval/{id}/verifikasi', [PengajuanController::class, 'verifikasiAdmin'])->name('admin.approval.verifikasi');
+    Route::post('/admin/approval/{id}/surat-cuti', [PengajuanController::class, 'unggahSuratCuti'])->whereNumber('id')->name('admin.approval.surat-cuti');
 
     Route::get('/admin/notifikasi', [PengajuanController::class, 'notifikasiAdmin'])->name('admin.notifikasi');
 

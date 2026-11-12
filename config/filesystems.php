@@ -59,6 +59,14 @@ return [
             'throw' => false,
             'report' => false,
         ],
+        
+        'berkas' => [
+            'driver'     => 'local',
+            'root'       => storage_path('app/private/berkas'),
+            'visibility' => 'private',
+            'throw'      => false,
+            'report'     => false,
+        ],
 
     ],
 

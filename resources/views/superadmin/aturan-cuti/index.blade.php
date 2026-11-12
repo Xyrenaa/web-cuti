@@ -114,7 +114,7 @@
                         <tbody class="divide-y divide-gray-100">
                             @forelse($riwayat as $r)
                                 <tr class="hover:bg-gray-50">
-                                    <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $r->pernyataan_pada->format('d M Y H:i') }}</td>
+                                    <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $r->pernyataan_pada->format('d/m/Y H:i') }}</td>
                                     <td class="px-4 py-3 font-semibold text-gray-800">{{ \App\Models\PengaturanCuti::LABEL[$r->kunci] ?? $r->kunci }}</td>
                                     <td class="px-4 py-3 text-gray-700 whitespace-nowrap">
                                         {{ $tampil($r->nilai_lama === null ? null : (int) $r->nilai_lama) }} →

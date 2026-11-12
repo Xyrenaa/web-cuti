@@ -9,11 +9,7 @@ use Maatwebsite\Excel\Events\AfterImport;
 
 class PegawaiImport implements WithMultipleSheets, WithEvents
 {
-    /**
-     * Kedua sheet dibaca dengan logika yang sama (PegawaiSheetImport),
-     * supaya pegawai PPPK juga tersimpan dan bisa mengajukan cuti. Nama
-     * sheet harus sama persis dengan yang tertulis di file Excel.
-     */
+
     public function sheets(): array
     {
         return [

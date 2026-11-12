@@ -47,6 +47,20 @@ class PengajuanCutiObserver
         if ($pengajuan->wasChanged('dokumen_ttd')) {
             $this->kabariSuratDitandatangani($pengajuan);
         }
+        
+        // Admin mengunggah / mengganti surat cuti final → kabari pemohon
+        if ($pengajuan->wasChanged('surat_cuti_final') && $pengajuan->surat_cuti_final) {
+            $pengajuan->user?->notify(new StatusCutiNotification(
+                'Surat Cuti Tersedia',
+                "Surat cuti untuk pengajuan {$pengajuan->kode_pengajuan} sudah diunggah dan siap diunduh.",
+                [
+                    'tipe'           => 'final',
+                    'kode_pengajuan' => $pengajuan->kode_pengajuan,
+                    'pengajuan_id'   => $pengajuan->id,
+                    'url'            => route('pegawai.detail', $pengajuan->id),
+                ]
+            ));
+        }
 
          // PLH baru ditunjuk / diganti -> kabari PLH-nya.
         if ($pengajuan->wasChanged('plh_user_id') && $pengajuan->plh_user_id) {
@@ -98,8 +112,8 @@ class PengajuanCutiObserver
             return;
         }
 
-        $mulai   = \Carbon\Carbon::parse($pengajuan->tanggal_mulai)->translatedFormat('d F Y');
-        $selesai = \Carbon\Carbon::parse($pengajuan->tanggal_selesai)->translatedFormat('d F Y');
+        $mulai   = \Carbon\Carbon::parse($pengajuan->tanggal_mulai)->format('d/m/Y');
+        $selesai = \Carbon\Carbon::parse($pengajuan->tanggal_selesai)->format('d/m/Y');
 
         $olehSuperadmin = Auth::user()?->hasRole('Superadmin');
 
@@ -129,6 +143,15 @@ class PengajuanCutiObserver
         $kode   = $pengajuan->kode_pengajuan;
         $pelaku = Auth::user()?->name ?? $this->label($stepLama);
 
+        if ($stepLama === 9 && $stepBaru >= 1 && $stepBaru <= 7) {
+    $pemohon->notify(new StatusCutiNotification(
+        'Pengajuan Diajukan Ulang',
+        "Pengajuan {$kode} sudah diperbaiki dan dikirim ulang, kini menunggu {$this->label($stepBaru)}.",
+        ['tipe' => 'status', 'kode_pengajuan' => $kode, 'pengajuan_id' => $pengajuan->id, 'url' => route('pegawai.detail', $pengajuan->id)]
+    ));
+    return;
+}
+
         [$judul, $pesan, $tipe] = match ($stepBaru) {
             0 => [
                 'Pengajuan Cuti Ditolak',
@@ -137,7 +160,7 @@ class PengajuanCutiObserver
             ],
             8 => [
                 'Cuti Anda Telah Disetujui',
-                "Pengajuan {$kode} telah disetujui seluruh pejabat dan difinalisasi Admin Kepegawaian. Surat cuti versi final sudah bisa diunduh.",
+                "Pengajuan {$kode} telah disetujui seluruh pejabat dan difinalisasi Admin Kepegawaian. Surat cuti akan tersedia setelah diunggah Admin.",
                 'final',
             ],
             9 => [

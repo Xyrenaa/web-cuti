@@ -34,5 +34,19 @@
         </div>
 
         <x-kredensial-awal-modal />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/id.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    flatpickr('input[type="date"]', {
+        locale: 'id',
+        dateFormat: 'Y-m-d',   // yang dikirim ke server
+        altInput: true,
+        altFormat: 'd/m/Y',    // yang dilihat user
+        onChange: (_, __, fp) => fp.input.dispatchEvent(new Event('input', { bubbles: true })), // supaya x-model Alpine di superadmin/penugasan/create tetap jalan
+    });
+});
+</script>
     </body>
 </html>

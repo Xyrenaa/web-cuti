@@ -12,9 +12,10 @@ class PengajuanCuti extends Model
 
     protected $appends = ['status_label', 'status_group'];
 
-    protected $casts = [
+        protected $casts = [
         'bukti_pendukung' => 'array',
         'dokumen_ttd' => 'array',
+        'surat_cuti_final_at' => 'datetime',
     ];
     protected $fillable = [
     'kode_pengajuan',
@@ -31,8 +32,13 @@ class PengajuanCuti extends Model
     'approval_step',
     'plh_user_id',     
     'status_pengajuan',
-    'catatan_penolakan'  
+    'catatan_penolakan', 
+    'surat_pengajuan_nama',
+    'surat_cuti_final',
+    'surat_cuti_final_nama',
+    'surat_cuti_final_at',
 ];
+
 
     public function jenisCuti() {
         return $this->belongsTo(JenisCuti::class);
@@ -125,19 +131,32 @@ class PengajuanCuti extends Model
         };
     }
 
-    /**
-     * Grup status yang disederhanakan buat badge (Menunggu/Disetujui/Ditolak/Dibatalkan).
-     * SELALU diturunkan dari approval_step (bukan dari kolom status_pengajuan yang
-     * legacy dan tidak lagi diupdate), supaya nggak ada dua sumber kebenaran yang beda.
-     */
+        public const GRUP_STEP = [
+        'Menunggu'     => [1, 2, 3, 4, 5, 6, 7],
+        'Perlu Revisi' => [9],
+        'Disetujui'    => [8],
+        'Ditolak'      => [0],
+        'Dibatalkan'   => [10],
+    ];
+
+    public function scopeStatusGroup($query, ?string $grup)
+    {
+        if (! $grup || ! isset(self::GRUP_STEP[$grup])) {
+            return $query; // 'Semua Status' atau kosong = tidak memfilter
+        }
+
+        return $query->whereIn('approval_step', self::GRUP_STEP[$grup]);
+    }
+
     public function getStatusGroupAttribute()
     {
-        return match ($this->approval_step) {
-            8 => 'Disetujui',
-            0 => 'Ditolak',
-            10 => 'Dibatalkan',
-            default => 'Menunggu',
-        };
+        foreach (self::GRUP_STEP as $grup => $steps) {
+            if (in_array((int) $this->approval_step, $steps, true)) {
+                return $grup;
+            }
+        }
+
+        return 'Menunggu';
     }
         /**
      * Riwayat dokumen ttd, diurutkan dari tahap paling awal ke paling akhir.
@@ -200,4 +219,43 @@ class PengajuanCuti extends Model
             'is_ttd' => false,
         ];
     }
+    public static function namaBerkas(?string $path, ?string $nama = null): string
+{
+    if ($nama) {
+        return $nama;
+    }
+    // data lama: 1794378860_wajib_xxx / _opsi0_ / _ttd_ (bisa bertumpuk)
+    $base = basename((string) $path);
+    return preg_replace('/^(?:\d{9,}_(?:wajib|opsi\d*|ttd)_)+/', '', $base) ?: $base;
+}
+
+/** Daftar berkas per jenis: [['path'=>, 'nama'=>, 'meta'=>?], ...]. Menangani format lama (string) dan baru. */
+public function daftarBerkas(string $jenis): array
+{
+    $daftar = match ($jenis) {
+        'surat' => $this->surat_pengajuan
+            ? [['path' => $this->surat_pengajuan, 'nama' => $this->surat_pengajuan_nama]] : [],
+        'bukti' => collect($this->bukti_pendukung ?? [])
+            ->map(fn ($b) => is_array($b)
+                ? ['path' => $b['path'] ?? null, 'nama' => $b['nama'] ?? null]
+                : ['path' => $b, 'nama' => null])          // format lama: string path
+            ->all(),
+        'ttd'   => collect($this->riwayat_ttd)
+            ->map(fn ($t) => ['path' => $t['file'] ?? null, 'nama' => $t['nama_file'] ?? null, 'meta' => $t])
+            ->all(),
+        'surat-cuti' => $this->surat_cuti_final
+            ? [['path' => $this->surat_cuti_final, 'nama' => $this->surat_cuti_final_nama]] : [],
+        default => [],
+    };
+
+    return array_values(array_map(function ($b) {
+        $b['nama'] = self::namaBerkas($b['path'], $b['nama'] ?? null);
+        return $b;
+    }, array_filter($daftar, fn ($b) => ! empty($b['path']))));
+}
+
+public function urlBerkas(string $jenis, int $index = 0): string
+{
+    return route('berkas.unduh', ['pengajuan' => $this->id, 'jenis' => $jenis, 'index' => $index]);
+}
 }

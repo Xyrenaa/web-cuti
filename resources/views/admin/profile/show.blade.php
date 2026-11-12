@@ -67,7 +67,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 mb-2">Tanggal Bergabung</label>
-                        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->created_at ? $user->created_at->translatedFormat('d F Y') : '-' }}</div>
+                        <div class="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 text-sm text-gray-700">{{ $user->created_at ? $user->created_at->format('d/m/Y') : '-' }}</div>
                     </div>
                 </div>
 

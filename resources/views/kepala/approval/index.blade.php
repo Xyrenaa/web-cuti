@@ -106,7 +106,7 @@
                             <td class="px-6 py-5 text-gray-600">{{ $pengajuan->jenisCuti->nama_cuti ?? '-' }}</td>
                             
                             <!-- Format tanggal menggunakan Carbon -->
-                            <td class="px-6 py-5 text-gray-500">{{ \Carbon\Carbon::parse($pengajuan->created_at)->translatedFormat('d F Y') }}</td>
+                            <td class="px-6 py-5 text-gray-500">{{ \Carbon\Carbon::parse($pengajuan->created_at)->format('d/m/Y') }}</td>
                             
                             <td class="px-6 py-5 font-bold text-gray-800">{{ $pengajuan->durasi_hari ?? 0 }} Hari</td>
                             
@@ -169,7 +169,7 @@
                 </div>
                 <p class="mb-3 text-xs text-gray-500">
                     @if($plh['sampai'])
-                        Berlaku sampai {{ \Carbon\Carbon::parse($plh['sampai'])->translatedFormat('d F Y') }}.
+                        Berlaku sampai {{ \Carbon\Carbon::parse($plh['sampai'])->format('d/m/Y') }}.
                     @else
                         Berlaku sampai dicabut oleh Superadmin.
                     @endif
@@ -195,7 +195,7 @@
                                         <td class="px-6 py-4 font-bold text-gray-900">{{ $item->kode_pengajuan ?? '-' }}</td>
                                         <td class="px-6 py-4 font-bold text-gray-900">{{ $item->user->name ?? '-' }}</td>
                                         <td class="px-6 py-4 text-gray-600">{{ $item->jenisCuti->nama_cuti ?? '-' }}</td>
-                                        <td class="px-6 py-4 text-gray-500">{{ \Carbon\Carbon::parse($item->created_at)->translatedFormat('d F Y') }}</td>
+                                        <td class="px-6 py-4 text-gray-500">{{ \Carbon\Carbon::parse($item->created_at)->format('d/m/Y') }}</td>
                                         <td class="px-6 py-4 font-bold text-gray-800">{{ $item->durasi_hari ?? 0 }} Hari</td>
                                         <td class="px-6 py-4 text-right">
                                             <a href="{{ route('kepala.approval.show', $item->id) }}" class="text-[#2a64f5] hover:text-blue-800 font-bold text-sm inline-flex items-center">

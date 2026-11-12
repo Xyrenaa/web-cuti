@@ -113,7 +113,7 @@
                                 <td class="px-6 py-4 font-medium text-gray-900">{{ $pengajuan->user->name ?? 'User Dihapus' }}</td>
                                 <td class="px-6 py-4 text-gray-500 font-mono text-xs">{{ $pengajuan->user->nip ?? '-' }}</td>
                                 <td class="px-6 py-4 text-gray-600">{{ $pengajuan->jenisCuti->nama_cuti ?? 'Cuti Tahunan' }}</td>
-                                <td class="px-6 py-4 text-gray-500">{{ \Carbon\Carbon::parse($pengajuan->created_at)->translatedFormat('d M Y') }}</td>
+                                <td class="px-6 py-4 text-gray-500">{{ \Carbon\Carbon::parse($pengajuan->created_at)->format('d/m/Y') }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-700">{{ $pengajuan->durasi_hari }} Hari</td>
                                 <td class="px-6 py-4 text-center">
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
