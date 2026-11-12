@@ -798,8 +798,9 @@ public function kirimRevisi(Request $request, $id)
                         'step'  => 3,
                         'peran' => 'Admin Kepegawaian',
                         'nama'  => Auth::user()->name,
-                        'file'  => $path,
-                        'waktu' => now()->toDateTimeString(),
+                        'file'      => $berkas['path'],
+                        'nama_file' => $berkas['nama'],
+                        'waktu'     => now()->toDateTimeString(),
                     ];
                     $pengajuan->dokumen_ttd = $daftarTtd;
                 }
@@ -1438,7 +1439,9 @@ public function kirimRevisi(Request $request, $id)
         'total_diajukan' => \App\Models\PengajuanCuti::where('user_id', $user->id)->count(),
         'disetujui' => \App\Models\PengajuanCuti::where('user_id', $user->id)
                             ->where('approval_step', 8)->count(),
-        'menunggu' => \App\Models\PengajuanCuti::where('user_id', $user->id)
+         'menunggu' => \App\Models\PengajuanCuti::where('user_id', $user->id)
+                            ->whereIn('approval_step', \App\Models\PengajuanCuti::GRUP_STEP['Menunggu'])
+                            ->count(),
                             
     ];
    if ($user->hasRole('Pegawai')) {

@@ -2,7 +2,4 @@
 @tailwind components;
 @tailwind utilities;
 [x-cloak] { display: none !important; }
-
-/* Cegah navbar bergeser ke samping saat scrollbar muncul/hilang antar halaman */
 html { scrollbar-gutter: stable; }
-html.tanpa-gutter { scrollbar-gutter: auto; }

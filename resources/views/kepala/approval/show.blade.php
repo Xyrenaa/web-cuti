@@ -200,8 +200,38 @@
                         @endphp
                         <div class="relative pl-6">
                             <span class="absolute -left-[11px] top-1 h-5 w-5 rounded-full {{ $warnaAkhir }} ring-4 ring-white"></span>
-                            <h3 class="text-sm font-semibold text-gray-800">{{ $judulAkhir }}</h3>
+                                                        <h3 class="text-sm font-semibold text-gray-800">{{ $judulAkhir }}</h3>
                         </div>
+                    </div>
+
+                    @if($bisaAksi)
+                    <div class="flex flex-col gap-3 pt-6 mt-8 border-t border-gray-100">
+                        <form id="form-approve" action="{{ route('kepala.approval.approve', $data->id) }}" method="POST" enctype="multipart/form-data" class="w-full">
+                            @csrf @method('PUT')
+
+                            <label class="block mb-1 text-xs font-semibold text-gray-600">
+                                Upload Dokumen yang Sudah Ditandatangani <span class="font-normal text-gray-400">(opsional)</span>
+                            </label>
+                            <input type="file" name="dokumen_ttd" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                class="block w-full mb-3 text-xs text-gray-600 border border-gray-300 rounded-lg file:mr-3 file:py-2 file:px-3 file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#2A65F3] hover:file:bg-blue-100">
+
+                            <button type="button" onclick="konfirmasiAksi('approve')" class="w-full px-6 py-2.5 text-sm font-semibold text-white transition bg-[#2A65F3] rounded-lg shadow-sm hover:bg-blue-700">
+                                Setujui & Teruskan
+                            </button>
+                        </form>
+                        <form id="form-revisi" action="{{ route('kepala.approval.revisi', $data->id) }}" method="POST" class="w-full">
+                            @csrf @method('PUT')
+                            <button type="button" onclick="konfirmasiAksi('revisi')" class="w-full px-6 py-2.5 text-sm font-semibold text-yellow-700 transition bg-white border border-yellow-300 rounded-lg shadow-sm hover:bg-yellow-50 hover:border-yellow-400">
+                                Kembalikan (Revisi)
+                            </button>
+                        </form>
+                        <form id="form-reject" action="{{ route('kepala.approval.reject', $data->id) }}" method="POST" class="w-full">
+                            @csrf @method('PUT')
+                            <button type="button" onclick="konfirmasiAksi('reject')" class="w-full px-6 py-2.5 text-sm font-semibold text-red-600 transition bg-white border border-red-200 rounded-lg hover:bg-red-50 hover:border-red-300">
+                                Tolak Permanen
+                            </button>
+                        </form>
+                    </div>
                     @else
                     <p class="pt-6 mt-8 text-sm italic text-center text-gray-400 border-t border-gray-100">
                         Pengajuan ini bukan/belum di meja Anda saat ini.
