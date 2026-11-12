@@ -31,7 +31,9 @@ class PengajuanCuti extends Model
     'approval_step',
     'plh_user_id',     
     'status_pengajuan',
-    'catatan_penolakan'  
+    'catatan_penolakan', 
+    'surat_pengajuan_nama'
+
 ];
 
     public function jenisCuti() {
@@ -200,4 +202,41 @@ class PengajuanCuti extends Model
             'is_ttd' => false,
         ];
     }
+    public static function namaBerkas(?string $path, ?string $nama = null): string
+{
+    if ($nama) {
+        return $nama;
+    }
+    // data lama: 1794378860_wajib_xxx / _opsi0_ / _ttd_ (bisa bertumpuk)
+    $base = basename((string) $path);
+    return preg_replace('/^(?:\d{9,}_(?:wajib|opsi\d*|ttd)_)+/', '', $base) ?: $base;
+}
+
+/** Daftar berkas per jenis: [['path'=>, 'nama'=>, 'meta'=>?], ...]. Menangani format lama (string) dan baru. */
+public function daftarBerkas(string $jenis): array
+{
+    $daftar = match ($jenis) {
+        'surat' => $this->surat_pengajuan
+            ? [['path' => $this->surat_pengajuan, 'nama' => $this->surat_pengajuan_nama]] : [],
+        'bukti' => collect($this->bukti_pendukung ?? [])
+            ->map(fn ($b) => is_array($b)
+                ? ['path' => $b['path'] ?? null, 'nama' => $b['nama'] ?? null]
+                : ['path' => $b, 'nama' => null])          // format lama: string path
+            ->all(),
+        'ttd'   => collect($this->riwayat_ttd)
+            ->map(fn ($t) => ['path' => $t['file'] ?? null, 'nama' => $t['nama_file'] ?? null, 'meta' => $t])
+            ->all(),
+        default => [],
+    };
+
+    return array_values(array_map(function ($b) {
+        $b['nama'] = self::namaBerkas($b['path'], $b['nama'] ?? null);
+        return $b;
+    }, array_filter($daftar, fn ($b) => ! empty($b['path']))));
+}
+
+public function urlBerkas(string $jenis, int $index = 0): string
+{
+    return route('berkas.unduh', ['pengajuan' => $this->id, 'jenis' => $jenis, 'index' => $index]);
+}
 }

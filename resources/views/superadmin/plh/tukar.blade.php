@@ -9,7 +9,7 @@
     @php
         $input = 'mt-1 block w-full rounded-lg border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500';
         $label = 'block text-sm font-semibold text-gray-700';
-        $fmt = fn ($d) => \Carbon\Carbon::parse($d)->format('d M Y');
+        $fmt = fn ($d) => \Carbon\Carbon::parse($d)->format('d/m/Y');
     @endphp
 
     <div class="pt-10 pb-12">

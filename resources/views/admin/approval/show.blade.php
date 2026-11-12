@@ -8,7 +8,9 @@
 
     <!-- Ambil variabel step untuk logika UI -->
     @php
-        $step = $data->approval_step ?? 0;
+     $step   = (int) ($data->approval_step ?? 0);              // nilai asli
+    $halted = in_array($step, [0, 10]);
+    $posisi = in_array($step, [0, 9, 10]) ? -1 : $step; 
     @endphp
 
     <div class="pt-8 pb-12">
@@ -28,7 +30,7 @@
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-1 md:gap-4">
                                 <dt class="text-sm text-gray-500 font-medium">Tanggal pengajuan</dt>
-                                <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->created_at)->translatedFormat('l, d F Y, H:i') }}</dd>
+                                <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->created_at)->translatedFormat('l, d/m/Y H:i') }}</dd>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-1 md:gap-4">
                                 <dt class="text-sm text-gray-500 font-medium">Jenis Cuti</dt>
@@ -40,11 +42,11 @@
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-1 md:gap-4">
                                 <dt class="text-sm text-gray-500 font-medium">Tanggal Mulai</dt>
-                                <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->tanggal_mulai)->translatedFormat('l, d F Y') }}</dd>
+                                <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->tanggal_mulai)->translatedFormat('l, d/m/Y') }}</dd>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-1 md:gap-4">
                                 <dt class="text-sm text-gray-500 font-medium">Selesai</dt>
-                                <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->tanggal_selesai)->translatedFormat('l, d F Y') }}</dd>
+                                <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->tanggal_selesai)->translatedFormat('l, d/m/Y') }}</dd>
                             </div>
                         </div>
                     </div>
@@ -61,30 +63,14 @@
                                 <dt class="text-sm text-gray-500 font-medium">Alamat Selama Cuti</dt>
                                 <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ $data->lokasi ?? '-' }}</dd>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-1 md:gap-4">
-                                <dt class="text-sm text-gray-500 font-medium">Kontak Darurat</dt>
-                                <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ $data->kontak_darurat ?? '-' }}</dd>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-1 md:gap-4">
-                                <dt class="text-sm text-gray-500 font-medium">Pengganti Tugas</dt>
-                                <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ $data->pengganti_tugas ?? '-' }}</dd>
-                            </div>
-                        </div>
-                    </div>
+                         </div>
+                     </div>
 
                     <!-- Card: Lampiran -->
                     <div class="bg-white rounded-2xl p-7 shadow-sm border border-gray-100">
                         <h3 class="font-bold text-lg text-gray-900 mb-4">Lampiran</h3>
                         
-                        @php
-                            // Sebelumnya pakai `??` yang cuma ambil SATU field (bukti_pendukung
-                            // ATAU surat_pengajuan, bukan dua-duanya) — makanya surat wajib hilang
-                            // begitu bukti_pendukung terisi. Sekarang gabungkan keduanya, disamakan
-                            // dengan logic yang sudah benar di kepala/approval/show.blade.php.
-                            $buktiPendukung = is_array($data->bukti_pendukung)
-                                ? $data->bukti_pendukung
-                                : (json_decode($data->bukti_pendukung ?? '[]', true) ?: []);
-                        @endphp
+                        $bukti = $data->daftarBerkas('bukti');
 
                         @if($data->surat_pengajuan || !empty($buktiPendukung))
                             <div class="space-y-3">
@@ -129,7 +115,7 @@
                                     <svg class="flex-shrink-0 w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     <div class="truncate">
                                         <span class="text-sm font-bold text-gray-800">{{ basename($ttd['file']) }}</span>
-                                        <p class="text-xs text-gray-500">Ditandatangani {{ $ttd['nama'] ?? '-' }} ({{ $ttd['peran'] ?? '-' }}) &middot; {{ \Carbon\Carbon::parse($ttd['waktu'])->translatedFormat('d M Y, H:i') }}</p>
+                                        <p class="text-xs text-gray-500">Ditandatangani {{ $ttd['nama'] ?? '-' }} ({{ $ttd['peran'] ?? '-' }}) &middot; {{ \Carbon\Carbon::parse($ttd['waktu'])->format('d/m/Y H:i') }}</p>
                                     </div>
                                 </div>
                                 <a href="{{ asset('storage/'.$ttd['file']) }}" target="_blank" class="flex-shrink-0 text-sm font-bold text-green-700 hover:text-green-900 transition">Unduh File</a>
@@ -158,57 +144,62 @@
                             
                             <!-- 1. Pengajuan Dikirim -->
                             <div class="relative pl-6">
-                                <div class="absolute w-5 h-5 rounded-full bg-[#1e3a8a] -left-[11px] top-0 border-4 border-white shadow-sm"></div>
-                                <h4 class="font-bold text-sm text-gray-900">Pengajuan Dikirim</h4>
+                                <div class="absolute w-5 h-5 rounded-full {{ $step === 10 ? 'bg-gray-300' : 'bg-[#1e3a8a]' }} -left-[11px] top-0 border-4 border-white shadow-sm"></div>
+                                <h4 class="font-bold text-sm {{ $step === 10 ? 'text-gray-400' : 'text-gray-900' }}">Pengajuan Dikirim</h4>
                                 <p class="text-xs text-gray-500 mt-0.5">Oleh Pegawai</p>
                             </div>
                             
                             <!-- 2. Kepala Seksi -->
                             <div class="relative pl-6">
-                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 1 ? 'bg-[#1e3a8a]' : ($step == 1 ? ($halted ? 'bg-red-500' : 'bg-amber-400 animate-pulse') : 'bg-gray-300') }}"></div>
-                                <h4 class="font-bold text-sm {{ $step > 1 ? 'text-gray-900' : ($step == 1 ? ($halted ? 'text-red-600' : 'text-amber-600') : 'text-gray-400') }}">Persetujuan Kepala Seksi</h4>
-                                <p class="text-[11px] {{ $step == 1 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 1 ? 'Selesai' : ($step == 1 ? ($halted ? $data->status_label : 'Menunggu Validasi') : 'Menunggu Tahap Sebelumnya') }}</p>
+                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $posisi > 1 ? 'bg-[#1e3a8a]' : ($posisi == 1 ? ($halted ? 'bg-red-500' : 'bg-amber-400 animate-pulse') : 'bg-gray-300') }}"></div>
+                                <h4 class="font-bold text-sm {{ $posisi > 1 ? 'text-gray-900' : ($posisi == 1 ? ($halted ? 'text-red-600' : 'text-amber-600') : 'text-gray-400') }}">Persetujuan Kepala Seksi</h4>
+                                <p class="text-[11px] {{ $posisi == 1 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $posisi > 1 ? 'Selesai' : ($posisi == 1 ? ($halted ? $data->status_label : 'Menunggu Validasi') : 'Menunggu Tahap Sebelumnya') }}</p>
                             </div>
 
                             <!-- 3. Kepala Bidang -->
                             <div class="relative pl-6">
-                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 2 ? 'bg-[#1e3a8a]' : ($step == 2 ? ($halted ? 'bg-red-500' : 'bg-amber-400 animate-pulse') : 'bg-gray-300') }}"></div>
-                                <h4 class="font-bold text-sm {{ $step > 2 ? 'text-gray-900' : ($step == 2 ? ($halted ? 'text-red-600' : 'text-amber-600') : 'text-gray-400') }}">Persetujuan Kepala Bidang</h4>
-                                <p class="text-[11px] {{ $step == 2 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 2 ? 'Selesai' : ($step == 2 ? ($halted ? $data->status_label : 'Menunggu Validasi') : 'Menunggu Tahap Sebelumnya') }}</p>
+                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $posisi > 2 ? 'bg-[#1e3a8a]' : ($posisi == 2 ? ($halted ? 'bg-red-500' : 'bg-amber-400 animate-pulse') : 'bg-gray-300') }}"></div>
+                                <h4 class="font-bold text-sm {{ $posisi > 2 ? 'text-gray-900' : ($posisi == 2 ? ($halted ? 'text-red-600' : 'text-amber-600') : 'text-gray-400') }}">Persetujuan Kepala Bidang</h4>
+                                <p class="text-[11px] {{ $posisi == 2 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $posisi > 2 ? 'Selesai' : ($posisi == 2 ? ($halted ? $data->status_label : 'Menunggu Validasi') : 'Menunggu Tahap Sebelumnya') }}</p>
                             </div>
 
                             <!-- 4. Kasubag -->
                             <div class="relative pl-6">
-                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 4 ? 'bg-[#1e3a8a]' : (in_array($step, [3, 4]) ? ($halted ? 'bg-red-500' : 'bg-amber-400 animate-pulse') : 'bg-gray-300') }}"></div>
-                                <h4 class="font-bold text-sm {{ $step > 4 ? 'text-gray-900' : (in_array($step, [3, 4]) ? ($halted ? 'text-red-600' : 'text-amber-600') : 'text-gray-400') }}">Persetujuan Kasubag</h4>
-                                <p class="text-[11px] {{ in_array($step, [3, 4]) ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 4 ? 'Selesai' : (in_array($step, [3, 4]) ? ($halted ? $data->status_label : ($step == 3 ? 'Menunggu Verifikasi Admin' : 'Menunggu Validasi Kasubag')) : 'Menunggu Tahap Sebelumnya') }}</p>
+                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $posisi > 4 ? 'bg-[#1e3a8a]' : (in_array($posisi, [3, 4]) ? 'bg-amber-400 animate-pulse' : 'bg-gray-300') }}"></div>
+                                <h4 class="font-bold text-sm {{ $posisi > 4 ? 'text-gray-900' : (in_array($posisi, [3, 4]) ? 'text-amber-600' : 'text-gray-400') }}">Persetujuan Kasubag</h4>
+                                <p class="text-[11px] {{ in_array($posisi, [3, 4]) ? 'text-gray-500' : 'text-gray-400' }} mt-0.5">{{ $posisi > 4 ? 'Selesai' : (in_array($posisi, [3, 4]) ? ($posisi == 3 ? 'Menunggu Verifikasi Admin' : 'Menunggu Validasi Kasubag') : 'Menunggu Tahap Sebelumnya') }}</p>
                             </div>
 
                             <!-- 5. Kepala TU -->
                             <div class="relative pl-6">
-                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 5 ? 'bg-[#1e3a8a]' : ($step == 5 ? ($halted ? 'bg-red-500' : 'bg-amber-400 animate-pulse') : 'bg-gray-300') }}"></div>
-                                <h4 class="font-bold text-sm {{ $step > 5 ? 'text-gray-900' : ($step == 5 ? ($halted ? 'text-red-600' : 'text-amber-600') : 'text-gray-400') }}">Persetujuan Kepala TU</h4>
-                                <p class="text-[11px] {{ $step == 5 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 5 ? 'Selesai' : ($step == 5 ? ($halted ? $data->status_label : 'Menunggu Validasi TU') : 'Menunggu Tahap Sebelumnya') }}</p>
+                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $posisi > 5 ? 'bg-[#1e3a8a]' : ($posisi == 5 ? ($halted ? 'bg-red-500' : 'bg-amber-400 animate-pulse') : 'bg-gray-300') }}"></div>
+                                <h4 class="font-bold text-sm {{ $posisi > 5 ? 'text-gray-900' : ($posisi == 5 ? ($halted ? 'text-red-600' : 'text-amber-600') : 'text-gray-400') }}">Persetujuan Kepala TU</h4>
+                                <p class="text-[11px] {{ $posisi == 5 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $posisi > 5 ? 'Selesai' : ($posisi == 5 ? ($halted ? $data->status_label : 'Menunggu Validasi TU') : 'Menunggu Tahap Sebelumnya') }}</p>
                             </div>
 
                             <!-- 6. Kepala Kantor -->
                             <div class="relative pl-6">
-                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 6 ? 'bg-[#1e3a8a]' : ($step == 6 ? ($halted ? 'bg-red-500' : 'bg-amber-400 animate-pulse') : 'bg-gray-300') }}"></div>
-                                <h4 class="font-bold text-sm {{ $step > 6 ? 'text-gray-900' : ($step == 6 ? ($halted ? 'text-red-600' : 'text-amber-600') : 'text-gray-400') }}">Persetujuan Kepala Kantor</h4>
-                                <p class="text-[11px] {{ $step == 6 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 6 ? 'Selesai' : ($step == 6 ? ($halted ? $data->status_label : 'Menunggu Validasi Kakan') : 'Menunggu Tahap Sebelumnya') }}</p>
+                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $posisi > 6 ? 'bg-[#1e3a8a]' : ($posisi == 6 ? ($halted ? 'bg-red-500' : 'bg-amber-400 animate-pulse') : 'bg-gray-300') }}"></div>
+                                <h4 class="font-bold text-sm {{ $posisi > 6 ? 'text-gray-900' : ($posisi == 6 ? ($halted ? 'text-red-600' : 'text-amber-600') : 'text-gray-400') }}">Persetujuan Kepala Kantor</h4>
+                                <p class="text-[11px] {{ $posisi == 6 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $posisi > 6 ? 'Selesai' : ($posisi == 6 ? ($halted ? $data->status_label : 'Menunggu Validasi Kakan') : 'Menunggu Tahap Sebelumnya') }}</p>
                             </div>
 
                             <!-- 7. Finalisasi Penomoran -->
                             <div class="relative pl-6">
-                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step > 7 ? 'bg-[#1e3a8a]' : ($step == 7 ? ($halted ? 'bg-red-500' : 'bg-amber-400 animate-pulse') : 'bg-gray-300') }}"></div>
-                                <h4 class="font-bold text-sm {{ $step > 7 ? 'text-gray-900' : ($step == 7 ? ($halted ? 'text-red-600' : 'text-amber-600') : 'text-gray-400') }}">Finalisasi Penomoran</h4>
-                                <p class="text-[11px] {{ $step == 7 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $step > 7 ? 'Selesai' : ($step == 7 ? ($halted ? $data->status_label : 'Menunggu Proses Admin') : 'Menunggu Tahap Sebelumnya') }}</p>
+                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $posisi > 7 ? 'bg-[#1e3a8a]' : ($posisi == 7 ? ($halted ? 'bg-red-500' : 'bg-amber-400 animate-pulse') : 'bg-gray-300') }}"></div>
+                                <h4 class="font-bold text-sm {{ $posisi > 7 ? 'text-gray-900' : ($posisi == 7 ? ($halted ? 'text-red-600' : 'text-amber-600') : 'text-gray-400') }}">Finalisasi Penomoran</h4>
+                                <p class="text-[11px] {{ $posisi == 7 ? ($halted ? 'text-red-500' : 'text-gray-500') : 'text-gray-400' }} mt-0.5">{{ $posisi > 7 ? 'Selesai' : ($posisi == 7 ? ($halted ? $data->status_label : 'Menunggu Proses Admin') : 'Menunggu Tahap Sebelumnya') }}</p>
                             </div>
 
                             <!-- 8. Final -->
+                            @php
+                                $warnaAkhir = match ($step) { 8 => 'bg-[#1e3a8a]', 0 => 'bg-red-500', 9 => 'bg-amber-400', default => 'bg-gray-300' };
+                                $judulAkhir = match ($step) { 0 => 'Pengajuan Ditolak', 9 => 'Dikembalikan untuk Revisi', 10 => 'Pengajuan Dibatalkan', default => 'Cuti Diterima' };
+                                $teksAkhir  = $step === 8 ? 'text-gray-900' : ($step === 0 ? 'text-red-600' : 'text-gray-400');
+                            @endphp
                             <div class="relative pl-6">
-                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $step >= 8 ? 'bg-[#1e3a8a]' : ($halted ? 'bg-red-500' : 'bg-gray-300') }}"></div>
-                                <h4 class="font-bold text-sm {{ $step >= 8 ? 'text-gray-900' : ($halted ? 'text-red-600' : 'text-gray-400') }}">{{ $halted ? 'Pengajuan Gagal' : 'Cuti Diterima' }}</h4>
+                                <div class="absolute w-5 h-5 rounded-full -left-[11px] top-0 border-4 border-white shadow-sm {{ $warnaAkhir }}"></div>
+                                <h4 class="font-bold text-sm {{ $teksAkhir }}">{{ $judulAkhir }}</h4>
                             </div>
 
                         </div>

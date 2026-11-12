@@ -28,8 +28,8 @@
                     <table class="w-full text-sm text-gray-600">
                         <tbody class="space-y-3">
                             <tr><td class="py-2 w-1/3">Jenis Cuti</td><td class="py-2 font-semibold text-gray-900">{{ $pengajuan->jenisCuti->nama_cuti ?? '-' }}</td></tr>
-                            <tr><td class="py-2">Tanggal Pengajuan</td><td class="py-2 font-semibold text-gray-900">{{ $pengajuan->created_at->translatedFormat('l, d F Y, H:i') }}</td></tr>
-                            <tr><td class="py-2">Durasi Cuti</td><td class="py-2 font-semibold text-gray-900">{{ \Carbon\Carbon::parse($pengajuan->tanggal_mulai)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($pengajuan->tanggal_selesai)->format('d M Y') }}</td></tr>
+                            <tr><td class="py-2">Tanggal Pengajuan</td><td class="py-2 font-semibold text-gray-900">{{ $pengajuan->created_at->translatedFormat('l, d/m/Y H:i') }}</td></tr>
+                            <tr><td class="py-2">Durasi Cuti</td><td class="py-2 font-semibold text-gray-900">{{ \Carbon\Carbon::parse($pengajuan->tanggal_mulai)->format('d/m/Y') }} s/d {{ \Carbon\Carbon::parse($pengajuan->tanggal_selesai)->format('d/m/Y') }}</td></tr>
                             <tr><td class="py-2">Lokasi Selama Cuti</td><td class="py-2 font-semibold text-gray-900">{{ $pengajuan->lokasi }}</td></tr>
                             <tr><td class="py-2 align-top">Alasan</td><td class="py-2 font-semibold text-gray-900">{{ $pengajuan->alasan }}</td></tr>
                         </tbody>
@@ -91,7 +91,7 @@
                         <div class="relative pl-6">
                             <span class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-[#2A65F3] ring-4 ring-white"></span>
                             <h4 class="text-sm font-bold text-gray-900">Pengajuan Dikirim</h4>
-                            <p class="text-xs text-gray-500 mt-1">{{ $pengajuan->created_at->format('d M H:i') }}</p>
+                            <p class="text-xs text-gray-500 mt-1">{{ $pengajuan->created_at->format('d/m/Y H:i') }}</p>
                         </div>
 
                         <!-- Step 2: Proses Persetujuan -->

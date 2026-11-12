@@ -70,7 +70,7 @@
                         </div>
                         <div class="grid grid-cols-1 gap-1 md:grid-cols-3 md:gap-4">
                             <dt class="text-sm font-medium text-gray-500">Tanggal pengajuan</dt>
-                            <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->created_at)->translatedFormat('l, d F Y, H:i') }}</dd>
+                            <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->created_at)->translatedFormat('l, d/m/Y H:i') }}</dd>
                         </div>
                         <div class="grid grid-cols-1 gap-1 md:grid-cols-3 md:gap-4">
                             <dt class="text-sm font-medium text-gray-500">Jenis Cuti</dt>
@@ -82,15 +82,15 @@
                         </div>
                         <div class="grid grid-cols-1 gap-1 md:grid-cols-3 md:gap-4">
                             <dt class="text-sm font-medium text-gray-500">Tanggal Mulai</dt>
-                            <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->tanggal_mulai)->translatedFormat('l, d F Y') }}</dd>
+                            <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->tanggal_mulai)->translatedFormat('l, d/m/Y') }}</dd>
                         </div>
                         <div class="grid grid-cols-1 gap-1 md:grid-cols-3 md:gap-4">
                             <dt class="text-sm font-medium text-gray-500">Selesai</dt>
-                            <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->tanggal_selesai)->translatedFormat('l, d F Y') }}</dd>
+                            <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->tanggal_selesai)->translatedFormat('l, d/m/Y') }}</dd>
                         </div>
                         <div class="grid grid-cols-1 gap-1 md:grid-cols-3 md:gap-4">
                             <dt class="text-sm font-medium text-gray-500">Aktif Kembali</dt>
-                            <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->tanggal_selesai)->addDay()->translatedFormat('l, d F Y') }}</dd>
+                            <dd class="text-sm font-bold text-gray-900 md:col-span-2">{{ \Carbon\Carbon::parse($data->tanggal_selesai)->addDay()->translatedFormat('l, d/m/Y') }}</dd>
                         </div>
                     </div>
                 </div>
@@ -144,7 +144,7 @@
                                     <svg class="flex-shrink-0 w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     <div>
                                         <span class="text-sm font-bold text-gray-800">{{ basename($ttd['file']) }}</span>
-                                        <p class="text-xs text-gray-500">Ditandatangani {{ $ttd['nama'] ?? '-' }} ({{ $ttd['peran'] ?? '-' }}) &middot; {{ \Carbon\Carbon::parse($ttd['waktu'])->translatedFormat('d M Y, H:i') }}</p>
+                                        <p class="text-xs text-gray-500">Ditandatangani {{ $ttd['nama'] ?? '-' }} ({{ $ttd['peran'] ?? '-' }}) &middot; {{ \Carbon\Carbon::parse($ttd['waktu'])->format('d/m/Y H:i') }}</p>
                                     </div>
                                 </div>
                                 <a href="{{ asset('storage/'.$ttd['file']) }}" target="_blank" class="flex-shrink-0 text-sm font-bold text-green-700 hover:text-green-900 transition">Unduh File</a>

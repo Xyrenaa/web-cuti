@@ -164,6 +164,93 @@ private function hitungHariKerja(\Carbon\Carbon $mulai, \Carbon\Carbon $selesai)
     }
     return $n;
 }
+protected function stepAwal(\App\Models\User $user): int
+{
+    if ($user->hasRole('Kepala Seksi') || $user->hasRole('Admin Kepegawaian')) return 2;
+    if ($user->hasRole('Kepala Bidang'))     return 3;
+    if ($user->hasRole('Kepala Sub-Bagian')) return 5;
+    if ($user->hasRole('Kepala TU'))         return 6;
+    if ($user->hasRole('Kepala Kantor'))     return 7;
+    if ($user->bagianBidang?->is_tu)         return 3;   // pegawai Tata Usaha
+    return 1;                                              // pegawai biasa, mulai dari Kasi
+}
+/**
+ * Aturan bisnis pengajuan cuti. Dipakai store() (pengajuan baru) dan kirimRevisi() (ajukan ulang).
+ *
+ * @return array{0: ?string, 1: int}  [pesan error atau null, durasi hari kerja]
+ */
+protected function cekAturanPengajuan(Request $request, ?PengajuanCuti $lama = null): array
+{
+    $user             = Auth::user();
+    $jenisCutiDipilih = \App\Models\JenisCuti::find($request->jenis_cuti_id);
+
+    if ($user->status_kepegawaian === 'PPPK' && $jenisCutiDipilih && ! $jenisCutiDipilih->untuk_pppk) {
+        return ['Jenis cuti "' . $jenisCutiDipilih->nama_cuti . '" tidak tersedia untuk status kepegawaian PPPK.', 0];
+    }
+    if ($user->jenis_kelamin === 'L' && $jenisCutiDipilih && $jenisCutiDipilih->khusus_perempuan) {
+        return ['Jenis cuti "' . $jenisCutiDipilih->nama_cuti . '" khusus untuk pegawai perempuan.', 0];
+    }
+
+    // BARU (1/3): saat revisi, bukti yang sudah tersimpan dianggap sudah ada
+    $adaBukti = $request->hasFile('bukti_pendukung') || ! empty($lama?->bukti_pendukung);
+    if ($jenisCutiDipilih && $jenisCutiDipilih->wajib_lampiran && ! $adaBukti) {
+        return ['Jenis cuti "' . $jenisCutiDipilih->nama_cuti . '" wajib melampirkan bukti pendukung (surat dokter / surat keterangan / surat rawat inap).', 0];
+    }
+
+    $tanggal_mulai   = \Carbon\Carbon::parse($request->tanggal_mulai);
+    $tanggal_selesai = \Carbon\Carbon::parse($request->tanggal_selesai);
+
+    $durasi_hari = $this->hitungHariKerja($tanggal_mulai, $tanggal_selesai);
+    if ($durasi_hari < 1) {
+        return ['Tanggal tidak valid. Rentang yang dipilih seluruhnya jatuh pada akhir pekan atau hari libur nasional.', 0];
+    }
+
+    $batasBulan       = ['Cuti Alasan Penting' => 1, 'Cuti Melahirkan' => 3, 'Cuti Besar' => 3];
+    $namaJenisDipilih = $jenisCutiDipilih->nama_cuti ?? '';
+    if (isset($batasBulan[$namaJenisDipilih])
+        && $tanggal_selesai->gt($tanggal_mulai->copy()->addMonths($batasBulan[$namaJenisDipilih]))) {
+        return [$namaJenisDipilih . ' paling lama ' . $batasBulan[$namaJenisDipilih] . ' bulan.', 0];
+    }
+
+    $adaBentrok = PengajuanCuti::where('user_id', $user->id)
+        ->when($lama, fn ($q) => $q->where('id', '!=', $lama->id))   // BARU (2/3): jangan bentrok dengan dirinya sendiri
+        ->whereNotIn('approval_step', [0, 10])
+        ->where('tanggal_mulai', '<=', $tanggal_selesai)
+        ->where('tanggal_selesai', '>=', $tanggal_mulai)
+        ->exists();
+
+    if ($adaBentrok) {
+        return ['Anda masih memiliki pengajuan cuti aktif yang tanggalnya bertumpuk dengan rentang tanggal ini. Selesaikan atau batalkan pengajuan sebelumnya terlebih dahulu.', 0];
+    }
+
+    if ($jenisCutiDipilih && $jenisCutiDipilih->mengurangi_kuota) {
+        $tahunCuti = $tanggal_mulai->year;
+
+        $tercatat = (int) PengajuanCuti::where('user_id', $user->id)
+            ->where('approval_step', 8)
+            ->whereYear('tanggal_mulai', $tahunCuti)
+            ->whereHas('jenisCuti', fn ($q) => $q->where('mengurangi_kuota', true))
+            ->sum('durasi_hari');
+
+        $menunggu = (int) PengajuanCuti::where('user_id', $user->id)
+            ->when($lama, fn ($q) => $q->where('id', '!=', $lama->id))   // BARU (3/3): pengajuan yang sedang direvisi jangan dihitung dua kali
+            ->whereNotIn('approval_step', [0, 8, 10])
+            ->whereYear('tanggal_mulai', $tahunCuti)
+            ->whereHas('jenisCuti', fn ($q) => $q->where('mengurangi_kuota', true))
+            ->sum('durasi_hari');
+
+        $saldoCek  = \App\Models\User::saldoDari($user, $tercatat, $user->punyaCutiBesar($tahunCuti));
+        $sisaBebas = $saldoCek['total_sisa'] - $menunggu;
+
+        if ($tahunCuti === now()->year && $durasi_hari > $sisaBebas) {
+            return ["Sisa cuti Anda {$sisaBebas} hari (sudah dikurangi pengajuan yang masih diproses), sedangkan pengajuan ini {$durasi_hari} hari.", 0];
+        }
+    }
+
+    // (cek PLH dari poin 8 ditaruh di sini, sebelum return)
+
+    return [null, $durasi_hari];
+}
     public function store(Request $request)
 {
     $request->validate([
@@ -176,109 +263,25 @@ private function hitungHariKerja(\Carbon\Carbon $mulai, \Carbon\Carbon $selesai)
         'bukti_pendukung'   => 'nullable|array|max:5',
         'bukti_pendukung.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
     ]);
-     $jenisCutiDipilih = \App\Models\JenisCuti::find($request->jenis_cuti_id);
+     [$error, $durasi_hari] = $this->cekAturanPengajuan($request);
+        if ($error) {
+            return redirect()->back()->withInput()->with('error', $error);
+        }
 
-    if (Auth::user()->status_kepegawaian === 'PPPK' && $jenisCutiDipilih && !$jenisCutiDipilih->untuk_pppk) {
-        return redirect()->back()->withInput()->with('error', 'Jenis cuti "' . $jenisCutiDipilih->nama_cuti . '" tidak tersedia untuk status kepegawaian PPPK.');
-    }
-    if (Auth::user()->jenis_kelamin === 'L' && $jenisCutiDipilih && $jenisCutiDipilih->khusus_perempuan) {
-        return redirect()->back()->withInput()->with('error', 'Jenis cuti "' . $jenisCutiDipilih->nama_cuti . '" khusus untuk pegawai perempuan.');
-    }
-    if ($jenisCutiDipilih && $jenisCutiDipilih->wajib_lampiran && !$request->hasFile('bukti_pendukung')) {
-    return redirect()->back()->withInput()->with('error', 'Jenis cuti "' . $jenisCutiDipilih->nama_cuti . '" wajib melampirkan bukti pendukung (surat dokter / surat keterangan / surat rawat inap).');
-    }
+        $user = Auth::user();
 
-    $tanggal_mulai = \Carbon\Carbon::parse($request->tanggal_mulai);
-    $tanggal_selesai = \Carbon\Carbon::parse($request->tanggal_selesai);
-    
+           // 1. Simpan Surat Pengajuan (nama acak di disk, nama asli dicatat)
+    $surat = $this->simpanBerkas($request->file('surat_pengajuan'), 'dokumen/surat_pengajuan');
 
-     $durasi_hari = $this->hitungHariKerja($tanggal_mulai, $tanggal_selesai);
-
-    if ($durasi_hari < 1) {
-        return redirect()->back()->withInput()->with('error', 'Tanggal tidak valid. Rentang yang dipilih seluruhnya jatuh pada akhir pekan atau hari libur nasional.');
-    }
-    $batasBulan = ['Cuti Alasan Penting' => 1, 'Cuti Melahirkan' => 3, 'Cuti Besar' => 3];
-    $namaJenisDipilih = $jenisCutiDipilih->nama_cuti ?? '';
-        if (isset($batasBulan[$namaJenisDipilih])
-        && $tanggal_selesai->gt($tanggal_mulai->copy()->addMonths($batasBulan[$namaJenisDipilih]))) {
-        return redirect()->back()->withInput()->with('error', $namaJenisDipilih . ' paling lama ' . $batasBulan[$namaJenisDipilih] . ' bulan.');
-    }
-
-    $user = Auth::user();
-
-    $adaBentrok = PengajuanCuti::where('user_id', $user->id)
-        ->whereNotIn('approval_step', [0, 10])
-        ->where('tanggal_mulai', '<=', $tanggal_selesai)
-        ->where('tanggal_selesai', '>=', $tanggal_mulai)
-        ->exists();
-
-    if ($adaBentrok) {
-        return redirect()->back()->withInput()->with('error', 'Anda masih memiliki pengajuan cuti aktif yang tanggalnya bertumpuk dengan rentang tanggal ini. Selesaikan atau batalkan pengajuan sebelumnya terlebih dahulu.');
-    }
-    if ($jenisCutiDipilih && $jenisCutiDipilih->mengurangi_kuota) {
-    $tahunCuti = $tanggal_mulai->year;
-
-    $tercatat = (int) PengajuanCuti::where('user_id', $user->id)
-        ->where('approval_step', 8)
-        ->whereYear('tanggal_mulai', $tahunCuti)
-        ->whereHas('jenisCuti', fn ($q) => $q->where('mengurangi_kuota', true))
-        ->sum('durasi_hari');
-
-    $menunggu = (int) PengajuanCuti::where('user_id', $user->id)
-        ->whereNotIn('approval_step', [0, 8, 10])
-        ->whereYear('tanggal_mulai', $tahunCuti)
-        ->whereHas('jenisCuti', fn ($q) => $q->where('mengurangi_kuota', true))
-        ->sum('durasi_hari');
-
-    $saldoCek  = \App\Models\User::saldoDari($user, $tercatat, $user->punyaCutiBesar($tahunCuti));
-    $sisaBebas = $saldoCek['total_sisa'] - $menunggu;
-
-    if ($tahunCuti === now()->year && $durasi_hari > $sisaBebas) {
-        return redirect()->back()->withInput()->with('error',
-            "Sisa cuti Anda {$sisaBebas} hari (sudah dikurangi pengajuan yang masih diproses), sedangkan pengajuan ini {$durasi_hari} hari.");
-    }
-    }
-
-    // 1. Upload Berkas Surat Pengajuan
-    $suratFile = $request->file('surat_pengajuan');
-    $suratName = time() . '_wajib_' . preg_replace('/\s+/', '_', $suratFile->getClientOriginalName());
-    $suratPath = $suratFile->storeAs('dokumen/surat_pengajuan', $suratName, 'public');
- 
-    // 2. Upload Berkas Bukti Pendukung (Opsional / Multiple)
-    $buktiPaths = [];
+    // 2. Simpan Bukti Pendukung (opsional, boleh lebih dari satu)
+    $bukti = [];
     if ($request->hasFile('bukti_pendukung')) {
-        foreach ($request->file('bukti_pendukung') as $key => $file) {
-            $buktiName = time() . '_opsi' . $key . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
-            $buktiPaths[] = $file->storeAs('dokumen/bukti_pendukung', $buktiName, 'public');
+        foreach ($request->file('bukti_pendukung') as $file) {
+            $bukti[] = $this->simpanBerkas($file, 'dokumen/bukti_pendukung');
         }
     }
 
-    // Memeriksa apakah pegawai ini berada di ekosistem Tata Usaha (TU)
-    $is_tu = $user->bagianBidang ? $user->bagianBidang->is_tu : false;
-
-    // PENTING: cek role Kepala milik SI PENGAJU dulu, sebelum cek $is_tu.
-    // Sebelumnya $is_tu dicek duluan, jadi Kepala Sub-Bagian & Kepala TU
-    // (yang bagian_bidang-nya memang TU) selalu ke-set ke step 3 tanpa
-    // pernah sampai ke logic "potong kompas" di bawah — itu sebabnya
-    // pengajuan mereka bisa nyangkut balik ke approval_step milik mereka
-    // sendiri (self-approval).
-    if ($user->hasRole('Kepala Seksi') || $user->hasRole('Admin Kepegawaian')) {
-        $inisialStep = 2; // Lompat ke Kepala Bidang
-    } elseif ($user->hasRole('Kepala Bidang')) {
-        $inisialStep = 3; // Lompat ke Verifikasi Admin
-    } elseif ($user->hasRole('Kepala Sub-Bagian')) {
-        $inisialStep = 5; // Lompat ke Kepala TU, skip approval diri sendiri (step 4)
-    } elseif ($user->hasRole('Kepala TU')) {
-        $inisialStep = 6; // Lompat ke Kepala Kantor, skip approval diri sendiri (step 5)
-    } elseif ($user->hasRole('Kepala Kantor')) {
-        $inisialStep = 7; // Lompat ke Finalisasi Admin, skip approval diri sendiri (step 6)
-    } elseif ($is_tu) {
-        // JALUR TATA USAHA: Pegawai (non-kepala) TU langsung masuk ke Dashboard Admin
-        $inisialStep = 3;
-    } else {
-        // JALUR OPERASIONAL BIDANG: Pegawai biasa masuk ke Kasi (Step 1)
-        $inisialStep = 1;
-    }
+    $inisialStep = $this->stepAwal($user);
 
     // Menentukan Teks Status Berdasarkan Hierarki
     $statusPengajuan = 'Menunggu Persetujuan';
@@ -339,13 +342,49 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
         'durasi_hari'       => $durasi_hari, // <--- TAMBAHAN UNTUK MENYIMPAN DURASI 
         'alasan'            => $request->alasan,
         'lokasi'            => $request->lokasi,
-        'surat_pengajuan'   => $suratPath,
-        'bukti_pendukung'   => empty($buktiPaths) ? null : $buktiPaths,
+        'surat_pengajuan'      => $surat['path'],
+        'surat_pengajuan_nama' => $surat['nama'],
+        'bukti_pendukung'      => $bukti ?: null,
         'approval_step'     => $inisialStep, 
     ]);
 
 
     return redirect()->route('pengajuan.index')->with('success', 'Pengajuan cuti dan dokumen lampiran berhasil dikirim.');
+}
+
+protected function simpanBerkas(\Illuminate\Http\UploadedFile $file, string $folder): array
+{
+    $asli = trim(preg_replace('/[\x00-\x1F\x7F\/\\\\]+/', '', basename($file->getClientOriginalName())));
+    $ext  = strtolower(preg_replace('/[^a-z0-9]/i', '', $file->getClientOriginalExtension()));
+
+    $path = $file->storeAs($folder, \Illuminate\Support\Str::random(40) . ($ext ? ".{$ext}" : ''), 'berkas');
+
+    return [
+        'path' => $path,
+        'nama' => $asli !== '' ? mb_substr($asli, 0, 200) : 'berkas' . ($ext ? ".{$ext}" : ''),
+    ];
+}
+public function unduhBerkas(Request $request, $pengajuan, string $jenis, $index = 0)
+{
+    $data = PengajuanCuti::with('user')->findOrFail($pengajuan);
+    $user = Auth::user();
+
+    // Pemilik, Admin/Superadmin, atau pejabat yang saat ini memegang meja pengajuan (aturan sama dengan halaman approval)
+    $boleh = $data->user_id === $user->id
+        || $user->hasAnyRole(['Admin Kepegawaian', 'Superadmin'])
+        || $this->mejaSayaDetail($data, $user) !== null;
+
+    abort_unless($boleh, 403, 'Anda tidak berhak mengakses berkas ini.');
+
+    $berkas = $data->daftarBerkas($jenis)[(int) $index] ?? null;
+    abort_if(! $berkas, 404, 'Berkas tidak ditemukan.');
+
+    // file baru ada di disk privat 'berkas'; file lama masih di 'public'
+    $disk = collect(['berkas', 'public'])->first(fn ($d) => \Illuminate\Support\Facades\Storage::disk($d)->exists($berkas['path']));
+    abort_if(! $disk, 404, 'Berkas tidak ditemukan di penyimpanan.');
+
+    return \Illuminate\Support\Facades\Storage::disk($disk)
+        ->response($berkas['path'], $berkas['nama'], ['X-Content-Type-Options' => 'nosniff']);
 }
 
     public function riwayat(Request $request)
@@ -399,6 +438,66 @@ $kodeBaru = $prefix . str_pad($nomorUrut, 2, '0', STR_PAD_LEFT);
 
     return redirect()->back()->with('success', 'Pengajuan cuti berhasil dibatalkan.');
     }   
+    public function formRevisi($id)
+{
+    $pengajuan = PengajuanCuti::where('user_id', Auth::id())->findOrFail($id);
+    abort_unless((int) $pengajuan->approval_step === 9, 403, 'Pengajuan ini tidak sedang diminta revisi.');
+
+    $user = Auth::user();
+    $jenisCutis = JenisCuti::query()
+        ->when($user->status_kepegawaian === 'PPPK', fn ($q) => $q->where('untuk_pppk', true))
+        ->when($user->jenis_kelamin === 'L', fn ($q) => $q->where('khusus_perempuan', false))
+        ->get();
+
+    return view('pegawai.revisi', compact('pengajuan', 'jenisCutis'));
+}
+
+public function kirimRevisi(Request $request, $id)
+{
+    $pengajuan = PengajuanCuti::where('user_id', Auth::id())->findOrFail($id);
+
+    if ((int) $pengajuan->approval_step !== 9) {
+        return redirect()->route('pegawai.detail', $pengajuan->id)->with('error', 'Pengajuan ini tidak sedang menunggu revisi.');
+    }
+
+    $request->validate([
+        'jenis_cuti_id'     => 'required|exists:jenis_cutis,id',
+        'tanggal_mulai'     => 'required|date',
+        'tanggal_selesai'   => 'required|date|after_or_equal:tanggal_mulai',
+        'alasan'            => 'required|string',
+        'lokasi'            => 'required|string|max:255',
+        'surat_pengajuan'   => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120', // kosong = pakai surat lama
+        'bukti_pendukung'   => 'nullable|array|max:5',
+        'bukti_pendukung.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
+    ]);
+
+    [$error, $durasi] = $this->cekAturanPengajuan($request, $pengajuan);
+    if ($error) return back()->withInput()->with('error', $error);
+
+    $data = [
+        'jenis_cuti_id'     => $request->jenis_cuti_id,
+        'tanggal_mulai'     => $request->tanggal_mulai,
+        'tanggal_selesai'   => $request->tanggal_selesai,
+        'durasi_hari'       => $durasi,
+        'alasan'            => $request->alasan,
+        'lokasi'            => $request->lokasi,
+        'catatan_penolakan' => null,   // catatan revisi sudah ditindaklanjuti
+        'dokumen_ttd'       => null,   // proses mulai dari awal, tanda tangan lama tidak berlaku
+        'approval_step'     => $this->stepAwal(Auth::user()),
+    ];
+
+    if ($request->hasFile('surat_pengajuan')) {
+        $data['surat_pengajuan'] = $this->simpanBerkas($request->file('surat_pengajuan'), 'dokumen/surat_pengajuan');
+    }
+    if ($request->hasFile('bukti_pendukung')) { // upload baru menggantikan seluruh bukti lama
+        $data['bukti_pendukung'] = collect($request->file('bukti_pendukung'))
+            ->map(fn ($f) => $this->simpanBerkas($f, 'dokumen/bukti_pendukung'))->all();
+    }
+
+    $pengajuan->update($data);
+
+    return redirect()->route('pegawai.detail', $pengajuan->id)->with('success', 'Pengajuan diperbaiki dan dikirim ulang dari awal.');
+}
 
        public function show($id)
     {

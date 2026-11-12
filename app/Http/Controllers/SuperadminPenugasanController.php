@@ -265,8 +265,8 @@ class SuperadminPenugasanController extends Controller
         return $redirect->with('warning', sprintf(
             'Perhatian: %s memiliki cuti disetujui pada %s – %s. Pertimbangkan menukar pengganti.',
             $pengganti->name,
-            Carbon::parse($c->tanggal_mulai)->format('d M Y'),
-            Carbon::parse($c->tanggal_selesai)->format('d M Y')
+            Carbon::parse($c->tanggal_mulai)->format('d/m/Y'),
+            Carbon::parse($c->tanggal_selesai)->format('d/m/Y')
         ));
     }
 }

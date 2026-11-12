@@ -385,7 +385,7 @@
                                     <p class="text-xs text-gray-400">{{ $pengajuan->user->bagianBidang->nama ?? $pengajuan->user->bagianBidang->nama_bagian ?? 'Divisi Tidak Diketahui' }}</p>
                                 </td>
                                 <td class="px-6 py-4 text-gray-600">{{ $pengajuan->jenisCuti->nama_cuti ?? '-' }}</td>
-                                <td class="px-6 py-4 text-gray-600">{{ \Carbon\Carbon::parse($pengajuan->tanggal_mulai)->translatedFormat('l, d F Y') }}</td>
+                                <td class="px-6 py-4 text-gray-600">{{ \Carbon\Carbon::parse($pengajuan->tanggal_mulai)->translatedFormat('l, d/m/Y') }}</td>
                                 <td class="px-6 py-4 text-center text-gray-600">{{ $pengajuan->durasi_hari }} Hari</td>
                                 <td class="px-6 py-4 text-center">
                                 <x-status-dot status="menunggu">{{ $pengajuan->status_label ?? 'Menunggu' }}</x-status-dot>

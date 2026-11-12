@@ -188,8 +188,8 @@ class DashboardKepalaController extends Controller
                 ->map(fn ($p) => [
                     'nama' => $p->user->name ?? '-',
                     'nip' => $p->user->nip ?? '-',
-                    'tanggal_mulai' => \Carbon\Carbon::parse($p->tanggal_mulai)->translatedFormat('d M Y'),
-                    'tanggal_selesai' => \Carbon\Carbon::parse($p->tanggal_selesai)->translatedFormat('d M Y'),
+                    'tanggal_mulai' => \Carbon\Carbon::parse($p->tanggal_mulai)->format('d/m/Y'),
+                    'tanggal_selesai' => \Carbon\Carbon::parse($p->tanggal_selesai)->format('d/m/Y'),
                 ])
                 ->values()
                 ->toArray();

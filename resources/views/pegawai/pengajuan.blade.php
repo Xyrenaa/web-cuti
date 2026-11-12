@@ -52,7 +52,7 @@
                         @forelse ($riwayat as $index => $item)
                         <tr class="hover:bg-blue-50/50 transition">
                             <td class="px-6 py-4">{{ $riwayat->firstItem() + $index }}</td>
-                            <td class="px-6 py-4">{{ \Carbon\Carbon::parse($item->tanggal_mulai)->format('d M Y') }}</td>
+                            <td class="px-6 py-4">{{ \Carbon\Carbon::parse($item->tanggal_mulai)->format('d/m/Y') }}</td>
                             <td class="px-6 py-4 font-medium text-gray-900">{{ $item->jenisCuti->nama_cuti ?? 'Cuti' }}</td>
                             <td class="px-6 py-4">
                                 {{ $item->durasi_hari }} Hari

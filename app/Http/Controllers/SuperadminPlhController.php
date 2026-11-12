@@ -136,8 +136,8 @@ class SuperadminPlhController extends Controller
             ]);
         });
 
-        $periode = Carbon::parse($pengajuan->tanggal_mulai)->translatedFormat('d F Y')
-            . ' s.d. ' . Carbon::parse($pengajuan->tanggal_selesai)->translatedFormat('d F Y');
+        $periode = Carbon::parse($pengajuan->tanggal_mulai)->format('d/m/Y')
+            . ' s.d. ' . Carbon::parse($pengajuan->tanggal_selesai)->format('d/m/Y');
         $meta = [
             'tipe'           => 'status',
             'kode_pengajuan' => $pengajuan->kode_pengajuan,

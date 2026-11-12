@@ -22,13 +22,13 @@
                     <div><dt class="text-gray-400">Kepala definitif</dt><dd class="font-semibold">{{ $lama->pejabatDefinitif->name ?? 'Lowong' }}</dd></div>
                     <div><dt class="text-gray-400">Pengganti saat ini</dt><dd class="font-semibold">{{ $lama->pengganti->name }}</dd></div>
                     <div class="md:col-span-2"><dt class="text-gray-400">Periode</dt>
-                        <dd class="font-semibold">{{ $lama->tanggal_mulai->format('d M Y') }} – {{ $lama->tanggal_selesai ? $lama->tanggal_selesai->format('d M Y') : 'sampai dicabut' }}</dd></div>
+                        <dd class="font-semibold">{{ $lama->tanggal_mulai->format('d/m/Y') }} – {{ $lama->tanggal_selesai ? $lama->tanggal_selesai->format('d/m/Y') : 'sampai dicabut' }}</dd></div>
                 </dl>
 
                 @if($cutiPengganti)
                     <div class="mt-4 bg-red-50 border border-red-200 text-red-800 text-sm rounded-lg px-4 py-3">
                         {{ $lama->pengganti->name }} sedang cuti
-                        ({{ \Carbon\Carbon::parse($cutiPengganti->tanggal_mulai)->format('d M Y') }} – {{ \Carbon\Carbon::parse($cutiPengganti->tanggal_selesai)->format('d M Y') }}).
+                        ({{ \Carbon\Carbon::parse($cutiPengganti->tanggal_mulai)->format('d/m/Y') }} – {{ \Carbon\Carbon::parse($cutiPengganti->tanggal_selesai)->format('d/m/Y') }}).
                     </div>
                 @endif
             </div>

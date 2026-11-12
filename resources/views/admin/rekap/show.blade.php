@@ -117,10 +117,10 @@
                                     <td class="px-6 py-3 font-mono text-xs text-gray-600">{{ $c->kode_pengajuan }}</td>
                                     <td class="px-4 py-3 font-semibold text-gray-800">{{ $c->jenisCuti->nama_cuti ?? '-' }}</td>
                                     <td class="px-4 py-3 text-gray-600 whitespace-nowrap">
-                                        {{ $mulai->translatedFormat('d M Y') }}@if(!$mulai->isSameDay($selesai)) – {{ $selesai->translatedFormat('d M Y') }}@endif
+                                        {{ $mulai->format('d/m/Y') }}@if(!$mulai->isSameDay($selesai)) – {{ $selesai->format('d/m/Y') }}@endif
                                     </td>
                                     <td class="px-4 py-3 text-center font-bold text-gray-800">{{ $c->durasi_hari }}</td>
-                                    <td class="px-4 py-3 text-gray-500 whitespace-nowrap">{{ optional($c->created_at)->translatedFormat('d M Y') }}</td>
+                                    <td class="px-4 py-3 text-gray-500 whitespace-nowrap">{{ optional($c->created_at)->format('d/m/Y') }}</td>
                                     <x-status-dot :status="$badge[0]">{{ $badge[0] }}</x-status-dot>
                                     <td class="px-6 py-3 text-right"><a href="{{ route('admin.approval.show', $c->id) }}" class="text-xs font-semibold text-[#2A65F3] hover:underline">Detail →</a></td>
                                 </tr>

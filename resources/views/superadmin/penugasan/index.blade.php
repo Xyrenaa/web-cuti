@@ -5,7 +5,7 @@
     </x-slot>
 
     @php
-        $fmt = fn ($d) => \Carbon\Carbon::parse($d)->format('d M Y');
+        $fmt = fn ($d) => \Carbon\Carbon::parse($d)->format('d/m/Y');
         $warnaStatus = [
             'aktif'     => 'bg-green-100 text-green-700',
             'terjadwal' => 'bg-blue-100 text-blue-700',
@@ -85,8 +85,8 @@
                                         @if($p->nomor_surat)<div class="text-xs font-normal text-gray-400">No. {{ $p->nomor_surat }}</div>@endif
                                     </td>
                                     <td class="px-4 py-3 text-gray-600 whitespace-nowrap">
-                                        {{ $p->tanggal_mulai->format('d M Y') }} –
-                                        {{ $p->tanggal_selesai ? $p->tanggal_selesai->format('d M Y') : 'sampai dicabut' }}
+                                        {{ $p->tanggal_mulai->format('d/m/Y') }} –
+                                        {{ $p->tanggal_selesai ? $p->tanggal_selesai->format('d/m/Y') : 'sampai dicabut' }}
                                     </td>
                                     <td class="px-4 py-3">
                                         <span class="px-2 py-0.5 rounded-full text-xs font-semibold {{ $warnaStatus[$p->status_efektif] ?? 'bg-gray-100 text-gray-600' }}">{{ ucfirst($p->status_efektif) }}</span>
